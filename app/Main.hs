@@ -1,6 +1,7 @@
 module Main where
 
-import Lib
+import Invest.Prelude
+import Invest.Lib
 
 main :: IO ()
-main = someFunc
+main = test

@@ -21,7 +21,44 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
+- bytestring
 - cassava
+- containers
+- record-hasfield
+- record-dot-preprocessor
+- safe
+- string-conversions
+- text
+- vector
+
+ghc-options:
+  - -Wincomplete-patterns
+  - -Wdodgy-exports
+  - -Wdodgy-imports
+  - -Wincomplete-record-updates
+  - -Wname-shadowing
+  - -F -pgmF=record-dot-preprocessor
+  - -fdefer-typed-holes
+
+default-extensions:
+  - ApplicativeDo
+  - DeriveGeneric
+  - FlexibleContexts
+  - FlexibleInstances
+  - GADTs
+  - MultiParamTypeClasses
+  - NamedFieldPuns
+  - NoImplicitPrelude
+  - OverloadedStrings
+  - OverloadedLists
+  - QuasiQuotes
+  - RecordWildCards
+  - ScopedTypeVariables
+  - TemplateHaskell
+  - TypeFamilies
+  - TypeFamilies
+  - TypeOperators
+  - KindSignatures
 
 library:
   source-dirs: src
