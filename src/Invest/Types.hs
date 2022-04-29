@@ -7,14 +7,19 @@ import Data.Csv (FromNamedRecord(..), FromField, (.:))
 newtype Year = Year Int
   deriving (Show, Eq, FromField)
 
-newtype Percent = Percent Float
+newtype Pct a = Pct Float
   deriving (Show, Eq, FromField)
+
+data Inflation
+data Return
+data Balance
+data Withdrawal
 
 data Returns = Returns
   { year :: Year
-  , inflation :: Percent
-  , totalStock :: Percent
-  , totalBond :: Percent
+  , inflation :: Pct Inflation
+  , totalStock :: Pct Return
+  , totalBond :: Pct Return
   } deriving (Show, Eq, Generic)
 
 instance FromNamedRecord Returns where
@@ -25,3 +30,15 @@ instance FromNamedRecord Returns where
     totalStock <- m .: "VTSMX"
     pure Returns {..}
     
+
+data YearResult = YearResult
+  { start :: USD Balance
+  , end :: USD Balance
+  , growth :: USD Return
+  , withdrawal :: USD Withdrawal
+  , returns :: Returns
+  } deriving (Show)
+
+newtype USD a = USD {fromUSD :: Int}
+  deriving (Show, Eq)
+
