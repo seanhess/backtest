@@ -17,34 +17,15 @@ run = do
 
     let hs = toHistories rs
     let ss = samples hs
-    -- mapM_ print hs
-    -- mapM_ print rs
-    -- mapM_ print $ zip rs (drop 1 rs)
 
-    -- mapM_ print hs
-    -- let srs = map (simulation Strategy million) ss
-    let res = simulation bondsFirst port6040 million (head ss)
-
-    let wda = amount swr4 (total million)
-
-    -- print wdr
-    -- print wda
-    
-
-    -- print million
-    -- print $ balance 100000
-    -- mapM_ print res.years
-    mapM_ print (head ss)
-    -- mapM_ (print . (.stocks)) (head ss)
-    mapM_ (print) res.years
-
-
-    -- mapM_ (print . (\sr -> (sr.startYear, sr.endYear, sr.endBalance))) $ srs
-
-    -- mapM_ print sr.years
-    -- putStrLn ""
+    let sim = simulation bondsFirst port6040 million
+    let srs = map sim ss :: [SimResult]
+    mapM_ (putStrLn . showSimResult) srs
     -- putStrLn $ "ENDING BALANCE: " <> show sr.endingBalance
     -- mapM_ print rs
+  where
+      showSimResult sr =
+          show (sr.startYear, sr.endYear, sr.endBalance)
 
 loadReturns :: IO [HistoryRow]
 loadReturns = do
@@ -73,8 +54,8 @@ toHistory past now =
 
 samples :: [History] -> [[History]]
 samples hs = List.tails hs
-  & fmap (take 30)
-  & filter (\hs' -> length hs' >= 30)
+  & fmap (take 40)
+  & filter (\hs' -> length hs' >= 40)
 
 simulation :: WithdrawalStrategy -> RebalanceStrategy -> Balances -> [History] -> SimResult
 simulation withdraw rebalance bal hs =
