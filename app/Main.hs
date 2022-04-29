@@ -4,4 +4,4 @@ import Invest.Prelude
 import Invest.Lib
 
 main :: IO ()
-main = test
+main = run

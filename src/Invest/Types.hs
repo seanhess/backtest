@@ -2,75 +2,201 @@
 module Invest.Types where
 
 import Invest.Prelude
+import Data.Text as Text (splitOn)
 import Data.Csv (FromNamedRecord(..), FromField(..), (.:), Parser)
 import Data.Decimal (Decimal, realFracToDecimal)
+import Data.ByteString.Lazy (ByteString)
+import qualified Data.ByteString.Lazy as Lazy
+import Numeric (showFFloat)
 
 newtype Year = Year Int
   deriving (Eq, FromField)
 
+
 instance Show Year where 
   show (Year i) = show i
 
-newtype Pct a = Pct Decimal
-  deriving (Eq)
+newtype Pct a = Pct { fromPercent :: Float }
+  deriving (FromField, Num)
 
-instance FromField (Pct a) where
-  parseField field = do
-    f <- parseField field :: Parser Float
-    pure $ Pct $ realFracToDecimal 2 f
+instance Eq (Pct a) where
+  (==) (Pct a) (Pct b) =
+    abs (b - a) < 0.001
 
 
 instance Show (Pct a) where
-  show (Pct p) = show p <> "%"
+  show (Pct p) = showFFloat (Just 2) (p*100) "" <> "%"
 
-newtype USD a = USD { fromUSD :: Int }
+-- | Total in pennies
+data USD a = USD { totalCents :: Int }
   deriving (Eq)
 
+dollars :: USD a -> Int
+dollars (USD c) = c `div` 100
+
+-- cents :: USD a -> Int
+-- cents (USD c) = c `rem` 100
+
+fromFloat :: Float -> USD a
+fromFloat f = USD $ round (f * 100)
+
+instance FromField (USD a) where
+  parseField f =
+    fromFloat <$> parseField f
+
+-- show it rounded off
 instance Show (USD a) where
-  show (USD d) = '$' : show d
+  show m = mconcat
+    [ "$"
+    , show $ dollars m
+    -- , "."
+    -- , pad $ show $ toCents m
+    ]
+    where pad [c] = ['0',c]
+          pad x = x
 
 
 
 data Inflation
 data Withdrawal
-data Return
-data Change
-data Balance
+data Amount
+-- data Balance
+data Stocks
+data Bonds
 
-data Real
-data Nom
+data RealTotal
 
-data Returns = Returns
-  { year :: Year
-  , inflation :: Pct Inflation
-  , totalStock :: Pct Return
-  , totalBond :: Pct Return
-  } deriving (Show, Eq, Generic)
+data HistoryRow = HistoryRow
+  { year      :: Year
+  , month     :: Int
+  , stocks    :: USD Stocks
+  , bonds     :: USD Bonds
+  , cpi       :: Pct Inflation
+  } deriving (Show, Eq)
 
-instance FromNamedRecord Returns where
+instance FromNamedRecord HistoryRow where
   parseNamedRecord m = do
-    year       <- m .: "YEAR"
-    inflation  <- m .: "CPI-U"
-    totalBond  <- m .: "VBMFX"
-    totalStock <- m .: "VTSMX"
-    pure Returns {..}
-    
+    date   <- m .: "Date" :: Parser Float
+    cpi    <- m .: "CPI"
+    stocks <- clean =<< m .: "Real Total Return Price"
+    bonds  <- clean =<< m .: "Real Total Bond Returns"
+
+    let yr = round date :: Int
+    let month = (round $ (date - (fromIntegral yr)) * 100) :: Int
+    let year = Year yr
+        
+    pure HistoryRow {..}
+
+clean :: FromField a => ByteString -> Parser a
+clean s = do
+  parseField $ cs $ filter (/= ',') $ cs s
+
+
+data History = History
+  { year      :: Year
+  , stocks    :: Pct Stocks
+  , bonds     :: Pct Bonds
+  } deriving (Show, Eq)
+
+-- | Defines rebalancing rules and percentages, also withdrawal strategies?
+-- we need to offload this to the user
+-- data Portfolio = Portfolio
+
+
+data Strategy = Strategy
+
+data Portfolio stocks bonds = Portfolio
+  { stocks :: USD stocks
+  , bonds  :: USD bonds
+  } deriving (Show, Eq)
+
+type Balances = Portfolio Stocks Bonds
+type Changes  = Portfolio Amount Amount 
+
+
+total :: Portfolio s b -> USD Amount
+total b = USD $
+    (totalCents b.stocks)
+  + (totalCents b.bonds)
+
+
+
 
 data YearResult = YearResult
-  { year        :: Year
-  , start       :: USD Balance
-  , realEnd     :: USD Balance
-  , realChange  :: Pct Change
-  , investments :: Pct Return
-  , withdrawal  :: Pct Withdrawal
-  , inflation   :: Pct Inflation
+  { history    :: History
+  , start      :: Balances
+  , end        :: Balances
+  , returns    :: Changes
+  , withdrawals :: Changes
+  -- , rebalance :: Changes
+  -- , cpi        :: Pct Inflation
   } deriving (Show)
+
 
 
 data SimResult = SimResult
   { startYear :: Year
-  , startBalance :: USD Balance
+  , startBalance :: Balances
   , endYear :: Year
-  , endBalance :: USD Balance
+  , endBalance :: Balances
   , years :: [YearResult]
-  }
+  } deriving (Show)
+
+
+-- 1. We combine percentages in a Change. They must be added.
+-- 2. Changes can only be applied once
+
+-- loss :: USD amt -> USD Balance -> USD Balance
+-- loss (USD amt) (USD bal) = USD (bal - amt)
+
+-- gain :: USD amt -> USD Balance -> USD Balance
+-- gain (USD amt) (USD bal) = USD (bal + amt)
+
+--  can we simply add it?
+
+
+-- loss :: USD a -> USD a
+-- loss (USD a) = USD (-a)
+
+-- ($+) :: USD a -> USD b -> USD c
+-- (USD a) $+ (USD b) = USD $ a + b
+
+-- ($-) :: USD a -> USD a -> USD Return
+-- ($-) (USD a) (USD b) = USD $ b - a
+
+-- compound :: Pct a -> Pct b -> Pct c
+-- compound (Pc )= 
+
+-- I guess percentages are just numbers
+mult :: Pct a -> Pct b -> Pct c
+mult (Pct a) (Pct b) = Pct $ a * b
+
+gains ::  USD bal -> USD bal -> USD Amount
+gains (USD s) (USD e) = USD $ e - s
+
+gainsPercent :: USD bal -> USD bal -> Pct bal
+gainsPercent s e =
+    Pct $ (fromIntegral $ totalCents e) / (fromIntegral $ totalCents s) - 1
+
+-- | Applies a return to a balance
+addAmount :: USD Amount -> USD bal -> USD bal
+addAmount (USD ret) (USD b) = balance $ b + ret
+
+loss :: USD Amount -> USD Amount
+loss (USD a) = USD (-a)
+
+zero :: USD bal
+zero = USD 0
+
+-- | balances can never be zero, but returns can
+balance :: Int -> USD bal
+balance n
+  | n >= 0 = USD n
+  | otherwise = USD 0
+
+amount :: Pct amt -> USD bal -> USD Amount
+amount (Pct pct) bal = USD $ round $
+    (fromIntegral $ totalCents bal) * pct
+
+fromUSD :: USD a -> USD b
+fromUSD (USD a) = USD a

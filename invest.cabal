@@ -62,6 +62,7 @@ library
     , bytestring
     , cassava
     , containers
+    , exceptions
     , record-dot-preprocessor
     , record-hasfield
     , safe
@@ -106,6 +107,7 @@ executable invest-exe
     , bytestring
     , cassava
     , containers
+    , exceptions
     , invest
     , record-dot-preprocessor
     , record-hasfield
@@ -152,6 +154,7 @@ test-suite invest-test
     , bytestring
     , cassava
     , containers
+    , exceptions
     , invest
     , record-dot-preprocessor
     , record-hasfield

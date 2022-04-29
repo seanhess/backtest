@@ -25,6 +25,7 @@ dependencies:
 - cassava
 - containers
 - Decimal
+- exceptions
 - record-hasfield
 - record-dot-preprocessor
 - safe

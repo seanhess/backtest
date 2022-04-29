@@ -5,6 +5,7 @@ module Invest.Prelude
   , Text, cs
   , MonadIO, liftIO
   -- , MonadTrans, lift
+  , MonadCatch, MonadThrow, Exception, try, throwM
   , fromMaybe, listToMaybe, mapMaybe, catMaybes, isJust, isNothing
   , identity
   , Generic
@@ -25,10 +26,10 @@ module Invest.Prelude
   , minimumMay, minimumDef
 
   -- * lifted IO
-  , putStrLn, print
+  , putStrLn, print, putStr
   ) where
 
-import Prelude hiding (id, head, print, putStrLn, readFile, writeFile, Real)
+import Prelude hiding (id, head, print, putStrLn, readFile, writeFile, Real, putStr)
 import qualified Prelude
 import Data.Text (Text)
 import Data.Map (Map)
@@ -37,6 +38,7 @@ import Data.String.Conversions(cs)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 -- import Control.Monad.Trans (MonadTrans, lift)
 import Control.Monad (unless, guard, zipWithM_, mapM_, forM_)
+import Control.Monad.Catch (MonadCatch, try, throwM, Exception, MonadThrow)
 import Data.Function ((&))
 import Data.List (group, sort, sortOn, find)
 import Control.Applicative ((<|>))
@@ -52,6 +54,9 @@ print = liftIO . Prelude.print
 
 putStrLn :: (MonadIO m) => String -> m ()
 putStrLn = liftIO . Prelude.putStrLn
+
+putStr :: (MonadIO m) => String -> m ()
+putStr = liftIO . Prelude.putStr
 
 
 
