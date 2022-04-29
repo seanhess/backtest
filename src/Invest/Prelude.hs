@@ -28,7 +28,7 @@ module Invest.Prelude
   , putStrLn, print
   ) where
 
-import Prelude hiding (id, head, print, putStrLn, readFile, writeFile)
+import Prelude hiding (id, head, print, putStrLn, readFile, writeFile, Real)
 import qualified Prelude
 import Data.Text (Text)
 import Data.Map (Map)

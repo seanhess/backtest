@@ -6,13 +6,21 @@ module Invest.Lib where
 import Invest.Prelude
 import Invest.Types
 import Data.Csv as Csv (decodeByName, Header)
+import Data.List as List
 import Data.ByteString.Lazy (readFile)
 import Data.Vector as Vector (Vector, toList)
 
 test :: IO ()
 test = do
-    rs <- loadReturns
-    simulation million (Vector.toList rs)
+    rs <- Vector.toList <$> loadReturns
+
+    let srs = map (simulation million) (samples rs)
+
+    mapM_ (print . (\sr -> (sr.startYear, sr.endYear, sr.endBalance))) $ srs
+
+    -- mapM_ print sr.years
+    -- putStrLn ""
+    -- putStrLn $ "ENDING BALANCE: " <> show sr.endingBalance
     -- mapM_ print rs
 
 loadReturns :: IO (Vector Returns)
@@ -22,37 +30,78 @@ loadReturns = do
     Right (_, rs) <- pure $ Csv.decodeByName f
     pure rs
 
-simulation :: USD Balance -> [Returns] -> IO ()
-simulation balance [] = pure ()
-simulation balance (r:_) = do
-    let wdr = Pct 4 :: Pct Withdrawal
-    let bal' = calculateYear r wdr balance
-    print bal'
 
-    pure ()
+samples :: [Returns] -> [[Returns]]
+samples rss = List.tails rss
+--   & fmap (take 30)
+  & filter (\rs -> length rs >= 30)
+
+simulation :: USD Balance -> [Returns] -> SimResult
+simulation balance rs =
+    let wdr = Pct 4 :: Pct Withdrawal
+        yr  = (head rs).year
+        (bal', yrs) = List.mapAccumL (eachReturns wdr) balance rs
+    in SimResult
+      { startYear = (head rs).year
+      , startBalance = balance
+      , endYear = (last yrs).year
+      , endBalance = bal'
+      , years = yrs
+      }
     
   where
 
+    eachReturns :: Pct Withdrawal -> USD Balance -> Returns -> (USD Balance, YearResult)
+    eachReturns wdr bal r =
+        let yr = calculateYear r wdr bal
+        in (yr.realEnd, yr)
+
     calculateYear :: Returns -> Pct Withdrawal -> USD Balance -> YearResult
-    calculateYear returns wdr bal = 
-        let withdrawal = portion wdr bal
-            growth     = portion returns.totalStock bal
-            end        = bal & grow growth & withdraw withdrawal
-            start      = bal
-        in YearResult {..}
+    calculateYear rets wdr bal = 
+        let investments = rets.totalStock
 
-    portion :: Pct p -> USD a -> USD p
-    portion (Pct p) (USD d) = USD $ round $ (p/100) * fromIntegral d
+            realChange = zero
+               & gain investments
+               & devalue rets.inflation
+               & withdraw wdr
 
-    grow :: USD Return -> USD Balance -> USD Balance
-    grow (USD amt) (USD d) = USD (amt + d)
+            realEnd = bal & change realChange
 
-    withdraw :: USD Withdrawal -> USD Balance -> USD Balance
-    withdraw (USD amt) (USD bal) = USD (bal - amt)
+        in YearResult
+          { year = rets.year
+          , start = bal
+          , realEnd = realEnd
+          , realChange = realChange
+          , investments = investments
+          , withdrawal = wdr
+          , inflation = rets.inflation
+          }
 
 
--- USD allowed operations: add, subtract
--- PCT allowed operations: add, mult * usd, grow
+change :: Pct Change -> USD Balance -> USD Balance
+change (Pct p) (USD d) = USD $ round $ (1 + p/100) * fromIntegral d
+
+zero :: Pct Change
+zero = Pct 0
+
+toReturn :: Pct a -> Pct Return
+toReturn (Pct a) = Pct a
+
+compound :: Pct p -> Pct p -> Pct p
+compound (Pct p) (Pct p2) = Pct $ 100 * (p/100 * p2/100)
+
+gain :: Pct Return -> Pct Change -> Pct Change
+gain (Pct r) (Pct c) = Pct $ c + r
+
+loss :: Pct Return -> Pct Change -> Pct Change
+loss (Pct r) (Pct c) = Pct $ c - r
+
+withdraw :: Pct Withdrawal -> Pct Change -> Pct Change
+withdraw pct = loss (toReturn pct)
+
+devalue :: Pct Inflation -> Pct Change -> Pct Change
+devalue pct = loss (toReturn pct)
+
 
 million :: USD Balance
 million = USD 1000000

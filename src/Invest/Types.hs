@@ -2,18 +2,43 @@
 module Invest.Types where
 
 import Invest.Prelude
-import Data.Csv (FromNamedRecord(..), FromField, (.:))
+import Data.Csv (FromNamedRecord(..), FromField(..), (.:), Parser)
+import Data.Decimal (Decimal, realFracToDecimal)
 
 newtype Year = Year Int
-  deriving (Show, Eq, FromField)
+  deriving (Eq, FromField)
 
-newtype Pct a = Pct Float
-  deriving (Show, Eq, FromField)
+instance Show Year where 
+  show (Year i) = show i
+
+newtype Pct a = Pct Decimal
+  deriving (Eq)
+
+instance FromField (Pct a) where
+  parseField field = do
+    f <- parseField field :: Parser Float
+    pure $ Pct $ realFracToDecimal 2 f
+
+
+instance Show (Pct a) where
+  show (Pct p) = show p <> "%"
+
+newtype USD a = USD { fromUSD :: Int }
+  deriving (Eq)
+
+instance Show (USD a) where
+  show (USD d) = '$' : show d
+
+
 
 data Inflation
-data Return
-data Balance
 data Withdrawal
+data Return
+data Change
+data Balance
+
+data Real
+data Nom
 
 data Returns = Returns
   { year :: Year
@@ -32,13 +57,20 @@ instance FromNamedRecord Returns where
     
 
 data YearResult = YearResult
-  { start :: USD Balance
-  , end :: USD Balance
-  , growth :: USD Return
-  , withdrawal :: USD Withdrawal
-  , returns :: Returns
+  { year        :: Year
+  , start       :: USD Balance
+  , realEnd     :: USD Balance
+  , realChange  :: Pct Change
+  , investments :: Pct Return
+  , withdrawal  :: Pct Withdrawal
+  , inflation   :: Pct Inflation
   } deriving (Show)
 
-newtype USD a = USD {fromUSD :: Int}
-  deriving (Show, Eq)
 
+data SimResult = SimResult
+  { startYear :: Year
+  , startBalance :: USD Balance
+  , endYear :: Year
+  , endBalance :: USD Balance
+  , years :: [YearResult]
+  }

@@ -24,6 +24,7 @@ dependencies:
 - bytestring
 - cassava
 - containers
+- Decimal
 - record-hasfield
 - record-dot-preprocessor
 - safe
@@ -42,23 +43,29 @@ ghc-options:
 
 default-extensions:
   - ApplicativeDo
+  - DataKinds
   - DeriveGeneric
+  - DuplicateRecordFields
   - FlexibleContexts
   - FlexibleInstances
   - GADTs
+  - KindSignatures
   - MultiParamTypeClasses
   - NamedFieldPuns
   - NoImplicitPrelude
-  - OverloadedStrings
   - OverloadedLists
+  - OverloadedStrings
   - QuasiQuotes
   - RecordWildCards
   - ScopedTypeVariables
   - TemplateHaskell
-  - TypeFamilies
+  - TypeApplications
   - TypeFamilies
   - TypeOperators
-  - KindSignatures
+  - TypeSynonymInstances
+  - UndecidableInstances
+
+
 
 library:
   source-dirs: src

@@ -34,26 +34,31 @@ library
       src
   default-extensions:
       ApplicativeDo
+      DataKinds
       DeriveGeneric
+      DuplicateRecordFields
       FlexibleContexts
       FlexibleInstances
       GADTs
+      KindSignatures
       MultiParamTypeClasses
       NamedFieldPuns
       NoImplicitPrelude
-      OverloadedStrings
       OverloadedLists
+      OverloadedStrings
       QuasiQuotes
       RecordWildCards
       ScopedTypeVariables
       TemplateHaskell
-      TypeFamilies
+      TypeApplications
       TypeFamilies
       TypeOperators
-      KindSignatures
+      TypeSynonymInstances
+      UndecidableInstances
   ghc-options: -Wincomplete-patterns -Wdodgy-exports -Wdodgy-imports -Wincomplete-record-updates -Wname-shadowing -F -pgmF=record-dot-preprocessor -fdefer-typed-holes
   build-depends:
-      base >=4.7 && <5
+      Decimal
+    , base >=4.7 && <5
     , bytestring
     , cassava
     , containers
@@ -73,26 +78,31 @@ executable invest-exe
       app
   default-extensions:
       ApplicativeDo
+      DataKinds
       DeriveGeneric
+      DuplicateRecordFields
       FlexibleContexts
       FlexibleInstances
       GADTs
+      KindSignatures
       MultiParamTypeClasses
       NamedFieldPuns
       NoImplicitPrelude
-      OverloadedStrings
       OverloadedLists
+      OverloadedStrings
       QuasiQuotes
       RecordWildCards
       ScopedTypeVariables
       TemplateHaskell
-      TypeFamilies
+      TypeApplications
       TypeFamilies
       TypeOperators
-      KindSignatures
+      TypeSynonymInstances
+      UndecidableInstances
   ghc-options: -Wincomplete-patterns -Wdodgy-exports -Wdodgy-imports -Wincomplete-record-updates -Wname-shadowing -F -pgmF=record-dot-preprocessor -fdefer-typed-holes -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      Decimal
+    , base >=4.7 && <5
     , bytestring
     , cassava
     , containers
@@ -114,26 +124,31 @@ test-suite invest-test
       test
   default-extensions:
       ApplicativeDo
+      DataKinds
       DeriveGeneric
+      DuplicateRecordFields
       FlexibleContexts
       FlexibleInstances
       GADTs
+      KindSignatures
       MultiParamTypeClasses
       NamedFieldPuns
       NoImplicitPrelude
-      OverloadedStrings
       OverloadedLists
+      OverloadedStrings
       QuasiQuotes
       RecordWildCards
       ScopedTypeVariables
       TemplateHaskell
-      TypeFamilies
+      TypeApplications
       TypeFamilies
       TypeOperators
-      KindSignatures
+      TypeSynonymInstances
+      UndecidableInstances
   ghc-options: -Wincomplete-patterns -Wdodgy-exports -Wdodgy-imports -Wincomplete-record-updates -Wname-shadowing -F -pgmF=record-dot-preprocessor -fdefer-typed-holes -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      Decimal
+    , base >=4.7 && <5
     , bytestring
     , cassava
     , containers
