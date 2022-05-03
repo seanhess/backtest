@@ -16,16 +16,34 @@ newtype Year = Year Int
 instance Show Year where 
   show (Year i) = show i
 
-newtype Pct a = Pct { fromPercent :: Float }
-  deriving (FromField, Num)
+-- This can have strange errors
+data Pct a = Pct { fromPercent :: Int, thousandths :: Int }
+  deriving (Eq)
 
-instance Eq (Pct a) where
-  (==) (Pct a) (Pct b) =
-    abs (b - a) < 0.001
+instance FromField (Pct a) where
+  parseField m = do
+    pctFromFloat <$> parseField m
 
 
 instance Show (Pct a) where
-  show (Pct p) = showFFloat (Just 2) (p*100) "" <> "%"
+  show (Pct p d) = show p <> "." <> pad (show d)
+    where pad [c] = ['0','0', c]
+          pad [a,b] = ['0', a, b]
+          pad x = x
+
+
+-- from a percentage
+pctFromFloat :: Float -> Pct a
+pctFromFloat f =
+  let n = f * 100 :: Float
+      p = floor n :: Int
+      h = round $ (n - fromIntegral p) * 1000
+  in Pct p h
+
+pctToFloat :: Pct a -> Float
+pctToFloat (Pct p h) =
+  (fromIntegral p / 100) + (fromIntegral h / 100000)
+
 
 -- | Total in pennies
 data USD a = USD { totalCents :: Int }
@@ -34,8 +52,8 @@ data USD a = USD { totalCents :: Int }
 dollars :: USD a -> Int
 dollars (USD c) = c `div` 100
 
--- cents :: USD a -> Int
--- cents (USD c) = c `rem` 100
+cents :: USD a -> Int
+cents (USD c) = c `rem` 100
 
 fromFloat :: Float -> USD a
 fromFloat f = USD $ round (f * 100)
@@ -49,11 +67,12 @@ instance Show (USD a) where
   show m = mconcat
     [ "$"
     , show $ dollars m
-    -- , "."
-    -- , pad $ show $ toCents m
+    , "."
+    , pad $ show $ cents m
     ]
     where pad [c] = ['0',c]
           pad x = x
+          
 
 
 
@@ -167,16 +186,13 @@ data SimResult = SimResult
 -- compound :: Pct a -> Pct b -> Pct c
 -- compound (Pc )= 
 
--- I guess percentages are just numbers
-mult :: Pct a -> Pct b -> Pct c
-mult (Pct a) (Pct b) = Pct $ a * b
 
 gains ::  USD bal -> USD bal -> USD Amount
 gains (USD s) (USD e) = USD $ e - s
 
 gainsPercent :: USD bal -> USD bal -> Pct bal
 gainsPercent s e =
-    Pct $ (fromIntegral $ totalCents e) / (fromIntegral $ totalCents s) - 1
+    pctFromFloat $ (fromIntegral $ totalCents e) / (fromIntegral $ totalCents s) - 1
 
 -- | Applies a return to a balance
 addAmount :: USD Amount -> USD bal -> USD bal
@@ -195,8 +211,8 @@ balance n
   | otherwise = USD 0
 
 amount :: Pct amt -> USD bal -> USD Amount
-amount (Pct pct) bal = USD $ round $
-    (fromIntegral $ totalCents bal) * pct
+amount pct bal = fromFloat $
+    (fromIntegral $ totalCents bal) * pctToFloat pct / 100
 
 fromUSD :: USD a -> USD b
 fromUSD (USD a) = USD a

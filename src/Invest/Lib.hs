@@ -9,6 +9,7 @@ import Data.Csv as Csv (decodeByName, Header)
 import Data.List as List
 import Data.ByteString.Lazy (readFile)
 import Data.Vector as Vector (Vector, toList)
+import Debug.Trace (trace)
 
 
 run :: IO ()
@@ -18,10 +19,10 @@ run = do
     let hs = toHistories rs
     let ss = samples hs
 
-    let sim = simulation bondsFirst port6040 million
+    let sim = simulation (staticPercent swr4 million) bondsFirst port6040 million
     let srs = map sim ss :: [SimResult]
-    mapM_ (putStrLn . showSimResult) srs
-    -- putStrLn $ "ENDING BALANCE: " <> show sr.endingBalance
+    mapM_ (print) $ (head srs).years
+    -- mapM_ (putStrLn . showSimResult) srs
     -- mapM_ print rs
   where
       showSimResult sr =
@@ -57,15 +58,13 @@ samples hs = List.tails hs
   & fmap (take 40)
   & filter (\hs' -> length hs' >= 40)
 
-simulation :: WithdrawalStrategy -> RebalanceStrategy -> Balances -> [History] -> SimResult
-simulation withdraw rebalance bal hs =
-    let wdr = Pct 0.04 :: Pct Withdrawal
-        wda = amount wdr (total bal)
-        yr  = (head hs).year
-        (bal', yrs) = List.mapAccumL (eachReturns wda) bal hs
+simulation :: WithdrawalAmount -> WithdrawalStrategy -> RebalanceStrategy -> Balances -> [History] -> SimResult
+simulation withdrawAmount withdraw rebalance initial hs =
+    let yr  = (head hs).year
+        (bal', yrs) = List.mapAccumL eachReturns initial hs
     in SimResult
       { startYear = (head hs).year
-      , startBalance = bal
+      , startBalance = initial
       , endYear = (last yrs).history.year
       , endBalance = bal'
       , years = yrs
@@ -73,28 +72,25 @@ simulation withdraw rebalance bal hs =
     
   where
 
-    eachReturns :: USD Amount -> Balances -> History -> (Balances, YearResult)
-    eachReturns wda b r =
-        let yr = yearResult wda r b
+    eachReturns :: Balances -> History -> (Balances, YearResult)
+    eachReturns b r =
+        let yr = yearResult r b
         in (yr.end, yr)
 
 
     -- returnFromRealTotal
 
-    apply :: Changes -> Balances -> Balances
-    apply ch bals =
-        Portfolio (addAmount ch.stocks bals.stocks) (addAmount ch.bonds bals.bonds)
 
-    yearResult :: USD Amount -> History -> Balances -> YearResult
-    yearResult wdr h start = 
+    yearResult :: History -> Balances -> YearResult
+    yearResult h start = 
 
-        -- This is silly :) 
-        -- well I want to call a series of functions and have them return their calculations
-        -- I could require the types to match
+
+        -- TODO I don't like how these flow into each other
         let rt = calcReturns h start
             rtb = start & apply rt
 
-            wd = withdraw wdr rtb
+            wda = withdrawAmount rtb
+            wd = withdraw wda rtb
             wdb = rtb & apply wd
 
             rb = rebalance wdb
@@ -112,6 +108,11 @@ simulation withdraw rebalance bal hs =
           }
 
 
+apply :: Changes -> Balances -> Balances
+apply ch bals =
+    Portfolio (addAmount ch.stocks bals.stocks) (addAmount ch.bonds bals.bonds)
+
+
 -- ah, we need the previous one also!
 calcReturns :: History -> Balances -> Changes
 calcReturns h b =
@@ -120,6 +121,16 @@ calcReturns h b =
     in Portfolio ds db
 
 -- wait, no, this is based on the original withdrawal amount
+
+
+-- ignore the balances and just return the amount
+type WithdrawalAmount = Balances -> USD Amount
+staticPercent :: Pct Amount -> Balances -> Balances -> USD Amount 
+staticPercent p bal1 _ =
+    amount p (total bal1)
+
+ 
+
 type WithdrawalStrategy = USD Amount -> Balances -> Changes
 
 bondsFirst :: USD Amount -> Balances -> Changes
@@ -129,6 +140,10 @@ bondsFirst wda b =
         then Portfolio (USD 0) (loss wda)
         else Portfolio (loss wda) (USD 0)
 
+noWithdraw :: USD Amount -> Balances -> Changes
+noWithdraw _ _ = Portfolio zero zero
+
+
 type RebalanceStrategy = Balances -> Changes
 
 fixedPortfolio :: Pct Stocks -> Pct Bonds -> Balances -> Changes
@@ -137,6 +152,9 @@ fixedPortfolio ps pb bal =
         ts = fromUSD $ amount ps tot :: USD Stocks
         tb = fromUSD $ amount pb tot :: USD Bonds
     in Portfolio (gains bal.stocks ts) (gains bal.bonds tb)
+
+noRebalance :: Balances -> Changes
+noRebalance _ = Portfolio zero zero
 
 
 
@@ -165,8 +183,8 @@ million = Portfolio
   }
 
 swr4 :: Pct Amount
-swr4 = Pct 0.04
+swr4 = Pct 4 0
 
 
 port6040 :: RebalanceStrategy
-port6040 = fixedPortfolio (Pct 0.6) (Pct 0.4)
+port6040 = fixedPortfolio (Pct 60 0) (Pct 40 0)

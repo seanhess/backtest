@@ -28,6 +28,7 @@ dependencies:
 - exceptions
 - record-hasfield
 - record-dot-preprocessor
+- mtl
 - safe
 - string-conversions
 - text
