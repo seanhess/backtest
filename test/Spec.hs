@@ -41,11 +41,6 @@ main = do
 
 
 
-
--- are they ... computations?
--- they are state?
--- they set the state, then exit out, no?
-
 -- the only assertions should be IN the assertions
 expect :: String -> Assertion () -> Test ()
 expect expectation asrt = do
@@ -136,12 +131,16 @@ assertWithdrawalStocks = do
   expect "loss to invert the amount" $ do
     loss wa === usd (-40)
   
-  -- expect "loss to always be negative, even when starting negative" $ do
-  --   loss (usd (-20)) === usd (-20)
+  expect "loss to always be negative, even when starting negative" $ do
+    loss (usd (-20)) === usd (-20)
+
+  expect "gain to always be positive" $ do
+    gain (usd (-20)) === usd 20
+    gain (usd 30) === usd 30
 
   expect "should withdraw 0 from stocks and 40 from bonds" $ do
-    (bondsFirst wa b).stocks === usd 0
-    (bondsFirst wa b).bonds === usd (-40)
+    (withdrawBondsFirst wa b).stocks === usd 0
+    (withdrawBondsFirst wa b).bonds === usd (-40)
 
 assertWithdrawalBonds :: Test ()
 assertWithdrawalBonds = do
@@ -150,8 +149,8 @@ assertWithdrawalBonds = do
 
   expect "to withdraw from stocks when bonds are insufficient" $ do
     wa      === usd (40)
-    (bondsFirst wa b).stocks === usd (-40)
-    (bondsFirst wa b).bonds === usd 0
+    (withdrawBondsFirst wa b).stocks === usd (-40)
+    (withdrawBondsFirst wa b).bonds === usd 0
 
 
 
@@ -196,18 +195,18 @@ assertInflation = do
   let hr2 = HistoryRow (Year 1872) 1 (USD 110) (USD 101) (Pct 20 0)
   let hr3 = HistoryRow (Year 1873) 1 (USD 95)  (USD 101) (Pct 20 0)
   let hs = toHistories [hr1, hr2, hr3]
-  let sim = simulation (staticPercent swr4 million) bondsFirst port6040 million hs
+
+  -- we want to only withdraw
+  let sim = simulation (standardWithdraw4 million) million hs
   
   expect "3 histroy rows to 2 histories" $ do
     length sim.years === 2
 
-  -- withdrawals are made from bonds first
   expect "withdraw from bonds first" $
-    map (\r -> r.withdrawals.stocks) sim.years === [usd 0, usd 0]
+    map (\r -> r.actions.stocks) sim.years === [usd 0, usd 0]
 
-  -- withdrawals remain constant from year to year in real dollars
   expect "keep withdrawals constant from year to year in real dollars" $
-    map (\r -> r.withdrawals.bonds)  sim.years === [usd (-40000), usd (-40000)]
+    map (\r -> r.actions.bonds)  sim.years === [usd (-40000), usd (-40000)]
 
 
 assertSimEndBalance :: Test ()
@@ -215,7 +214,7 @@ assertSimEndBalance = do
   let hr1 = HistoryRow (Year 1871) 1 (USD 100) (USD 100) (Pct 10 0)
   let hr2 = HistoryRow (Year 1872) 1 (USD 110) (USD 101) (Pct 20 0)
   let hs = toHistories [hr1, hr2]
-  let sim = simulation (const (usd 0)) noWithdraw noRebalance million hs
+  let sim = simulation noActions million hs
   
   [y] <- pure sim.years
 
@@ -239,7 +238,7 @@ assertSimWithdrawEnd = do
 
   -- just below the threshhold to 
   let bal = Portfolio (usd 1000) (usd 30)
-  let sim = simulation (staticPercent swr4 bal) (bondsFirst) noRebalance bal hs
+  let sim = simulation (standardWithdraw4 bal) bal hs
   let wda = amount swr4 (total bal)
   
   [y] <- pure sim.years
@@ -248,7 +247,7 @@ assertSimWithdrawEnd = do
     y.returns === Portfolio (usd 100) (usd 30)
 
   expect "withdraw from bonds first because they grow" $ do
-    y.withdrawals === Portfolio (usd 0) (loss wda)
+    y.actions === Portfolio (usd 0) (loss wda)
 
 
 assertRebalance :: Test ()
@@ -258,13 +257,10 @@ assertRebalance = do
   let be = Portfolio (usd 60) (usd 40)
 
   expect "rebalance 100/0 by 40 and 40" $ do
-    fixedPortfolio (Pct 60 0) (Pct 40 0) bs === Portfolio (usd (-40)) (usd (40))
+    rebalanceFixed (Pct 60 0) (Pct 40 0) bs === Portfolio (usd (-40)) (usd (40))
 
   expect "rebalance 0/100 by 60 and 60" $ do
-    fixedPortfolio (Pct 60 0) (Pct 40 0) bb === Portfolio (usd (60)) (usd (-60))
+    rebalanceFixed (Pct 60 0) (Pct 40 0) bb === Portfolio (usd (60)) (usd (-60))
 
   expect "rebalance correct by 0" $ do
-    fixedPortfolio (Pct 60 0) (Pct 40 0) be === Portfolio zero zero
-
-usd :: Float -> USD a
-usd f = fromFloat f
+    rebalanceFixed (Pct 60 0) (Pct 40 0) be === Portfolio mempty mempty

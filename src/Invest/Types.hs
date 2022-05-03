@@ -49,6 +49,12 @@ pctToFloat (Pct p h) =
 data USD a = USD { totalCents :: Int }
   deriving (Eq)
 
+instance Semigroup (USD a) where
+  (USD a) <> (USD b) = USD (a + b)
+
+instance Monoid (USD a) where
+  mempty = USD 0
+
 dollars :: USD a -> Int
 dollars (USD c) = c `div` 100
 
@@ -132,6 +138,11 @@ data Portfolio stocks bonds = Portfolio
 type Balances = Portfolio Stocks Bonds
 type Changes  = Portfolio Amount Amount 
 
+instance (Semigroup stocks, Semigroup bonds) => Semigroup (Portfolio stocks bonds) where
+  Portfolio s b <> Portfolio s' b' = Portfolio (s <> s') (b <> b')
+
+-- instance Monoid (Portfolio stocks bonds) where
+
 
 total :: Portfolio s b -> USD Amount
 total b = USD $
@@ -146,7 +157,8 @@ data YearResult = YearResult
   , start      :: Balances
   , end        :: Balances
   , returns    :: Changes
-  , withdrawals :: Changes
+  , withdrawals :: USD Amount
+  , actions    :: Changes
   -- , rebalance :: Changes
   -- , cpi        :: Pct Inflation
   } deriving (Show)
@@ -199,10 +211,10 @@ addAmount :: USD Amount -> USD bal -> USD bal
 addAmount (USD ret) (USD b) = balance $ b + ret
 
 loss :: USD Amount -> USD Amount
-loss (USD a) = USD (-a)
+loss (USD a) = USD (negate (abs a))
 
-zero :: USD bal
-zero = USD 0
+gain :: USD Amount -> USD Amount
+gain (USD a) = USD (abs a)
 
 -- | balances can never be zero, but returns can
 balance :: Int -> USD bal
@@ -216,3 +228,6 @@ amount pct bal = fromFloat $
 
 fromUSD :: USD a -> USD b
 fromUSD (USD a) = USD a
+
+usd :: Float -> USD a
+usd f = fromFloat f
