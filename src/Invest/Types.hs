@@ -1,11 +1,12 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Invest.Types
   ( Year(Year)
-  , Pct(toFloat), pct
+  , Pct(toFloat), pct, pctFromFloat
   , USD, dollars, cents, fromFloat
   , gainsPercent
   , addAmount
   , amount
+  , toAmount
   , gains
   , loss, gain
   , totalCents
@@ -16,9 +17,11 @@ module Invest.Types
   , History(..)
   , Portfolio(..), Balances, Changes
   , total
-  , Amount, Stocks, Bonds
+  , Amount, Stocks, Bonds, Withdrawal
   , SimResult(..)
   , YearResult(..)
+  , Success
+  , RateResult(..)
   )
   where
 
@@ -40,8 +43,11 @@ instance Show Year where
 -- This can have strange errors
 -- this is 60.4 %
 newtype Pct a = Pct { toFloat :: Float }
-  deriving (FromField)
+  deriving (FromField, Num, Ord)
 
+
+pctFromFloat :: Float -> Pct a
+pctFromFloat = Pct
 
 digits :: Float
 digits = 100000
@@ -52,7 +58,7 @@ instance Eq (Pct a) where
     round (a * digits) == round (b * digits)
 
 instance Show (Pct a) where
-  show p = showFFloat (Just 2) (toFloat p) ""
+  show p = showFFloat (Just 3) (toFloat p * 100) "%"
 
 
 -- 100x float
@@ -188,6 +194,15 @@ data SimResult = SimResult
   } deriving (Show)
 
 
+data Success
+
+data RateResult = RateResult
+  { years :: Int
+  , rate :: Pct Withdrawal
+  , success :: Pct Success
+  } deriving (Show)
+
+
 -- 1. We combine percentages in a Change. They must be added.
 -- 2. Changes can only be applied once
 
@@ -224,10 +239,10 @@ gainsPercent s e =
 addAmount :: USD Amount -> USD bal -> USD bal
 addAmount (USD ret) (USD b) = balance $ b + ret
 
-loss :: USD Amount -> USD Amount
+loss :: USD amt -> USD amt
 loss (USD a) = USD (negate (abs a))
 
-gain :: USD Amount -> USD Amount
+gain :: USD amt -> USD amt
 gain (USD a) = USD (abs a)
 
 -- | balances can never be zero, but returns can
@@ -249,3 +264,6 @@ fromUSD (USD a) = USD a
 -- dollars.cents
 usd :: Float -> USD a
 usd f = fromFloat f
+
+toAmount :: USD a -> USD Amount
+toAmount (USD a) = USD a

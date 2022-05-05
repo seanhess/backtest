@@ -126,7 +126,7 @@ assertReturns = do
 assertWithdrawal :: Test ()
 assertWithdrawal = do
   let b = Portfolio (usd 600) (usd 400)
-  let wa = amount swr4 (total b)
+  let wa = staticWithdrawalAmount swr4 b
   expect "withdrawal amount to be 4%" $ do
     wa      === usd (40)
 
@@ -147,7 +147,7 @@ assertWithdrawal = do
 
   expect "should withdraw from stocks if bonds are zero" $ do
     let bal = Portfolio (usd 1000) (usd 0)
-    let wa' = amount swr4 (total bal)
+    let wa' = staticWithdrawalAmount swr4 bal
     let ch = changes bal (withdrawBondsFirst wa' bal)
     ch.stocks === usd (-40)
     ch.bonds === usd 0
@@ -209,7 +209,7 @@ assertInflation = do
   let hs = toHistories [hr1, hr2, hr3]
 
   -- we want to only withdraw
-  let sim = simulation (standardWithdraw4 million) million hs
+  let sim = simulation million (standardWithdraw4 million) hs
   
   expect "3 histroy rows to 2 histories" $ do
     length sim.years === 2
@@ -226,7 +226,7 @@ assertSimEndBalance = do
   let hr1 = HistoryRow (Year 1871) 1 (usd 1.00) (usd 1.00) (pct 10.0)
   let hr2 = HistoryRow (Year 1872) 1 (usd 1.10) (usd 1.01) (pct 20.0)
   let hs = toHistories [hr1, hr2]
-  let sim = simulation noActions million hs
+  let sim = simulation million noActions hs
   
   [y] <- pure sim.years
 
@@ -250,7 +250,7 @@ assertSimWithdrawEnd = do
 
   -- just below the threshhold to 
   let bal = Portfolio (usd 1000) (usd 30)
-  let sim = simulation (standardWithdraw4 bal) bal hs
+  let sim = simulation bal (standardWithdraw4 bal) hs
   let wda = amount swr4 (total bal)
   
   [y] <- pure sim.years
@@ -306,7 +306,7 @@ assertStandard = do
     wda === (usd 40)
 
   expect "withdrawBondsFirst 4%" $ do
-    let const4Percent = loss $ staticWithdrawalAmount swr4 start :: USD Amount
+    let const4Percent = loss $ staticWithdrawalAmount swr4 start :: USD Withdrawal
     let ch = withdrawBondsFirst const4Percent bal
     ch.bonds === usd (-40)
 
@@ -332,7 +332,7 @@ assertStandard = do
   let chs  = changes bal bal'
 
   expect "withdrawal should result in net -40" $ do
-    total chs === loss wda
+    total chs === (fromUSD $ loss wda)
 
   expect "stocks should be rebalanced off of new total" $ do
     chs.stocks === (loss $ usd 104)

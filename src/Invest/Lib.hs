@@ -14,18 +14,19 @@ import Control.Monad.State (State, MonadState, get, put, gets, execState)
 run :: IO ()
 run = do
     rs <- loadReturns
-
     let hs = toHistories rs
-    let ss = samples 60 hs
+    runMSWR 30 hs (action $ rebalanceFixed (pct 50.0) (pct 50.0))
 
-    let sim = simulation (standard6040Withdraw4 million) million
-    let srs = map sim ss :: [SimResult]
+    -- let ss = samples 30 hs
 
-    (h1:_) <- pure hs
+    -- let sim = simulation million (standard6040Withdraw4 million)
+    -- let srs = map sim ss :: [SimResult]
+
+    -- (h1:_) <- pure hs
 
     -- mapM_ print hs
-    let ys = (head srs).years
-    let y1 = head ys
+    -- let ys = (head srs).years
+    -- let y1 = head ys
 
     -- print y1
     -- print $ bp.toFloat
@@ -35,7 +36,9 @@ run = do
     -- mapM_ (putStrLn . showSimResult) srs
 
     -- * Count failures
-    mapM_ (putStrLn . showSimResult) $ filter isFailure srs
+    -- print $ (length $ filter isFailure srs, length srs)
+    -- print $ successRate srs
+    -- mapM_ (putStrLn . showSimResult) $ filter isFailure srs
 
     -- * 1966 failure year
     -- (Just s1966) <- pure $ List.find (isYear 1966) srs
@@ -50,11 +53,68 @@ run = do
       isYear y sr =
           sr.startYear == Year y
 
-      isFailure sr =
-          sr.endBalance == Portfolio mempty mempty
-
       showYear yr =
           show (yr.history.year, yr.withdrawals, yr.start, yr.end)
+
+-- keep 6040 fixed
+runMSWR :: Int -> [History] -> Actions () -> IO ()
+runMSWR yrs hs rebalance = do
+    let ss = samples yrs hs
+    let start = million
+    -- let res = map (runRate start ss) rates :: [[SimResult]]
+
+    let rrs = rateResults start ss allRates
+    mapM_ print rrs
+    print $ mswr rrs
+
+    -- putStrLn $ "Years: " <> show yrs
+
+    -- forM_ rates $ \r -> do
+    --     let srs = runRate start ss r
+    --     putStrLn $ "RATE: " <> show r
+    --     putStrLn "----------------"
+    --     print $ successRate srs
+    --     putStrLn ""
+
+
+    -- let sim = simulation (standard6040Withdraw4 start) start
+    -- let srs = map sim ss :: [SimResult]
+    pure ()
+    where
+
+        allRates :: [Pct Withdrawal]
+        allRates = [pct 3.5, pct 3.6, pct 3.7, pct 3.8, pct 3.9, pct 4.0, pct 4.1, pct 4.2, pct 4.3, pct 4.4, pct 4.5, pct 4.6, pct 4.7, pct 4.8, pct 4.9, pct 5.0]
+
+        -- what if none are successful?
+        rateResults :: Balances -> [[History]] -> [Pct Withdrawal] -> [RateResult]
+        rateResults start ss rates =
+            map (runRate start ss) rates
+
+        mswr :: [RateResult] -> Maybe RateResult
+        mswr rrs =
+            let rrs' = sortOn (.success) rrs
+            in headMay $ filter (isSuccessful . (.success)) rrs'
+
+            -- let srs = map successRate $ runRate start ss wdp
+            -- filter isSuccessful $ 
+
+        runRate :: Balances -> [[History]] -> Pct Withdrawal -> RateResult
+        runRate start ss wdp =
+            let srs = map (runSim start wdp) ss
+            in RateResult
+              { years = yrs
+              , rate = wdp
+              , success = successRate srs
+              }
+
+        runSim :: Balances -> Pct Withdrawal -> [History] -> SimResult
+        runSim start wdp =
+            let wda = loss $ staticWithdrawalAmount wdp start :: USD Withdrawal
+            in simulation start $ do
+                withdraw wda
+                rebalance
+
+
 
 loadReturns :: IO [HistoryRow]
 loadReturns = do
@@ -86,8 +146,8 @@ samples years hs = List.tails hs
   & fmap (take years)
   & filter (\hs' -> length hs' >= years)
 
-simulation :: Actions () -> Balances -> [History] -> SimResult
-simulation actions initial hs =
+simulation :: Balances -> Actions () -> [History] -> SimResult
+simulation initial actions hs =
     let yr  = (head hs).year
         (bal', yrs) = List.mapAccumL eachReturns initial hs
     in SimResult
@@ -167,17 +227,17 @@ runActions :: Balances -> Actions () -> Balances
 runActions bal (Actions st) = 
     execState st bal
 
-
-staticWithdrawalAmount :: Pct Amount -> Balances -> USD Amount 
+staticWithdrawalAmount :: Pct Withdrawal -> Balances -> USD Withdrawal 
 staticWithdrawalAmount p bal1 =
-    amount p (total bal1)
+    fromUSD $ amount p (total bal1)
 
-withdrawBondsFirst :: USD Amount -> Balances -> Balances
-withdrawBondsFirst wda b =
+withdrawBondsFirst :: USD Withdrawal -> Balances -> Balances
+withdrawBondsFirst wd b =
 
-    let bf  = addAmount (loss wda) b.bonds :: USD Bonds
+    let wda = loss $ toAmount wd :: USD Amount
+        bf  = addAmount wda b.bonds :: USD Bonds
         db  = gains b.bonds bf :: USD Amount
-        ds  = loss $ gains (loss wda) db
+        ds  = loss $ gains wda db
 
     in Portfolio (addAmount ds b.stocks) bf
 
@@ -201,17 +261,19 @@ million = Portfolio
   , bonds = usd $ 400*1000
   }
 
-swr4 :: Pct Amount
+swr4 :: Pct Withdrawal
 swr4 = pct 4
 
 
-rebalance6040 :: Balances -> Balances
-rebalance6040 = rebalanceFixed (pct 60.0) (pct 40.0)
 
+
+withdraw :: USD Withdrawal -> Actions ()
+withdraw wda = do
+    action $ withdrawBondsFirst wda
 
 standardWithdraw4 :: Balances -> Actions ()
 standardWithdraw4 start = do
-    let const4Percent = loss $ staticWithdrawalAmount swr4 start :: USD Amount
+    let const4Percent = loss $ staticWithdrawalAmount swr4 start :: USD Withdrawal
     action $ withdrawBondsFirst const4Percent
 
 standard6040Withdraw4 :: Balances -> Actions ()
@@ -234,3 +296,18 @@ standardRebalance6040 = do
 --     pure [f start, f2 start, f3 start]
 
 
+
+successRate :: [SimResult] -> Pct Success
+successRate srs =
+    let n = length $ filter isFailure srs
+    in pctFromFloat $ 1 - (fromIntegral n / fromIntegral (length srs))
+
+isFailure :: SimResult -> Bool 
+isFailure sr =
+    sr.endBalance == Portfolio mempty mempty
+
+maximumSuccessRate :: Pct Success
+maximumSuccessRate = pct 99.0 
+
+isSuccessful :: Pct Success -> Bool
+isSuccessful p = p >= maximumSuccessRate
