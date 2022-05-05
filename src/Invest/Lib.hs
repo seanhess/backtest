@@ -20,12 +20,15 @@ run = do
 
     let sim = simulation (standard6040Withdraw4 million) million
     let srs = map sim ss :: [SimResult]
-    -- mapM_ print hs
-    -- let ys = (head srs).years
+
     let h1 = head hs
-    let bp = h1.bonds
-    print $ bp.toFloat
-    print $ take 2 rs
+
+    -- mapM_ print hs
+    let ys = (head srs).years
+    let y1 = head ys
+    print y1
+    -- print $ bp.toFloat
+    -- print $ take 2 rs
     -- mapM_ (putStrLn . showSimResult) srs
     -- mapM_ print rs
   where

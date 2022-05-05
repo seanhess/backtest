@@ -106,6 +106,9 @@ assertAmount = do
   expect "hundredths to count" $ do
     amount (pct 0.01) (usd 600000) === usd 60
 
+  expect "close dollars to round" $ do
+    dollars (usd 15999.98) === 16000
+
 
 assertReturns :: Test ()
 assertReturns = do

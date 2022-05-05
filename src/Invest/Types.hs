@@ -71,7 +71,7 @@ instance Monoid (USD a) where
   mempty = USD 0
 
 dollars :: USD a -> Int
-dollars (USD c) = c `div` 100
+dollars (USD c) = round $ fromIntegral c / 100
 
 cents :: USD a -> Int
 cents (USD c) = c `rem` 100
@@ -87,7 +87,7 @@ instance FromField (USD a) where
 instance Show (USD a) where
   show m = mconcat
     [ "$"
-    , show $ dollars m
+    , show $ totalCents m `div` 100
     , "."
     , pad $ show $ abs $ cents m
     ]
