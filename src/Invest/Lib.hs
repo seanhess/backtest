@@ -15,7 +15,8 @@ run :: IO ()
 run = do
     rs <- loadReturns
     let hs = toHistories rs
-    runMSWR 30 hs (action $ rebalanceFixed (pct 50.0) (pct 50.0))
+    let hs' = filter (betweenYears (Year 1925) (Year 1995)) hs
+    runMSWR 30 hs' (action $ rebalanceFixed (pct 50.0) (pct 50.0))
 
     -- let ss = samples 30 hs
 
@@ -64,6 +65,8 @@ runMSWR yrs hs rebalance = do
     -- let res = map (runRate start ss) rates :: [[SimResult]]
 
     let rrs = rateResults start ss allRates
+
+    print $ map (.year) hs
     mapM_ print rrs
     print $ mswr rrs
 
@@ -92,11 +95,8 @@ runMSWR yrs hs rebalance = do
 
         mswr :: [RateResult] -> Maybe RateResult
         mswr rrs =
-            let rrs' = sortOn (.success) rrs
-            in headMay $ filter (isSuccessful . (.success)) rrs'
+            List.find (isSuccessful . (.success)) $ reverse rrs
 
-            -- let srs = map successRate $ runRate start ss wdp
-            -- filter isSuccessful $ 
 
         runRate :: Balances -> [[History]] -> Pct Withdrawal -> RateResult
         runRate start ss wdp =
@@ -279,11 +279,7 @@ standardWithdraw4 start = do
 standard6040Withdraw4 :: Balances -> Actions ()
 standard6040Withdraw4 start = do
     standardWithdraw4 start
-    standardRebalance6040
-    
-standardRebalance6040 :: Actions ()
-standardRebalance6040 = do
-    action $ rebalanceFixed (pct 60.0) (pct 40.0)
+    rebalance6040
 
 
 -- test1 :: Balances -> Actions [Changes]
@@ -311,3 +307,13 @@ maximumSuccessRate = pct 99.0
 
 isSuccessful :: Pct Success -> Bool
 isSuccessful p = p >= maximumSuccessRate
+
+rebalance5050 :: Actions ()
+rebalance5050 = action $ rebalanceFixed (pct 50) (pct 50)
+
+rebalance6040 :: Actions ()
+rebalance6040 = action $ rebalanceFixed (pct 60) (pct 40)
+
+betweenYears :: Year -> Year -> History -> Bool
+betweenYears start end h = 
+    start <= h.year && h.year <= end

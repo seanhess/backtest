@@ -322,7 +322,7 @@ assertStandard = do
     bal'.bonds === usd 360
 
   expect "rebalance" $ do
-    let bal' = runActions bal standardRebalance6040
+    let bal' = runActions bal rebalance6040
     bal'.stocks === usd 720
     bal'.bonds === usd 480
 

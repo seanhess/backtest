@@ -34,7 +34,7 @@ import qualified Data.ByteString.Lazy as Lazy
 import Numeric (showFFloat)
 
 newtype Year = Year Int
-  deriving (Eq, FromField)
+  deriving (Eq, FromField, Ord)
 
 
 instance Show Year where 
