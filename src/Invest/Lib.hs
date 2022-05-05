@@ -16,24 +16,45 @@ run = do
     rs <- loadReturns
 
     let hs = toHistories rs
-    let ss = samples hs
+    let ss = samples 60 hs
 
     let sim = simulation (standard6040Withdraw4 million) million
     let srs = map sim ss :: [SimResult]
 
-    let h1 = head hs
+    (h1:_) <- pure hs
 
     -- mapM_ print hs
     let ys = (head srs).years
     let y1 = head ys
-    print y1
+
+    -- print y1
     -- print $ bp.toFloat
     -- print $ take 2 rs
+
+    -- * Show all years
     -- mapM_ (putStrLn . showSimResult) srs
-    -- mapM_ print rs
+
+    -- * Count failures
+    mapM_ (putStrLn . showSimResult) $ filter isFailure srs
+
+    -- * 1966 failure year
+    -- (Just s1966) <- pure $ List.find (isYear 1966) srs
+    -- print $ s1966.startYear
+    -- print $ s1966.endBalance
+    -- mapM_ (putStrLn . showYear) $ s1966.years
+
   where
       showSimResult sr =
           show (sr.startYear, sr.endYear, sr.endBalance)
+
+      isYear y sr =
+          sr.startYear == Year y
+
+      isFailure sr =
+          sr.endBalance == Portfolio mempty mempty
+
+      showYear yr =
+          show (yr.history.year, yr.withdrawals, yr.start, yr.end)
 
 loadReturns :: IO [HistoryRow]
 loadReturns = do
@@ -60,10 +81,10 @@ toHistory past now =
       }
 
 
-samples :: [History] -> [[History]]
-samples hs = List.tails hs
-  & fmap (take 40)
-  & filter (\hs' -> length hs' >= 40)
+samples :: Int -> [History] -> [[History]]
+samples years hs = List.tails hs
+  & fmap (take years)
+  & filter (\hs' -> length hs' >= years)
 
 simulation :: Actions () -> Balances -> [History] -> SimResult
 simulation actions initial hs =
@@ -89,8 +110,8 @@ simulation actions initial hs =
     yearResult :: History -> Balances -> YearResult
     yearResult h bal = 
 
-        let ret = calcReturns h bal
-            bal' = bal & apply ret
+        let bal' = calcReturns h bal
+            ret =changes bal bal'
 
             end = runActions bal' actions
             act = changes bal' end
@@ -113,11 +134,11 @@ apply ch bals =
 
 
 -- ah, we need the previous one also!
-calcReturns :: History -> Balances -> Changes
+calcReturns :: History -> Balances -> Balances
 calcReturns h b =
     let ds = amount h.stocks b.stocks
         db = amount h.bonds b.bonds
-    in Portfolio ds db
+    in Portfolio (addAmount ds b.stocks) (addAmount db b.bonds)
 
 
 
@@ -137,35 +158,35 @@ changes start end =
 -- well, wait, when we runActions/
 
 -- Run a function that produces changes
-change :: (Balances -> Changes) -> Actions ()
-change f = do
+action :: (Balances -> Balances) -> Actions ()
+action f = do
     cur <- get :: Actions Balances
-    put $ apply (f cur) cur
+    put $ f cur
 
 runActions :: Balances -> Actions () -> Balances
 runActions bal (Actions st) = 
     execState st bal
 
 
-
-
 staticWithdrawalAmount :: Pct Amount -> Balances -> USD Amount 
 staticWithdrawalAmount p bal1 =
     amount p (total bal1)
 
-withdrawBondsFirst :: USD Amount -> Balances -> Changes
+withdrawBondsFirst :: USD Amount -> Balances -> Balances
 withdrawBondsFirst wda b =
-    -- what if we always withdraw from bonds? and rebalancing fixes it?
-    if totalCents b.bonds >= totalCents wda
-        then Portfolio mempty (loss wda)
-        else Portfolio (loss wda) mempty
 
-rebalanceFixed :: Pct Stocks -> Pct Bonds -> Balances -> Changes
+    let bf  = addAmount (loss wda) b.bonds :: USD Bonds
+        db  = gains b.bonds bf :: USD Amount
+        ds  = loss $ gains (loss wda) db
+
+    in Portfolio (addAmount ds b.stocks) bf
+
+rebalanceFixed :: Pct Stocks -> Pct Bonds -> Balances -> Balances
 rebalanceFixed ps pb bal =
     let tot = total bal
         ts = fromUSD $ amount ps tot :: USD Stocks
         tb = fromUSD $ amount pb tot :: USD Bonds
-    in Portfolio (gains bal.stocks ts) (gains bal.bonds tb)
+    in Portfolio ts tb
 
 noChanges :: Balances -> Changes
 noChanges _ = Portfolio mempty mempty
@@ -176,22 +197,22 @@ noActions = pure ()
 
 million :: Balances
 million = Portfolio
-  { stocks = balance $ 600*1000*100
-  , bonds = balance $ 400*1000*100
+  { stocks = usd $ 600*1000
+  , bonds = usd $ 400*1000
   }
 
 swr4 :: Pct Amount
 swr4 = pct 4
 
 
-rebalance6040 :: Balances -> Changes
+rebalance6040 :: Balances -> Balances
 rebalance6040 = rebalanceFixed (pct 60.0) (pct 40.0)
 
 
 standardWithdraw4 :: Balances -> Actions ()
 standardWithdraw4 start = do
     let const4Percent = loss $ staticWithdrawalAmount swr4 start :: USD Amount
-    change $ withdrawBondsFirst const4Percent
+    action $ withdrawBondsFirst const4Percent
 
 standard6040Withdraw4 :: Balances -> Actions ()
 standard6040Withdraw4 start = do
@@ -200,7 +221,7 @@ standard6040Withdraw4 start = do
     
 standardRebalance6040 :: Actions ()
 standardRebalance6040 = do
-    change $ rebalanceFixed (pct 60.0) (pct 40.0)
+    action $ rebalanceFixed (pct 60.0) (pct 40.0)
 
 
 -- test1 :: Balances -> Actions [Changes]

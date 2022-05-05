@@ -10,7 +10,7 @@ module Invest.Types
   , loss, gain
   , totalCents
   , fromUSD
-  , balance
+  , minZero
   , usd
   , HistoryRow(..)
   , History(..)
@@ -235,6 +235,9 @@ balance :: Int -> USD bal
 balance n
   | n >= 0 = USD n
   | otherwise = USD 0
+
+minZero :: USD a -> USD a
+minZero (USD n) = balance n
 
 amount :: Pct amt -> USD bal -> USD Amount
 amount p bal = fromFloat $

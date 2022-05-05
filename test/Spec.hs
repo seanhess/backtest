@@ -35,13 +35,12 @@ main = do
   test "Returns" assertReturns
   test "History" assertHistory
   test "Actions" assertActions
-  test "withdrawalBonds" assertWithdrawalBonds
-  test "withdrawalStocks" assertWithdrawalStocks
-  test "inflation" assertInflation
-  test "simWithdrawlEnd" assertSimWithdrawEnd
-  test "simEndBalance" assertSimEndBalance
+  test "withdrawal" assertWithdrawal
   test "rebalance" assertRebalance
-  test "standard" assertStandard
+  -- test "inflation" assertInflation
+  -- test "simWithdrawlEnd" assertSimWithdrawEnd
+  -- test "simEndBalance" assertSimEndBalance
+  -- test "standard" assertStandard
 
 
 
@@ -116,20 +115,16 @@ assertReturns = do
   let b = Portfolio (usd 100) (usd 100)
 
   expect "returns to match history" $ do
-    calcReturns h b === Portfolio (usd 10) (usd 1)
-
-  expect "returns to work on million portfolio" $ do
-    calcReturns h million === Portfolio (usd 60000) (usd 4000)
+    calcReturns h b === Portfolio (usd 110) (usd 101)
 
   expect "apply returns should add up" $ do
-    let ret = calcReturns h million
-    apply ret million === Portfolio (usd 660000) (usd 404000)
+    calcReturns h million === Portfolio (usd 660000) (usd 404000)
 
     
 
 
-assertWithdrawalStocks :: Test ()
-assertWithdrawalStocks = do
+assertWithdrawal :: Test ()
+assertWithdrawal = do
   let b = Portfolio (usd 600) (usd 400)
   let wa = amount swr4 (total b)
   expect "withdrawal amount to be 4%" $ do
@@ -146,18 +141,34 @@ assertWithdrawalStocks = do
     gain (usd 30) === usd 30
 
   expect "should withdraw 0 from stocks and 40 from bonds" $ do
-    (withdrawBondsFirst wa b).stocks === usd 0
-    (withdrawBondsFirst wa b).bonds === usd (-40)
+    let ch = changes b (withdrawBondsFirst wa b)
+    ch.stocks === usd 0
+    ch.bonds === usd (-40)
 
-assertWithdrawalBonds :: Test ()
-assertWithdrawalBonds = do
-  let b = Portfolio (usd 990) (usd 10)
-  let wa = amount swr4 (total b)
+  expect "should withdraw from stocks if bonds are zero" $ do
+    let bal = Portfolio (usd 1000) (usd 0)
+    let wa' = amount swr4 (total bal)
+    let ch = changes bal (withdrawBondsFirst wa' bal)
+    ch.stocks === usd (-40)
+    ch.bonds === usd 0
 
-  expect "to withdraw from stocks when bonds are insufficient" $ do
-    wa      === usd (40)
-    (withdrawBondsFirst wa b).stocks === usd (-40)
-    (withdrawBondsFirst wa b).bonds === usd 0
+  expect "withdraw from bonds until drained, rest from stocks" $ do
+    let bal = Portfolio (usd 990) (usd 10)
+    let wa' = amount swr4 (total bal)
+    let bal' = withdrawBondsFirst wa bal :: Balances
+    let chg = changes bal bal' :: Changes
+    chg.stocks === usd (-30)
+    chg.bonds === usd (-10)
+
+  expect "withdraw everything if balance is insufficient" $ do
+    let bal = Portfolio (usd 20) (usd 10)
+    let wa' = amount swr4 (total bal)
+    let bal' = withdrawBondsFirst wa bal :: Balances
+    let chg = changes bal bal' :: Changes
+    chg.stocks === usd (-20)
+    chg.bonds === usd (-10)
+
+
 
 
 
@@ -267,14 +278,19 @@ assertRebalance = do
   let bb = Portfolio (usd 0) (usd 100)
   let be = Portfolio (usd 60) (usd 40)
 
+  let rb = rebalanceFixed (pct 60) (pct 40) bs
+
+  expect "rebalance calculates targets" $ do
+    rb === be
+
   expect "rebalance 100/0 by 40 and 40" $ do
-    rebalanceFixed (pct 60) (pct 40) bs === Portfolio (usd (-40)) (usd (40))
+    changes bs rb === Portfolio (usd (-40)) (usd (40))
 
   expect "rebalance 0/100 by 60 and 60" $ do
-    rebalanceFixed (pct 60) (pct 40) bb === Portfolio (usd (60)) (usd (-60))
+    changes bb rb === Portfolio (usd (60)) (usd (-60))
 
   expect "rebalance correct by 0" $ do
-    rebalanceFixed (pct 60) (pct 40) be === Portfolio mempty mempty
+    changes be rb === Portfolio mempty mempty
 
 
 assertStandard :: Test ()
@@ -337,12 +353,12 @@ assertActions :: Test ()
 assertActions = do
   let bal = Portfolio (usd 100) (usd 200)
 
-  let ch = Portfolio (usd 20) (usd 30)
+  let ch = \b -> Portfolio (addAmount (usd 20) b.stocks) (addAmount (usd 30) b.bonds)
 
   expect "stocks should be the sum of both changes" $ do
     let fin = runActions bal $ do
-                change $ const ch
-                change $ const ch
+                action ch
+                action ch
 
     fin.stocks === usd 140
 
