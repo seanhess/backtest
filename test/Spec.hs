@@ -5,6 +5,7 @@ import Invest.Types
 import Invest.Lib
 import Control.Monad.Catch (try, throwM)
 import Control.Monad.Reader (MonadReader, ReaderT, runReaderT, ask)
+import Control.Monad.State (runState)
 import Data.List (intercalate)
 
 
@@ -28,16 +29,19 @@ type Assertion = IO
 
 main :: IO ()
 main = do
+  putStrLn "Running Tests"
   test "Percent" assertPercent
   test "Amount" assertAmount
   test "Returns" assertReturns
   test "History" assertHistory
+  test "Actions" assertActions
   test "withdrawalBonds" assertWithdrawalBonds
   test "withdrawalStocks" assertWithdrawalStocks
   test "inflation" assertInflation
   test "simWithdrawlEnd" assertSimWithdrawEnd
   test "simEndBalance" assertSimEndBalance
   test "rebalance" assertRebalance
+  test "standard" assertStandard
 
 
 
@@ -50,9 +54,9 @@ expect expectation asrt = do
   res <- try $ liftIO asrt
   case res of
     Left (Failure r vals) -> do
-      putStrLn $ "[x] " <> expectation
-      putStrLn $  "     * Expected " <> show r <> ": \n" <> showInfo vals
       putStrLn ""
+      putStrLn $ "[x] " <> testName <> " - " <> expectation
+      putStrLn $  "   * Expected " <> show r <> ": \n" <> showInfo vals
 
     Right _ -> do
       pure ()
@@ -60,7 +64,7 @@ expect expectation asrt = do
 
   where
     showOne a =
-      "     | " <> a
+      "   | " <> a
 
     showInfo :: Info -> String
     showInfo (Vals a b) = 
@@ -73,8 +77,6 @@ expect expectation asrt = do
 
 test :: String -> Test () -> IO ()
 test nm t = do
-  putStrLn ""
-  putStrLn nm
   runReaderT t nm
 
 
@@ -264,3 +266,79 @@ assertRebalance = do
 
   expect "rebalance correct by 0" $ do
     rebalanceFixed (Pct 60 0) (Pct 40 0) be === Portfolio mempty mempty
+
+
+assertStandard :: Test ()
+assertStandard = do
+  let start = Portfolio (usd 600) (usd 400)
+  let bal = Portfolio (usd 800)    (usd 400)
+  let wda = staticWithdrawalAmount swr4 start
+
+  -- ok, so what should happen?
+
+
+  expect "withdrawal amount should be 4%" $ do
+    wda === (usd 40)
+
+  expect "withdrawBondsFirst 4%" $ do
+    let const4Percent = loss $ staticWithdrawalAmount swr4 start :: USD Amount
+    let ch = withdrawBondsFirst const4Percent bal
+    ch.bonds === usd (-40)
+
+  expect "rebalance" $ do
+    let ch = rebalanceFixed (Pct 60 0) (Pct 40 0) bal
+    ch.bonds === usd (80)
+    ch.stocks === usd (-80)
+  
+  expect "withdrawal " $ do
+    -- let changes = runActions (standard6040Withdraw4 start) bal
+    let bal' = runActions bal (standardWithdraw4 start)
+    bal'.stocks === usd 800
+    bal'.bonds === usd 360
+
+  expect "rebalance" $ do
+    let bal' = runActions bal standardRebalance6040
+    bal'.stocks === usd 720
+    bal'.bonds === usd 480
+
+
+  -- run full standard
+  let bal' = runActions bal (standard6040Withdraw4 start)
+  let chs  = changes bal bal'
+
+  expect "withdrawal should result in net -40" $ do
+    total chs === loss wda
+
+  expect "stocks should be rebalanced off of new total" $ do
+    chs.stocks === (loss $ usd 104)
+
+  expect "bonds should be the same value, but with the withdrawal" $ do
+    chs.bonds === usd (104 - 40)
+
+
+  -- expect "stocks should be rebalanced off of new amount" $ do
+  --   -- let (cgs, f) = runState (fromActions (test1 start)) noChanges
+
+  --   expect "should "
+  --     changes.stocks === usd (-104)
+  --   changes.bonds === usd (64)
+
+    
+assertActions :: Test ()
+assertActions = do
+  let bal = Portfolio (usd 100) (usd 200)
+
+  let ch = Portfolio (usd 20) (usd 30)
+
+  expect "stocks should be the sum of both changes" $ do
+    let fin = runActions bal $ do
+                change $ const ch
+                change $ const ch
+
+    fin.stocks === usd 140
+
+
+
+
+
+

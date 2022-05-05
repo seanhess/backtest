@@ -1,6 +1,3 @@
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# HLINT ignore "Unused LANGUAGE pragma" #-}
-{-# HLINT ignore "Use camelCase" #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Invest.Lib where
 
@@ -23,7 +20,7 @@ run = do
 
     let sim = simulation (standard6040Withdraw4 million) million
     let srs = map sim ss :: [SimResult]
-    mapM_ (print) $ (head srs).years
+    mapM_ print (head srs).years
     -- mapM_ (putStrLn . showSimResult) srs
     -- mapM_ print rs
   where
@@ -87,8 +84,8 @@ simulation actions initial hs =
         let ret = calcReturns h bal
             bal' = bal & apply ret
 
-            act = runActions actions bal'
-            end = bal' & apply act
+            end = runActions bal' actions
+            act = changes bal' end
 
             wd = gains (total bal) (total end)
 
@@ -119,33 +116,34 @@ calcReturns h b =
 
 
 
-newtype Actions a = Actions { fromActions :: State (Balances -> Changes) a }
-  deriving (Monad, Applicative, Functor, MonadState (Balances -> Changes))
+newtype Actions a = Actions { fromActions :: State Balances a }
+  deriving (Monad, Applicative, Functor, MonadState Balances)
 
 
 
+
+changes :: Balances -> Balances -> Changes
+changes start end =
+    Portfolio (gains start.stocks end.stocks) (gains start.bonds end.bonds)
+
+-- well, wait, when we runActions/
+
+-- Run a function that produces changes
 change :: (Balances -> Changes) -> Actions ()
 change f = do
-    cur <- get :: Actions (Balances -> Changes)
-    put $ combine cur f
+    cur <- get :: Actions Balances
+    put $ apply (f cur) cur
+
+runActions :: Balances -> Actions () -> Balances
+runActions bal (Actions st) = 
+    execState st bal
 
 
-combine :: (Balances -> Changes) -> (Balances -> Changes) -> Balances -> Changes
-combine f1 f2 bal =
-    let chg1 = f1 bal
-        bal1 = apply chg1 bal
-        chg2 = f2 bal1
-    in chg2
-
-runActions :: Actions () -> Balances -> Changes
-runActions (Actions st) = 
-    execState st noChanges
 
 
--- ignore the balances and just return the amount
--- staticPercent :: Pct Amount -> Balances -> Balances -> USD Amount 
--- staticPercent p bal1 _ =
---     amount p (total bal1)
+staticWithdrawalAmount :: Pct Amount -> Balances -> USD Amount 
+staticWithdrawalAmount p bal1 =
+    amount p (total bal1)
 
 withdrawBondsFirst :: USD Amount -> Balances -> Changes
 withdrawBondsFirst wda b =
@@ -184,14 +182,26 @@ rebalance6040 = rebalanceFixed (Pct 60 0) (Pct 40 0)
 
 standardWithdraw4 :: Balances -> Actions ()
 standardWithdraw4 start = do
-    let const4Percent = loss $ amount swr4 (total start) :: USD Amount
+    let const4Percent = loss $ staticWithdrawalAmount swr4 start :: USD Amount
     change $ withdrawBondsFirst const4Percent
 
 standard6040Withdraw4 :: Balances -> Actions ()
 standard6040Withdraw4 start = do
-    let const4Percent = loss $ amount swr4 (total start) :: USD Amount
-    change $ withdrawBondsFirst const4Percent
-    change $ rebalanceFixed (Pct 60 0) (Pct 40 0)
+    standardWithdraw4 start
+    standardRebalance6040
     
+standardRebalance6040 :: Actions ()
+standardRebalance6040 = do
+    change $ rebalanceFixed (Pct 60 0) (Pct 40 0)
+
+
+-- test1 :: Balances -> Actions [Changes]
+-- test1 start = do
+--     f <- get
+--     standardWithdraw4 start
+--     f2 <- get
+--     standardRebalance6040
+--     f3 <- get
+--     pure [f start, f2 start, f3 start]
 
 
