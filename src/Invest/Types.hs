@@ -17,7 +17,7 @@ instance Show Year where
   show (Year i) = show i
 
 -- This can have strange errors
-data Pct a = Pct { fromPercent :: Int, thousandths :: Int }
+data Pct a = Pct { percent :: Int, thousandths :: Int }
   deriving (Eq)
 
 instance FromField (Pct a) where
@@ -26,7 +26,7 @@ instance FromField (Pct a) where
 
 
 instance Show (Pct a) where
-  show (Pct p d) = show p <> "." <> pad (show d)
+  show (Pct p d) = show p <> "." <> pad (show d) <> "%"
     where pad [c] = ['0','0', c]
           pad [a,b] = ['0', a, b]
           pad x = x
@@ -35,10 +35,20 @@ instance Show (Pct a) where
 -- from a percentage
 pctFromFloat :: Float -> Pct a
 pctFromFloat f =
-  let n = f * 100 :: Float
+
+  -- this is so dumb
+  -- why did I do this again?
+  -- I was getting little rounding errors in my calcs
+  -- I think this was a mistake
+
+  let sign = if f >= 0 then 1 else (-1)
+      n = abs (f * 100) :: Float
       p = floor n :: Int
+
+      -- we need to carry the 1s
       h = round $ (n - fromIntegral p) * 1000
-  in Pct p h
+
+  in Pct (sign * p) h
 
 pctToFloat :: Pct a -> Float
 pctToFloat (Pct p h) =
@@ -74,7 +84,7 @@ instance Show (USD a) where
     [ "$"
     , show $ dollars m
     , "."
-    , pad $ show $ cents m
+    , pad $ show $ abs $ cents m
     ]
     where pad [c] = ['0',c]
           pad x = x
@@ -204,7 +214,7 @@ gains (USD s) (USD e) = USD $ e - s
 
 gainsPercent :: USD bal -> USD bal -> Pct bal
 gainsPercent s e =
-    pctFromFloat $ (fromIntegral $ totalCents e) / (fromIntegral $ totalCents s) - 1
+    pctFromFloat $ (fromIntegral e.totalCents) / (fromIntegral s.totalCents) - 1
 
 -- | Applies a return to a balance
 addAmount :: USD Amount -> USD bal -> USD bal

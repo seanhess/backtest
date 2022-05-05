@@ -20,7 +20,13 @@ run = do
 
     let sim = simulation (standard6040Withdraw4 million) million
     let srs = map sim ss :: [SimResult]
-    mapM_ print (head srs).years
+    -- mapM_ print hs
+    -- let ys = (head srs).years
+    let h1 = head hs
+    let bp = h1.bonds
+    print $ bp.percent
+    print $ bp.thousandths
+    print $ take 2 rs
     -- mapM_ (putStrLn . showSimResult) srs
     -- mapM_ print rs
   where
@@ -87,7 +93,7 @@ simulation actions initial hs =
             end = runActions bal' actions
             act = changes bal' end
 
-            wd = gains (total bal) (total end)
+            wd = total act
 
         in YearResult
           { history = h

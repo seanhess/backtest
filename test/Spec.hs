@@ -122,6 +122,8 @@ assertReturns = do
     let ret = calcReturns h million
     apply ret million === Portfolio (usd 660000) (usd 404000)
 
+    
+
 
 assertWithdrawalStocks :: Test ()
 assertWithdrawalStocks = do
@@ -173,6 +175,21 @@ assertPercent = do
 
   expect "to calculate gains" $ do
     gainsPercent (USD 100) (USD 110) === Pct 10 0
+
+  expect "to handle normal negatives" $ do
+    let p = pctFromFloat (-0.28690)
+    percent p     === (-28)
+    thousandths p === 690
+
+  expect "floats just below with thousanths should be represented" $ do
+    pctFromFloat 0.03999 === Pct 3 999
+
+  expect "floats just below with many thousandths should be rounded" $ do
+    pctFromFloat 0.039999 === Pct 4 000
+
+  expect "to handle 1.04x" $ do
+    gainsPercent (USD 100) (USD 104) === Pct 4 0
+
 
 
 
@@ -250,6 +267,16 @@ assertSimWithdrawEnd = do
 
   expect "withdraw from bonds first because they grow" $ do
     y.actions === Portfolio (usd 0) (loss wda)
+
+  expect "withdrawals should be equal to wda" $ do
+    y.withdrawals === loss wda
+
+  -- History {year = 1872, stocks = 13.907, bonds = 3.1000}
+  -- Portfolio {stocks = $600000.00, bonds = $400000.00}
+
+  -- expect "historical returns (was causing error)" $ do
+  --   let h' = History (Year 1872) (Pct 0 0) (Pct 3 100)
+  --   calcReturns h' million === Portfolio (usd 0) (usd 12400)
 
 
 assertRebalance :: Test ()
