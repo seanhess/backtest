@@ -16,7 +16,8 @@ run = do
     rs <- loadReturns
     let hs = toHistories rs
     let hs' = filter (betweenYears (Year 1925) (Year 1995)) hs
-    runMSWR 30 hs' (action $ rebalanceFixed (pct 50.0) (pct 50.0))
+    -- I'm close! 3.9%
+    runMSWR 30 hs' (action $ rebalanceFixed (pct 60.0) (pct 40.0))
 
     -- let ss = samples 30 hs
 
