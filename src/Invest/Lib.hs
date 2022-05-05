@@ -24,8 +24,7 @@ run = do
     -- let ys = (head srs).years
     let h1 = head hs
     let bp = h1.bonds
-    print $ bp.percent
-    print $ bp.thousandths
+    print $ bp.toFloat
     print $ take 2 rs
     -- mapM_ (putStrLn . showSimResult) srs
     -- mapM_ print rs
@@ -155,8 +154,8 @@ withdrawBondsFirst :: USD Amount -> Balances -> Changes
 withdrawBondsFirst wda b =
     -- what if we always withdraw from bonds? and rebalancing fixes it?
     if totalCents b.bonds >= totalCents wda
-        then Portfolio (USD 0) (loss wda)
-        else Portfolio (loss wda) (USD 0)
+        then Portfolio mempty (loss wda)
+        else Portfolio (loss wda) mempty
 
 rebalanceFixed :: Pct Stocks -> Pct Bonds -> Balances -> Changes
 rebalanceFixed ps pb bal =
@@ -179,11 +178,11 @@ million = Portfolio
   }
 
 swr4 :: Pct Amount
-swr4 = Pct 4 0
+swr4 = pct 4
 
 
 rebalance6040 :: Balances -> Changes
-rebalance6040 = rebalanceFixed (Pct 60 0) (Pct 40 0)
+rebalance6040 = rebalanceFixed (pct 60.0) (pct 40.0)
 
 
 standardWithdraw4 :: Balances -> Actions ()
@@ -198,7 +197,7 @@ standard6040Withdraw4 start = do
     
 standardRebalance6040 :: Actions ()
 standardRebalance6040 = do
-    change $ rebalanceFixed (Pct 60 0) (Pct 40 0)
+    change $ rebalanceFixed (pct 60.0) (pct 40.0)
 
 
 -- test1 :: Balances -> Actions [Changes]

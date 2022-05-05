@@ -1,5 +1,26 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Invest.Types where
+module Invest.Types
+  ( Year(Year)
+  , Pct(toFloat), pct
+  , USD, dollars, cents, fromFloat
+  , gainsPercent
+  , addAmount
+  , amount
+  , gains
+  , loss, gain
+  , totalCents
+  , fromUSD
+  , balance
+  , usd
+  , HistoryRow(..)
+  , History(..)
+  , Portfolio(..), Balances, Changes
+  , total
+  , Amount, Stocks, Bonds
+  , SimResult(..)
+  , YearResult(..)
+  )
+  where
 
 import Invest.Prelude
 import Data.Text as Text (splitOn)
@@ -17,42 +38,26 @@ instance Show Year where
   show (Year i) = show i
 
 -- This can have strange errors
-data Pct a = Pct { percent :: Int, thousandths :: Int }
-  deriving (Eq)
+-- this is 60.4 %
+newtype Pct a = Pct { toFloat :: Float }
+  deriving (FromField)
 
-instance FromField (Pct a) where
-  parseField m = do
-    pctFromFloat <$> parseField m
 
+digits :: Float
+digits = 100000
+
+instance Eq (Pct a) where
+  -- if they are equal to the nearest thousandth
+  (Pct a) == (Pct b) =
+    round (a * digits) == round (b * digits)
 
 instance Show (Pct a) where
-  show (Pct p d) = show p <> "." <> pad (show d) <> "%"
-    where pad [c] = ['0','0', c]
-          pad [a,b] = ['0', a, b]
-          pad x = x
+  show p = showFFloat (Just 2) (toFloat p) ""
 
 
--- from a percentage
-pctFromFloat :: Float -> Pct a
-pctFromFloat f =
-
-  -- this is so dumb
-  -- why did I do this again?
-  -- I was getting little rounding errors in my calcs
-  -- I think this was a mistake
-
-  let sign = if f >= 0 then 1 else (-1)
-      n = abs (f * 100) :: Float
-      p = floor n :: Int
-
-      -- we need to carry the 1s
-      h = round $ (n - fromIntegral p) * 1000
-
-  in Pct (sign * p) h
-
-pctToFloat :: Pct a -> Float
-pctToFloat (Pct p h) =
-  (fromIntegral p / 100) + (fromIntegral h / 100000)
+-- 100x float
+pct :: Float -> Pct a
+pct f = Pct (f / 100)
 
 
 -- | Total in pennies
@@ -138,7 +143,6 @@ data History = History
 -- data Portfolio = Portfolio
 
 
-data Strategy = Strategy
 
 data Portfolio stocks bonds = Portfolio
   { stocks :: USD stocks
@@ -214,7 +218,7 @@ gains (USD s) (USD e) = USD $ e - s
 
 gainsPercent :: USD bal -> USD bal -> Pct bal
 gainsPercent s e =
-    pctFromFloat $ (fromIntegral e.totalCents) / (fromIntegral s.totalCents) - 1
+    Pct $ (fromIntegral e.totalCents) / (fromIntegral s.totalCents) - 1
 
 -- | Applies a return to a balance
 addAmount :: USD Amount -> USD bal -> USD bal
@@ -233,11 +237,12 @@ balance n
   | otherwise = USD 0
 
 amount :: Pct amt -> USD bal -> USD Amount
-amount pct bal = fromFloat $
-    (fromIntegral $ totalCents bal) * pctToFloat pct / 100
+amount p bal = fromFloat $
+    (fromIntegral $ totalCents bal) * toFloat p / 100
 
 fromUSD :: USD a -> USD b
 fromUSD (USD a) = USD a
 
+-- dollars.cents
 usd :: Float -> USD a
 usd f = fromFloat f

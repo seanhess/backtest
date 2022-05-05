@@ -100,16 +100,16 @@ assertAmount = do
     usd 100 === usd 100
 
   expect "amount to be equal to percent" $ do
-    amount (Pct 10 0) (usd 100) === usd 10
-    amount (Pct 1 0) (usd 100) === usd 1
+    amount (pct 10.0) (usd 100) === usd 10
+    amount (pct 1.0) (usd 100) === usd 1
 
   expect "hundredths to count" $ do
-    amount (Pct 0 01) (usd 600000) === usd 6
+    amount (pct 0.01) (usd 600000) === usd 60
 
 
 assertReturns :: Test ()
 assertReturns = do
-  let h = History (Year 1872) (Pct 10 0) (Pct 1 0)
+  let h = History (Year 1872) (pct 10.0) (pct 1.0)
   let b = Portfolio (usd 100) (usd 100)
 
   expect "returns to match history" $ do
@@ -161,42 +161,21 @@ assertWithdrawalBonds = do
 
 assertPercent :: Test ()
 assertPercent = do
-  expect "to be equal" $ do
-    pctFromFloat 0.2 === pctFromFloat 0.2
-
-  expect "to calculate from float" $ do
-    pctFromFloat 0.28690 === Pct 28 690
-
-  expect "go back to float" $ do
-    pctToFloat (Pct 28 690) === 0.28690
 
   expect "to use 3 decimal places" $ do
-    pctFromFloat 0.25014 === Pct 25 014
+    toFloat (pct 25.0140) === 0.25014
 
   expect "to calculate gains" $ do
-    gainsPercent (USD 100) (USD 110) === Pct 10 0
+    gainsPercent (usd 100) (usd 110) === pct 10.0
 
-  expect "to handle normal negatives" $ do
-    let p = pctFromFloat (-0.28690)
-    percent p     === (-28)
-    thousandths p === 690
-
-  expect "floats just below with thousanths should be represented" $ do
-    pctFromFloat 0.03999 === Pct 3 999
-
-  expect "floats just below with many thousandths should be rounded" $ do
-    pctFromFloat 0.039999 === Pct 4 000
-
-  expect "to handle 1.04x" $ do
-    gainsPercent (USD 100) (USD 104) === Pct 4 0
 
 
 
 
 assertHistory :: Test ()
 assertHistory = do
-  let hr1 = HistoryRow (Year 1871) 1 (USD 100) (USD 100) (Pct 10 0)
-  let hr2 = HistoryRow (Year 1872) 1 (USD 110) (USD 110) (Pct 20 0)
+  let hr1 = HistoryRow (Year 1871) 1 (usd 1.00) (usd 1.00) (pct 10.0)
+  let hr2 = HistoryRow (Year 1872) 1 (usd 1.10) (usd 1.10) (pct 20.0)
   let hs = toHistories [hr1, hr2]
 
   expect "to combine into one history entry" $ do
@@ -204,15 +183,15 @@ assertHistory = do
 
   expect "history entry to match second year gains" $ do
     map (.year) hs === [Year 1872]
-    map (.stocks) hs === [Pct 10 0]
-    map (.bonds) hs === [Pct 10 0]
+    map (.stocks) hs === [pct 10.0]
+    map (.bonds) hs === [pct 10.0]
 
 
 assertInflation :: Test ()
 assertInflation = do
-  let hr1 = HistoryRow (Year 1871) 1 (USD 100) (USD 100) (Pct 10 0)
-  let hr2 = HistoryRow (Year 1872) 1 (USD 110) (USD 101) (Pct 20 0)
-  let hr3 = HistoryRow (Year 1873) 1 (USD 95)  (USD 101) (Pct 20 0)
+  let hr1 = HistoryRow (Year 1871) 1 (usd 100) (usd 100) (pct 10)
+  let hr2 = HistoryRow (Year 1872) 1 (usd 110) (usd 101) (pct 20)
+  let hr3 = HistoryRow (Year 1873) 1 (usd 95)  (usd 101) (pct 20)
   let hs = toHistories [hr1, hr2, hr3]
 
   -- we want to only withdraw
@@ -230,8 +209,8 @@ assertInflation = do
 
 assertSimEndBalance :: Test ()
 assertSimEndBalance = do
-  let hr1 = HistoryRow (Year 1871) 1 (USD 100) (USD 100) (Pct 10 0)
-  let hr2 = HistoryRow (Year 1872) 1 (USD 110) (USD 101) (Pct 20 0)
+  let hr1 = HistoryRow (Year 1871) 1 (usd 1.00) (usd 1.00) (pct 10.0)
+  let hr2 = HistoryRow (Year 1872) 1 (usd 1.10) (usd 1.01) (pct 20.0)
   let hs = toHistories [hr1, hr2]
   let sim = simulation noActions million hs
   
@@ -239,20 +218,20 @@ assertSimEndBalance = do
 
   expect "stock return to be exactly 10%" $ do
     [h] <- pure hs
-    h.stocks === Pct 10 0
+    h.stocks === pct 10.0
 
   expect "stocks to end 10% higher than start" $ do
-    y.end.stocks === usd 660000
+    dollars (y.end.stocks) === 660000
 
   expect "bonds to end 1% higher than start" $ do
-    y.end.bonds === usd 404000
+    dollars (y.end.bonds) === 404000
 
 
 assertSimWithdrawEnd :: Test ()
 assertSimWithdrawEnd = do
   -- 10% gain in both
-  let hr1 = HistoryRow (Year 1871) 1 (USD 100) (USD 100) (Pct 10 0)
-  let hr2 = HistoryRow (Year 1872) 1 (USD 110) (USD 200) (Pct 10 0)
+  let hr1 = HistoryRow (Year 1871) 1 (usd 1.00) (usd 1.00) (pct 10.0)
+  let hr2 = HistoryRow (Year 1872) 1 (usd 1.10) (usd 2.00) (pct 10.0)
   let hs = toHistories [hr1, hr2]
 
   -- just below the threshhold to 
@@ -286,13 +265,13 @@ assertRebalance = do
   let be = Portfolio (usd 60) (usd 40)
 
   expect "rebalance 100/0 by 40 and 40" $ do
-    rebalanceFixed (Pct 60 0) (Pct 40 0) bs === Portfolio (usd (-40)) (usd (40))
+    rebalanceFixed (pct 60) (pct 40) bs === Portfolio (usd (-40)) (usd (40))
 
   expect "rebalance 0/100 by 60 and 60" $ do
-    rebalanceFixed (Pct 60 0) (Pct 40 0) bb === Portfolio (usd (60)) (usd (-60))
+    rebalanceFixed (pct 60) (pct 40) bb === Portfolio (usd (60)) (usd (-60))
 
   expect "rebalance correct by 0" $ do
-    rebalanceFixed (Pct 60 0) (Pct 40 0) be === Portfolio mempty mempty
+    rebalanceFixed (pct 60) (pct 40) be === Portfolio mempty mempty
 
 
 assertStandard :: Test ()
@@ -313,7 +292,7 @@ assertStandard = do
     ch.bonds === usd (-40)
 
   expect "rebalance" $ do
-    let ch = rebalanceFixed (Pct 60 0) (Pct 40 0) bal
+    let ch = rebalanceFixed (pct 60) (pct 40) bal
     ch.bonds === usd (80)
     ch.stocks === usd (-80)
   
