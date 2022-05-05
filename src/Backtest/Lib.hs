@@ -17,7 +17,7 @@ run = do
     let hs = toHistories rs
     let hs' = filter (betweenYears (Year 1925) (Year 1995)) hs
     -- I'm close! 3.9%
-    runMSWR 30 hs' (action $ rebalanceFixed (pct 60.0) (pct 40.0))
+    runMSWR 30 hs' (action $ rebalanceFixed (pct 60) (pct 40))
 
     -- let ss = samples 30 hs
 
