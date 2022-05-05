@@ -1,8 +1,8 @@
 module Main where
 
-import Invest.Prelude
-import Invest.Lib
-import Invest.Types
+import Backtest.Prelude
+import Backtest.Lib
+import Backtest.Types
 
 main :: IO ()
 main = run

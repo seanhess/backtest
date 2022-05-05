@@ -4,14 +4,14 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           invest
+name:           backtest
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/invest#readme>
-homepage:       https://github.com/githubuser/invest#readme
-bug-reports:    https://github.com/githubuser/invest/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2022 Author name here
+description:    Please see the README on GitHub at <https://github.com/seanhess/backtest#readme>
+homepage:       https://github.com/seanhess/backtest#readme
+bug-reports:    https://github.com/seanhess/backtest/issues
+author:         Sean Hess
+maintainer:     seanhess@gmail.com
+copyright:      2022 Sean Hess
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -21,15 +21,15 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/invest
+  location: https://github.com/seanhess/backtest
 
 library
   exposed-modules:
-      Invest.Lib
-      Invest.Prelude
-      Invest.Types
+      Backtest.Lib
+      Backtest.Prelude
+      Backtest.Types
   other-modules:
-      Paths_invest
+      Paths_backtest
   hs-source-dirs:
       src
   default-extensions:
@@ -72,10 +72,10 @@ library
     , vector
   default-language: Haskell2010
 
-executable invest-exe
+executable backtest-exe
   main-is: Main.hs
   other-modules:
-      Paths_invest
+      Paths_backtest
   hs-source-dirs:
       app
   default-extensions:
@@ -104,12 +104,12 @@ executable invest-exe
   ghc-options: -Wincomplete-patterns -Wdodgy-exports -Wdodgy-imports -Wincomplete-record-updates -Wname-shadowing -F -pgmF=record-dot-preprocessor -fdefer-typed-holes -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Decimal
+    , backtest
     , base >=4.7 && <5
     , bytestring
     , cassava
     , containers
     , exceptions
-    , invest
     , mtl
     , record-dot-preprocessor
     , record-hasfield
@@ -119,14 +119,14 @@ executable invest-exe
     , vector
   default-language: Haskell2010
 
-test-suite invest-test
+test-suite backtest-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Invest.Lib
-      Invest.Prelude
-      Invest.Types
-      Paths_invest
+      Backtest.Lib
+      Backtest.Prelude
+      Backtest.Types
+      Paths_backtest
   hs-source-dirs:
       test
       src
@@ -156,12 +156,12 @@ test-suite invest-test
   ghc-options: -Wincomplete-patterns -Wdodgy-exports -Wdodgy-imports -Wincomplete-record-updates -Wname-shadowing -F -pgmF=record-dot-preprocessor -fdefer-typed-holes -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Decimal
+    , backtest
     , base >=4.7 && <5
     , bytestring
     , cassava
     , containers
     , exceptions
-    , invest
     , mtl
     , record-dot-preprocessor
     , record-hasfield

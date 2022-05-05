@@ -1,5 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Invest.Types
+module Backtest.Types
   ( Year(Year)
   , Pct(toFloat), pct, pctFromFloat
   , USD, dollars, cents, fromFloat
@@ -25,7 +25,7 @@ module Invest.Types
   )
   where
 
-import Invest.Prelude
+import Backtest.Prelude
 import Data.Text as Text (splitOn)
 import Data.Csv (FromNamedRecord(..), FromField(..), (.:), Parser)
 import Data.Decimal (Decimal, realFracToDecimal)

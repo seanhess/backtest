@@ -1,8 +1,8 @@
 
 
-import Invest.Prelude
-import Invest.Types
-import Invest.Lib
+import Backtest.Prelude
+import Backtest.Types
+import Backtest.Lib
 import Control.Monad.Catch (try, throwM)
 import Control.Monad.Reader (MonadReader, ReaderT, runReaderT, ask)
 import Control.Monad.State (runState)

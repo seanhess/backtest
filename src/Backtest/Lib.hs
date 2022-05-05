@@ -1,8 +1,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Invest.Lib where
+module Backtest.Lib where
 
-import Invest.Prelude
-import Invest.Types
+import Backtest.Prelude
+import Backtest.Types
 import Data.Csv as Csv (decodeByName, Header)
 import Data.List as List
 import Data.ByteString.Lazy (readFile)

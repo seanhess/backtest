@@ -1,4 +1,4 @@
-module Invest.Prelude
+module Backtest.Prelude
   ( module Prelude
   , (&)
   , (<|>)

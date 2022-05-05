@@ -1,3 +1,3 @@
-# Changelog for invest
+# Changelog for backtest
 
 ## Unreleased changes
