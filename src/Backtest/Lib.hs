@@ -8,7 +8,7 @@ import Data.List as List
 import Data.ByteString.Lazy (readFile)
 import Data.Vector as Vector (Vector, toList)
 import Debug.Trace (trace)
-import Control.Monad.State (State, MonadState, get, put, gets, execState)
+import Control.Monad.State (State, MonadState, modify, execState)
 
 
 run :: IO ()
@@ -58,38 +58,22 @@ run = do
       showYear yr =
           show (yr.history.year, yr.withdrawals, yr.start, yr.end)
 
--- keep 6040 fixed
 runMSWR :: Int -> [History] -> Actions () -> IO ()
 runMSWR yrs hs rebalance = do
     let ss = samples yrs hs
     let start = million
-    -- let res = map (runRate start ss) rates :: [[SimResult]]
-
     let rrs = rateResults start ss allRates
 
     print $ map (.year) hs
     mapM_ print rrs
     print $ mswr rrs
 
-    -- putStrLn $ "Years: " <> show yrs
-
-    -- forM_ rates $ \r -> do
-    --     let srs = runRate start ss r
-    --     putStrLn $ "RATE: " <> show r
-    --     putStrLn "----------------"
-    --     print $ successRate srs
-    --     putStrLn ""
-
-
-    -- let sim = simulation (standard6040Withdraw4 start) start
-    -- let srs = map sim ss :: [SimResult]
     pure ()
     where
 
         allRates :: [Pct Withdrawal]
         allRates = [pct 3.5, pct 3.6, pct 3.7, pct 3.8, pct 3.9, pct 4.0, pct 4.1, pct 4.2, pct 4.3, pct 4.4, pct 4.5, pct 4.6, pct 4.7, pct 4.8, pct 4.9, pct 5.0]
 
-        -- what if none are successful?
         rateResults :: Balances -> [[History]] -> [Pct Withdrawal] -> [RateResult]
         rateResults start ss rates =
             map (runRate start ss) rates
@@ -172,7 +156,7 @@ simulation initial actions hs =
     yearResult h bal = 
 
         let bal' = calcReturns h bal
-            ret =changes bal bal'
+            ret = changes bal bal'
 
             end = runActions bal' actions
             act = changes bal' end
@@ -188,10 +172,6 @@ simulation initial actions hs =
           , withdrawals = wd
           }
 
-
-apply :: Changes -> Balances -> Balances
-apply ch bals =
-    Portfolio (addAmount ch.stocks bals.stocks) (addAmount ch.bonds bals.bonds)
 
 
 -- ah, we need the previous one also!
@@ -216,13 +196,11 @@ changes :: Balances -> Balances -> Changes
 changes start end =
     Portfolio (gains start.stocks end.stocks) (gains start.bonds end.bonds)
 
--- well, wait, when we runActions/
 
 -- Run a function that produces changes
 action :: (Balances -> Balances) -> Actions ()
-action f = do
-    cur <- get :: Actions Balances
-    put $ f cur
+action = modify
+
 
 runActions :: Balances -> Actions () -> Balances
 runActions bal (Actions st) = 
@@ -283,14 +261,6 @@ standard6040Withdraw4 start = do
     rebalance6040
 
 
--- test1 :: Balances -> Actions [Changes]
--- test1 start = do
---     f <- get
---     standardWithdraw4 start
---     f2 <- get
---     standardRebalance6040
---     f3 <- get
---     pure [f start, f2 start, f3 start]
 
 
 
