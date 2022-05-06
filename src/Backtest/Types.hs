@@ -4,8 +4,10 @@ module Backtest.Types
   , Pct(toFloat), pct, pctFromFloat
   , USD, dollars, cents, fromFloat
   , gainsPercent
-  , addAmount
+  , addToBalance
+  , addAmounts
   , amount
+  , amountBalance
   , toAmount
   , gains
   , loss, gain
@@ -68,7 +70,7 @@ pct f = Pct (f / 100)
 
 -- | Total in pennies
 data USD a = USD { totalCents :: Int }
-  deriving (Eq)
+  deriving (Eq, Ord)
 
 instance Semigroup (USD a) where
   (USD a) <> (USD b) = USD (a + b)
@@ -106,7 +108,6 @@ instance Show (USD a) where
 data Inflation
 data Withdrawal
 data Amount
--- data Balance
 data Stocks
 data Bonds
 
@@ -236,8 +237,11 @@ gainsPercent s e =
     Pct $ (fromIntegral e.totalCents) / (fromIntegral s.totalCents) - 1
 
 -- | Applies a return to a balance
-addAmount :: USD Amount -> USD bal -> USD bal
-addAmount (USD ret) (USD b) = balance $ b + ret
+addToBalance :: USD Amount -> USD bal -> USD bal
+addToBalance (USD ret) (USD b) = balance $ b + ret
+
+addAmounts :: USD Amount -> USD Amount -> USD Amount
+addAmounts (USD a) (USD b) = USD $ a + b
 
 loss :: USD amt -> USD amt
 loss (USD a) = USD (negate (abs a))
@@ -255,7 +259,10 @@ minZero :: USD a -> USD a
 minZero (USD n) = balance n
 
 amount :: Pct amt -> USD bal -> USD Amount
-amount p bal = fromFloat $
+amount p bal = fromUSD $ amountBalance p bal
+
+amountBalance :: Pct amt -> USD bal -> USD bal
+amountBalance p bal = fromFloat $
     (fromIntegral $ totalCents bal) * toFloat p / 100
 
 fromUSD :: USD a -> USD b

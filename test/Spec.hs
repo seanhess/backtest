@@ -37,10 +37,12 @@ main = do
   test "Actions" assertActions
   test "withdrawal" assertWithdrawal
   test "rebalance" assertRebalance
-  -- test "inflation" assertInflation
-  -- test "simWithdrawlEnd" assertSimWithdrawEnd
-  -- test "simEndBalance" assertSimEndBalance
-  -- test "standard" assertStandard
+  test "inflation" assertInflation
+  test "simWithdrawlEnd" assertSimWithdrawEnd
+  test "simEndBalance" assertSimEndBalance
+  test "standard" assertStandard
+  test "primeHarvesting" assertPrimeHarvesting
+  test "primeNew" assertPrimeNew
 
 
 
@@ -118,7 +120,10 @@ assertReturns = do
     calcReturns h b === Portfolio (usd 110) (usd 101)
 
   expect "apply returns should add up" $ do
-    calcReturns h million === Portfolio (usd 660000) (usd 404000)
+    let ret = calcReturns h million6040
+    dollars ret.stocks === 660000
+    dollars ret.bonds === 404000
+
 
     
 
@@ -226,7 +231,7 @@ assertSimEndBalance = do
   let hr1 = HistoryRow (Year 1871) 1 (usd 1.00) (usd 1.00) (pct 10.0)
   let hr2 = HistoryRow (Year 1872) 1 (usd 1.10) (usd 1.01) (pct 20.0)
   let hs = toHistories [hr1, hr2]
-  let sim = simulation million noActions hs
+  let sim = simulation million6040 noActions hs
   
   [y] <- pure sim.years
 
@@ -296,7 +301,7 @@ assertRebalance = do
 assertStandard :: Test ()
 assertStandard = do
   let start = Portfolio (usd 600) (usd 400)
-  let bal = Portfolio (usd 800)    (usd 400)
+  let bal = Portfolio   (usd 800) (usd 400)
   let wda = staticWithdrawalAmount swr4 start
 
   -- ok, so what should happen?
@@ -307,11 +312,13 @@ assertStandard = do
 
   expect "withdrawBondsFirst 4%" $ do
     let const4Percent = loss $ staticWithdrawalAmount swr4 start :: USD Withdrawal
-    let ch = withdrawBondsFirst const4Percent bal
+    let bal' = withdrawBondsFirst const4Percent bal
+    let ch = changes bal bal'
     ch.bonds === usd (-40)
 
   expect "rebalance" $ do
-    let ch = rebalanceFixed (pct 60) (pct 40) bal
+    let bal' = rebalanceFixed (pct 60) (pct 40) bal
+    let ch = changes bal bal'
     ch.bonds === usd (80)
     ch.stocks === usd (-80)
   
@@ -353,7 +360,7 @@ assertActions :: Test ()
 assertActions = do
   let bal = Portfolio (usd 100) (usd 200)
 
-  let ch = \b -> Portfolio (addAmount (usd 20) b.stocks) (addAmount (usd 30) b.bonds)
+  let ch = \b -> Portfolio (addToBalance (usd 20) b.stocks) (addToBalance (usd 30) b.bonds)
 
   expect "stocks should be the sum of both changes" $ do
     let fin = runActions bal $ do
@@ -363,6 +370,67 @@ assertActions = do
     fin.stocks === usd 140
 
 
+assertPrimeHarvesting :: Test ()
+assertPrimeHarvesting = do
+  let start = Portfolio (usd 500) (usd 500)
+  let bal = \n -> Portfolio (usd n) (usd 500)
+
+  expect "do nothing if within 120% of stocks" $ do
+    rebalancePrime start.stocks (bal 450) === bal 450
+    rebalancePrime start.stocks (bal 500) === bal 500
+    rebalancePrime start.stocks (bal 400) === bal 400
+    rebalancePrime start.stocks (bal 300) === bal 300
+
+  expect "do nothing if exactly 120% of stocks " $ do
+    rebalancePrime start.stocks (bal 600) === bal 600
+
+  expect "transfer excess to bonds" $ do
+    rebalancePrime start.stocks (bal 700) === Portfolio (usd 600) (usd 600)
+
+  expect "total is equal" $ do
+    let b = bal 700
+    total (rebalancePrime start.stocks b) === total b
+
+
+assertPrimeNew :: Test ()
+assertPrimeNew = do
+  let start = Portfolio (usd 500) (usd 500)
+  let bal = \n -> Portfolio (usd n) (usd 500)
+
+  expect "do nothing if within 120% of stocks" $ do
+    rebalancePrimeNew start.stocks (bal 450) === bal 450
+    rebalancePrimeNew start.stocks (bal 500) === bal 500
+    rebalancePrimeNew start.stocks (bal 400) === bal 400
+
+  expect "do nothing if exactly 120% of stocks " $ do
+    rebalancePrimeNew start.stocks (bal 600) === bal 600
+
+  expect "transfer excess to bonds" $ do
+    -- 700 500 should be 600 600. ds = (-100)
+    rebalancePrimeNew start.stocks (bal 700) === Portfolio (usd 600) (usd 600)
+
+  expect "transfer excess to stocks" $ do
+    rebalancePrimeNew start.stocks (bal 300) === Portfolio (usd 400) (usd 400)
+
+  expect "total is equal with excess stocks" $ do
+    let b = bal 700
+    total (rebalancePrime start.stocks b) === total b
+
+  expect "total is equal with too few stocks" $ do
+    let b = bal 300
+    total (rebalancePrime start.stocks b) === total b
+
+  expect "with no bonds, still do nothing" $ do
+    let b = Portfolio (usd 500) (usd 0)
+    rebalancePrimeNew start.stocks b === b
+
+  expect "with no bonds but above, still transfer" $ do
+    let b = Portfolio (usd 700) (usd 0)
+    rebalancePrimeNew start.stocks b === Portfolio (usd 600) (usd 100)
+
+  expect "with no bonds but below, do nothing" $ do
+    let b = Portfolio (usd 300) (usd 0)
+    rebalancePrimeNew start.stocks b === Portfolio (usd 300) (usd 0)
 
 
 

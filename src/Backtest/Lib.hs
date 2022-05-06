@@ -15,26 +15,45 @@ run :: IO ()
 run = do
     rs <- loadReturns
     let hs = toHistories rs
-    let hs' = filter (betweenYears (Year 1925) (Year 1995)) hs
-    -- I'm close! 3.9%
-    runMSWR 30 hs' (action $ rebalanceFixed (pct 60) (pct 40))
+    -- let hs' = filter (betweenYears (Year 1925) (Year 1995)) hs
 
-    -- let ss = samples 30 hs
+    -- COMPARE MSWR
+    -----------------
+    let alloc = rebalanceFixed (pct 70) (pct 30)
+    let bal = alloc million
 
-    -- let sim = simulation million (standard6040Withdraw4 million)
+    putStrLn "Rebalance Fixed"
+    putStrLn "----------------"
+    runMSWR 50 hs bal (action alloc)
+    pure ()
+
+    putStrLn "Prime Harvesting"
+    putStrLn "----------------"
+    runMSWR 50 hs bal (action (rebalancePrime bal.stocks))
+
+    putStrLn ""
+    putStrLn ""
+
+    putStrLn "Prime Harvesting 2"
+    putStrLn "------------------"
+    runMSWR 50 hs bal (action (rebalancePrimeNew bal.stocks))
+
+
+    -- RUN ONE SAMPLE
+    --------------------
+    -- let ss = samples 50 hs
+    -- let start = million5050
+    -- let wda = staticWithdrawalAmount (pct 4) start :: USD Withdrawal
+    -- print wda
+    -- let sim = simulation start $ do
+    --             action $ withdrawBondsFirst wda
+    --             action $ rebalancePrimeNew start.stocks
     -- let srs = map sim ss :: [SimResult]
 
-    -- (h1:_) <- pure hs
-
-    -- mapM_ print hs
     -- let ys = (head srs).years
-    -- let y1 = head ys
+    -- mapM_ print $ take 10 ys
 
-    -- print y1
-    -- print $ bp.toFloat
-    -- print $ take 2 rs
-
-    -- * Show all years
+    -- -- * Show all years
     -- mapM_ (putStrLn . showSimResult) srs
 
     -- * Count failures
@@ -58,10 +77,16 @@ run = do
       showYear yr =
           show (yr.history.year, yr.withdrawals, yr.start, yr.end)
 
-runMSWR :: Int -> [History] -> Actions () -> IO ()
-runMSWR yrs hs rebalance = do
+
+-- runSingle :: Int -> [History] -> Actions () -> IO ()
+-- runSingle yrs hs rebalance = do
+--     let ss = samples yrs hs
+--     let start = runActions million rebalance
+
+
+runMSWR :: Int -> [History] -> Balances -> Actions () -> IO ()
+runMSWR yrs hs start rebalance = do
     let ss = samples yrs hs
-    let start = million
     let rrs = rateResults start ss allRates
 
     print $ map (.year) hs
@@ -72,11 +97,11 @@ runMSWR yrs hs rebalance = do
     where
 
         allRates :: [Pct Withdrawal]
-        allRates = [pct 3.5, pct 3.6, pct 3.7, pct 3.8, pct 3.9, pct 4.0, pct 4.1, pct 4.2, pct 4.3, pct 4.4, pct 4.5, pct 4.6, pct 4.7, pct 4.8, pct 4.9, pct 5.0]
+        allRates = map pct [3.5, 3.6 .. 5.0]
 
         rateResults :: Balances -> [[History]] -> [Pct Withdrawal] -> [RateResult]
-        rateResults start ss rates =
-            map (runRate start ss) rates
+        rateResults start' ss rates =
+            map (runRate start' ss) rates
 
         mswr :: [RateResult] -> Maybe RateResult
         mswr rrs =
@@ -84,8 +109,8 @@ runMSWR yrs hs rebalance = do
 
 
         runRate :: Balances -> [[History]] -> Pct Withdrawal -> RateResult
-        runRate start ss wdp =
-            let srs = map (runSim start wdp) ss
+        runRate start' ss wdp =
+            let srs = map (runSim start' wdp) ss
             in RateResult
               { years = yrs
               , rate = wdp
@@ -93,9 +118,9 @@ runMSWR yrs hs rebalance = do
               }
 
         runSim :: Balances -> Pct Withdrawal -> [History] -> SimResult
-        runSim start wdp =
+        runSim start' wdp =
             let wda = loss $ staticWithdrawalAmount wdp start :: USD Withdrawal
-            in simulation start $ do
+            in simulation start' $ do
                 withdraw wda
                 rebalance
 
@@ -179,7 +204,7 @@ calcReturns :: History -> Balances -> Balances
 calcReturns h b =
     let ds = amount h.stocks b.stocks
         db = amount h.bonds b.bonds
-    in Portfolio (addAmount ds b.stocks) (addAmount db b.bonds)
+    in Portfolio (addToBalance ds b.stocks) (addToBalance db b.bonds)
 
 
 
@@ -214,11 +239,11 @@ withdrawBondsFirst :: USD Withdrawal -> Balances -> Balances
 withdrawBondsFirst wd b =
 
     let wda = loss $ toAmount wd :: USD Amount
-        bf  = addAmount wda b.bonds :: USD Bonds
+        bf  = addToBalance wda b.bonds :: USD Bonds
         db  = gains b.bonds bf :: USD Amount
         ds  = loss $ gains wda db
 
-    in Portfolio (addAmount ds b.stocks) bf
+    in Portfolio (addToBalance ds b.stocks) bf
 
 rebalanceFixed :: Pct Stocks -> Pct Bonds -> Balances -> Balances
 rebalanceFixed ps pb bal =
@@ -226,6 +251,44 @@ rebalanceFixed ps pb bal =
         ts = fromUSD $ amount ps tot :: USD Stocks
         tb = fromUSD $ amount pb tot :: USD Bonds
     in Portfolio ts tb
+
+-- This is both the withdrawal AND the rebalancing
+rebalancePrime :: USD Stocks -> Balances -> Balances
+rebalancePrime start bal =
+    let target = amountBalance (pct 120) start
+        extra = minZero $ gains target bal.stocks
+    in Portfolio (addToBalance (loss extra) bal.stocks) (addToBalance (gain extra) bal.bonds)
+
+rebalancePrimeNew :: USD Stocks -> Balances -> Balances
+rebalancePrimeNew start bal
+  | bal.stocks > amountBalance (pct 120) start = rebalancePrime start bal
+  | bal.stocks < amountBalance (pct 80) start = primeBuyStocks start bal
+  | otherwise = bal
+
+primeBuyStocks :: USD Stocks -> Balances -> Balances
+primeBuyStocks start bal =
+    let target = amountBalance (pct 80) start
+        short  = minZero $ gains bal.stocks target
+        actual = min short (fromUSD bal.bonds)
+    in Portfolio (addToBalance (gain actual) bal.stocks) (addToBalance (loss actual) bal.bonds)
+
+  
+
+
+
+    -- let tup = amountBalance (pct 120) start
+    --     exs = minZero $ gains tup bal.stocks -- how much has it grown past the target
+
+    --     -- but what if there aren't any bonds?
+    --     tlow = amountBalance (pct 80) start
+    --     exb = minZero $ gains bal.stocks tlow -- how much has the target exceeded the stocks
+
+    --     ds = addAmounts (gain exb) (loss exs)
+    --     db = addAmounts (loss exb) (gain exs)
+
+    -- in Portfolio (addToBalance ds bal.stocks) (addToBalance db bal.bonds)
+
+
 
 noChanges :: Balances -> Changes
 noChanges _ = Portfolio mempty mempty
@@ -236,9 +299,26 @@ noActions = pure ()
 
 million :: Balances
 million = Portfolio
-  { stocks = usd $ 600*1000
-  , bonds = usd $ 400*1000
+  { stocks = usd $ 500*1000
+  , bonds = usd $ 500*1000
   }
+
+million7030 :: Balances
+million7030 =
+    rebalanceFixed (pct 70) (pct 30) million
+
+million8020 :: Balances
+million8020 =
+    rebalanceFixed (pct 80) (pct 20) million
+
+million6040 :: Balances
+million6040 =
+    rebalanceFixed (pct 60) (pct 40) million
+
+million5050 :: Balances
+million5050 =
+    rebalanceFixed (pct 50) (pct 50) million
+
 
 swr4 :: Pct Withdrawal
 swr4 = pct 4
