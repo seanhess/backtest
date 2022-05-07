@@ -38,7 +38,7 @@ main = do
   test "withdrawal" assertWithdrawal
   test "rebalance" assertRebalance
   test "inflation" assertInflation
-  test "simWithdrawlEnd" assertSimWithdrawEnd
+  test "simWithdrawEnd" assertSimWithdrawEnd
   test "simEndBalance" assertSimEndBalance
   test "standard" assertStandard
   test "primeHarvesting" assertPrimeHarvesting
@@ -173,6 +173,19 @@ assertWithdrawal = do
     let chg = changes bal bal' :: Changes
     chg.stocks === usd (-20)
     chg.bonds === usd (-10)
+
+  expect "withdraw everything with negative withdrawal amounts" $ do
+    let bal = Portfolio (usd 7.80) (usd 4.58)
+    let wda = loss $ usd 50000
+    let bal' = withdrawBondsFirst wda bal
+    bal'.stocks === mempty
+    bal'.bonds === mempty
+
+
+
+
+
+
 
 
 
@@ -365,8 +378,8 @@ assertActions = do
 
   expect "stocks should be the sum of both changes" $ do
     let fin = runActions bal $ do
-                action ch
-                action ch
+                rebalance ch
+                rebalance ch
 
     fin.stocks === usd 140
 

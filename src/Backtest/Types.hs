@@ -213,6 +213,7 @@ data RateResult = RateResult
   { years :: Int
   , rate :: Pct Withdrawal
   , success :: Pct Success
+  , results :: [SimResult]
   } deriving (Show)
 
 
@@ -242,7 +243,7 @@ data RateResult = RateResult
 
 
 gains :: USD f a -> USD f a -> USD Amt a
-gains (USD s) (USD e) = USD $ e - s
+gains (USD s) (USD e) = USD $ abs e - abs s
 
 gainsPercent :: USD f a -> USD f a -> Pct a
 gainsPercent s e =
