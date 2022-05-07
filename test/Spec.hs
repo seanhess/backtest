@@ -43,6 +43,7 @@ main = do
   test "standard" assertStandard
   test "primeHarvesting" assertPrimeHarvesting
   test "primeNew" assertPrimeNew
+  test "testBands" assertBands
 
 
 
@@ -145,12 +146,12 @@ assertWithdrawal = do
     gain (usd (-20)) === usd 20
     gain (usd 30) === usd 30
 
-  expect "should withdraw 0 from stocks and 40 from bonds" $ do
+  expect "withdraw 0 from stocks and 40 from bonds" $ do
     let ch = changes b (withdrawBondsFirst wa b)
     ch.stocks === usd 0
     ch.bonds === usd (-40)
 
-  expect "should withdraw from stocks if bonds are zero" $ do
+  expect "withdraw from stocks if bonds are zero" $ do
     let bal = Portfolio (usd 1000) (usd 0)
     let wa' = staticWithdrawalAmount swr4 bal
     let ch = changes bal (withdrawBondsFirst wa' bal)
@@ -264,7 +265,7 @@ assertSimWithdrawEnd = do
     y.returns === Portfolio (usd 100) (usd 30)
 
   expect "withdraw from bonds first because they grow" $ do
-    y.actions === Portfolio (usd 0) (loss wda)
+    y.actions === Portfolio (usd 0) (loss $ toBonds wda)
 
   expect "withdrawals should be equal to wda" $ do
     y.withdrawals === loss wda
@@ -311,7 +312,7 @@ assertStandard = do
     wda === (usd 40)
 
   expect "withdrawBondsFirst 4%" $ do
-    let const4Percent = loss $ staticWithdrawalAmount swr4 start :: USD Withdrawal
+    let const4Percent = loss $ staticWithdrawalAmount swr4 start :: USD Amt Withdrawal
     let bal' = withdrawBondsFirst const4Percent bal
     let ch = changes bal bal'
     ch.bonds === usd (-40)
@@ -339,7 +340,7 @@ assertStandard = do
   let chs  = changes bal bal'
 
   expect "withdrawal should result in net -40" $ do
-    total chs === (fromUSD $ loss wda)
+    total chs === (toTotal $ loss wda)
 
   expect "stocks should be rebalanced off of new total" $ do
     chs.stocks === (loss $ usd 104)
@@ -433,5 +434,23 @@ assertPrimeNew = do
     rebalancePrimeNew start.stocks b === Portfolio (usd 300) (usd 0)
 
 
+assertBands :: Test ()
+assertBands = do
+  expect "diffAbsPercent normal" $ do
+    diffAbsPercent (pct 60) (Portfolio (usd 62) (usd 38)) === pct 2
 
+  expect "diffAbsPercent high" $ do
+    diffAbsPercent (pct 60) (Portfolio (usd 65) (usd 35)) === pct 5
+
+  expect "diffAbsPercent low" $ do
+    diffAbsPercent (pct 40) (Portfolio (usd 65) (usd 35)) === pct 25
+
+  expect "diffRelPercent normal" $ do
+    diffRelPercent (pct 50) (Portfolio (usd 55) (usd 45))  === pct 10
+
+  expect "diffRelPercent high" $ do
+    diffRelPercent (pct 50) (Portfolio (usd 65) (usd 35))  === pct 30
+
+  expect "diffRelPercent low" $ do
+    diffRelPercent (pct 50) (Portfolio (usd 30) (usd 70))  === pct 40
 

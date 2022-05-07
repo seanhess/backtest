@@ -19,24 +19,33 @@ run = do
 
     -- COMPARE MSWR
     -----------------
-    let alloc = rebalanceFixed (pct 70) (pct 30)
+    let ps = pct 60
+    let pb = pct 40
+    let alloc = rebalanceFixed ps pb
     let bal = alloc million
+
+    -- oh it's doing better with longer years because we are removing some of the worst cohorts
+    let years = 50
 
     putStrLn "Rebalance Fixed"
     putStrLn "----------------"
-    runMSWR 50 hs bal (action alloc)
+    runMSWR years hs bal (action alloc)
     pure ()
 
     putStrLn "Prime Harvesting"
     putStrLn "----------------"
-    runMSWR 50 hs bal (action (rebalancePrime bal.stocks))
+    runMSWR years hs bal (action (rebalancePrime bal.stocks))
 
     putStrLn ""
     putStrLn ""
 
     putStrLn "Prime Harvesting 2"
     putStrLn "------------------"
-    runMSWR 50 hs bal (action (rebalancePrimeNew bal.stocks))
+    runMSWR years hs bal (action (rebalancePrimeNew bal.stocks))
+
+    putStrLn "Swedroe 5/25 bands"
+    putStrLn "------------------"
+    runMSWR years hs bal (action (rebalance525Bands ps pb))
 
 
     -- RUN ONE SAMPLE
@@ -97,7 +106,7 @@ runMSWR yrs hs start rebalance = do
     where
 
         allRates :: [Pct Withdrawal]
-        allRates = map pct [3.5, 3.6 .. 5.0]
+        allRates = map pct [3.5, 3.6 .. 4.5]
 
         rateResults :: Balances -> [[History]] -> [Pct Withdrawal] -> [RateResult]
         rateResults start' ss rates =
@@ -119,7 +128,7 @@ runMSWR yrs hs start rebalance = do
 
         runSim :: Balances -> Pct Withdrawal -> [History] -> SimResult
         runSim start' wdp =
-            let wda = loss $ staticWithdrawalAmount wdp start :: USD Withdrawal
+            let wda = loss $ staticWithdrawalAmount wdp start :: USD Amt Withdrawal
             in simulation start' $ do
                 withdraw wda
                 rebalance
@@ -186,7 +195,7 @@ simulation initial actions hs =
             end = runActions bal' actions
             act = changes bal' end
 
-            wd = total act
+            wd = toWithdrawal $ total act
 
         in YearResult
           { history = h
@@ -231,50 +240,66 @@ runActions :: Balances -> Actions () -> Balances
 runActions bal (Actions st) = 
     execState st bal
 
-staticWithdrawalAmount :: Pct Withdrawal -> Balances -> USD Withdrawal 
+staticWithdrawalAmount :: Pct Withdrawal -> Balances -> USD Amt Withdrawal 
 staticWithdrawalAmount p bal1 =
-    fromUSD $ amount p (total bal1)
+    amount p (total bal1)
 
-withdrawBondsFirst :: USD Withdrawal -> Balances -> Balances
+withdrawBondsFirst :: USD Amt Withdrawal -> Balances -> Balances
 withdrawBondsFirst wd b =
-
-    let wda = loss $ toAmount wd :: USD Amount
-        bf  = addToBalance wda b.bonds :: USD Bonds
-        db  = gains b.bonds bf :: USD Amount
-        ds  = loss $ gains wda db
-
-    in Portfolio (addToBalance ds b.stocks) bf
+    let wdb = toBonds wd :: USD Amt Bonds
+        wds = toStocks $ minZero $ gains (toAmount b.bonds) (toBonds wd) :: USD Amt Stocks
+    in Portfolio (addToBalance (loss wds) b.stocks) (addToBalance (loss wdb) b.bonds)
 
 rebalanceFixed :: Pct Stocks -> Pct Bonds -> Balances -> Balances
 rebalanceFixed ps pb bal =
     let tot = total bal
-        ts = fromUSD $ amount ps tot :: USD Stocks
-        tb = fromUSD $ amount pb tot :: USD Bonds
+        ts = amountBalance ps tot :: USD Bal Stocks
+        tb = amountBalance pb tot :: USD Bal Bonds
     in Portfolio ts tb
 
 -- This is both the withdrawal AND the rebalancing
-rebalancePrime :: USD Stocks -> Balances -> Balances
+rebalancePrime :: USD Bal Stocks -> Balances -> Balances
 rebalancePrime start bal =
     let target = amountBalance (pct 120) start
-        extra = minZero $ gains target bal.stocks
-    in Portfolio (addToBalance (loss extra) bal.stocks) (addToBalance (gain extra) bal.bonds)
+        extra = minZero $ gains target bal.stocks :: USD Amt Stocks
+        ds = loss extra
+        db = gain $ toBonds extra
+    in Portfolio (addToBalance ds bal.stocks) (addToBalance db bal.bonds)
 
-rebalancePrimeNew :: USD Stocks -> Balances -> Balances
+rebalancePrimeNew :: USD Bal Stocks -> Balances -> Balances
 rebalancePrimeNew start bal
   | bal.stocks > amountBalance (pct 120) start = rebalancePrime start bal
-  | bal.stocks < amountBalance (pct 80) start = primeBuyStocks start bal
+  | bal.stocks < amountBalance (pct 80) start = primeBuyStocks start (pct 80) bal
   | otherwise = bal
 
-primeBuyStocks :: USD Stocks -> Balances -> Balances
-primeBuyStocks start bal =
-    let target = amountBalance (pct 80) start
+primeBuyStocks :: USD Bal Stocks -> Pct Stocks -> Balances -> Balances
+primeBuyStocks start p bal =
+    let target = amountBalance p start
         short  = minZero $ gains bal.stocks target
-        actual = min short (fromUSD bal.bonds)
-    in Portfolio (addToBalance (gain actual) bal.stocks) (addToBalance (loss actual) bal.bonds)
-
-  
+        actual = min short (toStocks $ toAmount bal.bonds)
+    in Portfolio (addToBalance (gain actual) bal.stocks) (addToBalance (loss $ toBonds actual) bal.bonds)
 
 
+-- Larry Swedroe 5/25 bands
+rebalance525Bands :: Pct Stocks -> Pct Bonds -> Balances -> Balances
+rebalance525Bands ps pb bal
+    | diffAbsPercent ps bal >= 5 = rebalanceFixed ps pb bal
+    | diffRelPercent ps bal >= 25 = rebalanceFixed ps pb bal
+    | otherwise = bal
+
+diffAbsPercent :: Pct Stocks -> Balances -> Pct Stocks
+diffAbsPercent ps bal =
+    abs (allocationStocks bal - ps)
+
+diffRelPercent :: Pct Stocks -> Balances -> Pct Stocks
+diffRelPercent ps bal =
+    abs $ (allocationStocks bal) / ps - 1
+
+
+allocationStocks :: Balances -> Pct Stocks
+allocationStocks bal = percentOf bal.stocks (total bal)
+
+-- what is the current allocation?
 
     -- let tup = amountBalance (pct 120) start
     --     exs = minZero $ gains tup bal.stocks -- how much has it grown past the target
@@ -326,13 +351,13 @@ swr4 = pct 4
 
 
 
-withdraw :: USD Withdrawal -> Actions ()
+withdraw :: USD Amt Withdrawal -> Actions ()
 withdraw wda = do
     action $ withdrawBondsFirst wda
 
 standardWithdraw4 :: Balances -> Actions ()
 standardWithdraw4 start = do
-    let const4Percent = loss $ staticWithdrawalAmount swr4 start :: USD Withdrawal
+    let const4Percent = loss $ staticWithdrawalAmount swr4 start :: USD Amt Withdrawal
     action $ withdrawBondsFirst const4Percent
 
 standard6040Withdraw4 :: Balances -> Actions ()

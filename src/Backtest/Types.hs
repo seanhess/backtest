@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE PolyKinds #-}
 module Backtest.Types
   ( Year(Year)
   , Pct(toFloat), pct, pctFromFloat
@@ -12,14 +13,20 @@ module Backtest.Types
   , gains
   , loss, gain
   , totalCents
-  , fromUSD
+  -- , fromUSD
   , minZero
   , usd
+  , percentOf
+  , toStocks
+  , toBonds
+  , toWithdrawal
+  , toTotal
   , HistoryRow(..)
   , History(..)
   , Portfolio(..), Balances, Changes
   , total
-  , Amount, Stocks, Bonds, Withdrawal
+  , Funds(..)
+  , Asset(..)
   , SimResult(..)
   , YearResult(..)
   , Success
@@ -45,7 +52,7 @@ instance Show Year where
 -- This can have strange errors
 -- this is 60.4 %
 newtype Pct a = Pct { toFloat :: Float }
-  deriving (FromField, Num, Ord)
+  deriving (FromField, Num, Ord, Fractional)
 
 
 pctFromFloat :: Float -> Pct a
@@ -69,30 +76,30 @@ pct f = Pct (f / 100)
 
 
 -- | Total in pennies
-data USD a = USD { totalCents :: Int }
+data USD (at :: Funds) (asset :: Asset) = USD { totalCents :: Int }
   deriving (Eq, Ord)
 
-instance Semigroup (USD a) where
+instance Semigroup (USD f a) where
   (USD a) <> (USD b) = USD (a + b)
 
-instance Monoid (USD a) where
+instance Monoid (USD f a) where
   mempty = USD 0
 
-dollars :: USD a -> Int
+dollars :: USD f a -> Int
 dollars (USD c) = round $ fromIntegral c / 100
 
-cents :: USD a -> Int
+cents :: USD f a -> Int
 cents (USD c) = c `rem` 100
 
-fromFloat :: Float -> USD a
+fromFloat :: Float -> USD f a
 fromFloat f = USD $ round (f * 100)
 
-instance FromField (USD a) where
+instance FromField (USD f a) where
   parseField f =
     fromFloat <$> parseField f
 
 -- show it rounded off
-instance Show (USD a) where
+instance Show (USD f a) where
   show m = mconcat
     [ "$"
     , show $ totalCents m `div` 100
@@ -103,21 +110,26 @@ instance Show (USD a) where
           pad x = x
           
 
-
-
 data Inflation
-data Withdrawal
-data Amount
-data Stocks
-data Bonds
+
+data Funds
+  = Amt
+  | Bal
+
+data Asset
+  = Stocks
+  | Bonds
+  | Total
+  | Withdrawal
+
 
 data RealTotal
 
 data HistoryRow = HistoryRow
   { year      :: Year
   , month     :: Int
-  , stocks    :: USD Stocks
-  , bonds     :: USD Bonds
+  , stocks    :: USD Bal Stocks
+  , bonds     :: USD Bal Bonds
   , cpi       :: Pct Inflation
   } deriving (Show, Eq)
 
@@ -151,21 +163,21 @@ data History = History
 
 
 
-data Portfolio stocks bonds = Portfolio
-  { stocks :: USD stocks
-  , bonds  :: USD bonds
+data Portfolio f = Portfolio
+  { stocks :: USD f Stocks
+  , bonds  :: USD f Bonds
   } deriving (Show, Eq)
 
-type Balances = Portfolio Stocks Bonds
-type Changes  = Portfolio Amount Amount 
+type Balances = Portfolio Bal
+type Changes  = Portfolio Amt
 
-instance (Semigroup stocks, Semigroup bonds) => Semigroup (Portfolio stocks bonds) where
+instance Semigroup (Portfolio f) where
   Portfolio s b <> Portfolio s' b' = Portfolio (s <> s') (b <> b')
 
 -- instance Monoid (Portfolio stocks bonds) where
 
 
-total :: Portfolio s b -> USD Amount
+total :: Portfolio f -> USD f Total
 total b = USD $
     (totalCents b.stocks)
   + (totalCents b.bonds)
@@ -178,7 +190,7 @@ data YearResult = YearResult
   , start      :: Balances
   , end        :: Balances
   , returns    :: Changes
-  , withdrawals :: USD Amount
+  , withdrawals :: USD Amt Withdrawal
   , actions    :: Changes
   -- , rebalance :: Changes
   -- , cpi        :: Pct Inflation
@@ -229,48 +241,70 @@ data RateResult = RateResult
 -- compound (Pc )= 
 
 
-gains ::  USD bal -> USD bal -> USD Amount
+gains :: USD f a -> USD f a -> USD Amt a
 gains (USD s) (USD e) = USD $ e - s
 
-gainsPercent :: USD bal -> USD bal -> Pct bal
+gainsPercent :: USD f a -> USD f a -> Pct a
 gainsPercent s e =
     Pct $ (fromIntegral e.totalCents) / (fromIntegral s.totalCents) - 1
 
 -- | Applies a return to a balance
-addToBalance :: USD Amount -> USD bal -> USD bal
+addToBalance :: USD Amt b -> USD Bal b -> USD Bal b
 addToBalance (USD ret) (USD b) = balance $ b + ret
 
-addAmounts :: USD Amount -> USD Amount -> USD Amount
+addAmounts :: USD Amt a -> USD Amt a -> USD Amt a
 addAmounts (USD a) (USD b) = USD $ a + b
 
-loss :: USD amt -> USD amt
+loss :: USD Amt a -> USD Amt a
 loss (USD a) = USD (negate (abs a))
 
-gain :: USD amt -> USD amt
+gain :: USD Amt a -> USD Amt a
 gain (USD a) = USD (abs a)
 
+toBonds :: USD f a -> USD f Bonds
+toBonds = fromUSD
+
+toStocks :: USD f a -> USD f Stocks
+toStocks = fromUSD
+
+toWithdrawal :: USD f a -> USD f Withdrawal
+toWithdrawal = fromUSD
+
+toTotal :: USD f a -> USD f Total
+toTotal = fromUSD
+
+
+percentOf :: USD f a -> USD Bal b -> Pct a
+percentOf (USD a) (USD bal) = pctFromFloat (fromIntegral a / fromIntegral bal)
+
 -- | balances can never be zero, but returns can
-balance :: Int -> USD bal
-balance n
+balance :: Int -> USD Bal a
+balance n = minZero (USD n)
+
+minZero :: USD f a -> USD f a
+minZero (USD n)
   | n >= 0 = USD n
   | otherwise = USD 0
 
-minZero :: USD a -> USD a
-minZero (USD n) = balance n
 
-amount :: Pct amt -> USD bal -> USD Amount
-amount p bal = fromUSD $ amountBalance p bal
-
-amountBalance :: Pct amt -> USD bal -> USD bal
-amountBalance p bal = fromFloat $
+amount :: Pct ass -> USD Bal b -> USD Amt ass
+amount p bal = fromFloat $
     (fromIntegral $ totalCents bal) * toFloat p / 100
 
-fromUSD :: USD a -> USD b
+amountBalance :: Pct ass -> USD Bal b -> USD Bal ass
+amountBalance p bal = fromUSD $ amount p bal
+
+amountWithdrawal :: Pct Withdrawal -> USD Bal b -> USD Amt Withdrawal
+amountWithdrawal p bal = fromUSD $ amount p bal
+
+
+fromUSD :: USD f a -> USD f' b
 fromUSD (USD a) = USD a
 
--- dollars.cents
-usd :: Float -> USD a
+-- | Convienence for making constants
+--   dollars.cents
+usd :: Float -> USD f ass
 usd f = fromFloat f
 
-toAmount :: USD a -> USD Amount
-toAmount (USD a) = USD a
+toAmount :: USD Bal a -> USD Amt a
+toAmount = fromUSD
