@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeApplications #-}
 module Backtest.Lib where
 
 import Backtest.Prelude
@@ -67,9 +68,12 @@ run = do
     -- mapM_ (putStrLn . showSimResult) srs
 
     -- * Count failures
-    -- print $ (length $ filter isFailure srs, length srs)
-    -- print $ successRate srs
-    -- mapM_ (putStrLn . showSimResult) $ filter isFailure srs
+
+    print $ (length $ filter isFailure srs, length srs)
+    print $ successRate srs
+    mapM_ printSimResult $ filter isFailure srs
+
+    print $ averagePortfolio srs
 
     -- * 1966 failure year
     -- (Just s1966) <- pure $ List.find (isYear 1966) srs
@@ -119,8 +123,7 @@ runMSWR yrs hs start reb = do
 
         printRateResult :: RateResult -> IO ()
         printRateResult rr = do
-            print ("RateResult", rr.rate, rr.success)
-
+            print ("RateResult", rr.rate, rr.success, dollars rr.avgPortfolio)
 
             -- mapM_ printSimResult $ head $ drop 10 srs
 
@@ -156,7 +159,9 @@ runMSWR yrs hs start reb = do
               , rate = wdp
               , success = successRate srs
               , results = srs
+              , avgPortfolio = averagePortfolio srs
               }
+
 
         runSim :: USD Amt Withdrawal -> [History] -> SimResult
         runSim wda =
@@ -164,6 +169,12 @@ runMSWR yrs hs start reb = do
                 withdraw (loss wda)
                 reb
 
+
+averagePortfolio :: [SimResult] -> USD Bal Total
+averagePortfolio srs =
+    let tots = map (total . (.endBalance)) srs
+        avg = fromCents $ round $ (fromIntegral $ sum $ map (totalCents) tots :: Float) / (fromIntegral $ length tots :: Float) :: USD Bal Total
+    in avg
 
 
 loadReturns :: IO [HistoryRow]

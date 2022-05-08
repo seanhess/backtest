@@ -3,7 +3,7 @@
 module Backtest.Types
   ( Year(Year)
   , Pct(toFloat), pct, pctFromFloat
-  , USD, dollars, cents, fromFloat
+  , USD, dollars, cents, fromFloat, fromCents
   , gainsPercent
   , addToBalance
   , addAmounts
@@ -93,6 +93,9 @@ cents (USD c) = c `rem` 100
 
 fromFloat :: Float -> USD f a
 fromFloat f = USD $ round (f * 100)
+
+fromCents :: Int -> USD f a
+fromCents = USD
 
 instance FromField (USD f a) where
   parseField f =
@@ -214,7 +217,9 @@ data RateResult = RateResult
   , rate :: Pct Withdrawal
   , success :: Pct Success
   , results :: [SimResult]
+  , avgPortfolio :: USD Bal Total
   } deriving (Show)
+
 
 
 -- 1. We combine percentages in a Change. They must be added.
