@@ -3,6 +3,10 @@
 import Backtest.Prelude
 import Backtest.Types
 import Backtest.Lib
+import Backtest.History
+import Backtest.MSWR
+import Backtest.Simulation
+import Backtest.Strategy
 import Control.Monad.Catch (try, throwM)
 import Control.Monad.Reader (MonadReader, ReaderT, runReaderT, ask)
 import Control.Monad.State (runState)
@@ -121,7 +125,7 @@ assertReturns = do
     calcReturns h b === Portfolio (usd 110) (usd 101)
 
   expect "apply returns should add up" $ do
-    let ret = calcReturns h million6040
+    let ret = calcReturns h million60
     dollars ret.stocks === 660000
     dollars ret.bonds === 404000
 
@@ -132,7 +136,7 @@ assertReturns = do
 assertWithdrawal :: Test ()
 assertWithdrawal = do
   let b = Portfolio (usd 600) (usd 400)
-  let wa = staticWithdrawalAmount swr4 b
+  let wa = staticWithdrawal swr4 b
   expect "withdrawal amount to be 4%" $ do
     wa      === usd (40)
 
@@ -147,21 +151,21 @@ assertWithdrawal = do
     gain (usd 30) === usd 30
 
   expect "withdraw 0 from stocks and 40 from bonds" $ do
-    let ch = changes b (withdrawBondsFirst wa b)
+    let ch = changes b (bondsFirst wa b)
     ch.stocks === usd 0
     ch.bonds === usd (-40)
 
   expect "withdraw from stocks if bonds are zero" $ do
     let bal = Portfolio (usd 1000) (usd 0)
-    let wa' = staticWithdrawalAmount swr4 bal
-    let ch = changes bal (withdrawBondsFirst wa' bal)
+    let wa' = staticWithdrawal swr4 bal
+    let ch = changes bal (bondsFirst wa' bal)
     ch.stocks === usd (-40)
     ch.bonds === usd 0
 
   expect "withdraw from bonds until drained, rest from stocks" $ do
     let bal = Portfolio (usd 990) (usd 10)
     let wa' = amount swr4 (total bal)
-    let bal' = withdrawBondsFirst wa bal :: Balances
+    let bal' = bondsFirst wa bal :: Balances
     let chg = changes bal bal' :: Changes
     chg.stocks === usd (-30)
     chg.bonds === usd (-10)
@@ -169,7 +173,7 @@ assertWithdrawal = do
   expect "withdraw everything if balance is insufficient" $ do
     let bal = Portfolio (usd 20) (usd 10)
     let wa' = amount swr4 (total bal)
-    let bal' = withdrawBondsFirst wa bal :: Balances
+    let bal' = bondsFirst wa bal :: Balances
     let chg = changes bal bal' :: Changes
     chg.stocks === usd (-20)
     chg.bonds === usd (-10)
@@ -177,7 +181,7 @@ assertWithdrawal = do
   expect "withdraw everything with negative withdrawal amounts" $ do
     let bal = Portfolio (usd 7.80) (usd 4.58)
     let wda = loss $ usd 50000
-    let bal' = withdrawBondsFirst wda bal
+    let bal' = bondsFirst wda bal
     bal'.stocks === mempty
     bal'.bonds === mempty
 
@@ -228,7 +232,7 @@ assertInflation = do
   let hs = toHistories [hr1, hr2, hr3]
 
   -- we want to only withdraw
-  let sim = simulation million (standardWithdraw4 million) hs
+  let sim = simulation million50 (withdraw4 million50) hs
   
   expect "3 histroy rows to 2 histories" $ do
     length sim.years === 2
@@ -245,7 +249,7 @@ assertSimEndBalance = do
   let hr1 = HistoryRow (Year 1871) 1 (usd 1.00) (usd 1.00) (pct 10.0)
   let hr2 = HistoryRow (Year 1872) 1 (usd 1.10) (usd 1.01) (pct 20.0)
   let hs = toHistories [hr1, hr2]
-  let sim = simulation million6040 noActions hs
+  let sim = simulation million60 noActions hs
   
   [y] <- pure sim.years
 
@@ -269,7 +273,7 @@ assertSimWithdrawEnd = do
 
   -- just below the threshhold to 
   let bal = Portfolio (usd 1000) (usd 30)
-  let sim = simulation bal (standardWithdraw4 bal) hs
+  let sim = simulation bal (withdraw4 bal) hs
   let wda = amount swr4 (total bal)
   
   [y] <- pure sim.years
@@ -297,7 +301,7 @@ assertRebalance = do
   let bb = Portfolio (usd 0) (usd 100)
   let be = Portfolio (usd 60) (usd 40)
 
-  let rb = rebalanceFixed (pct 60) (pct 40) bs
+  let rb = rebalanceFixed (pct 60) bs
 
   expect "rebalance calculates targets" $ do
     rb === be
@@ -316,7 +320,7 @@ assertStandard :: Test ()
 assertStandard = do
   let start = Portfolio (usd 600) (usd 400)
   let bal = Portfolio   (usd 800) (usd 400)
-  let wda = staticWithdrawalAmount swr4 start
+  let wda = staticWithdrawal swr4 start
 
   -- ok, so what should happen?
 
@@ -324,32 +328,31 @@ assertStandard = do
   expect "withdrawal amount should be 4%" $ do
     wda === (usd 40)
 
-  expect "withdrawBondsFirst 4%" $ do
-    let const4Percent = loss $ staticWithdrawalAmount swr4 start :: USD Amt Withdrawal
-    let bal' = withdrawBondsFirst const4Percent bal
+  expect "bondsFirst 4%" $ do
+    let const4Percent = loss $ staticWithdrawal swr4 start :: USD Amt Withdrawal
+    let bal' = bondsFirst const4Percent bal
     let ch = changes bal bal'
     ch.bonds === usd (-40)
 
   expect "rebalance" $ do
-    let bal' = rebalanceFixed (pct 60) (pct 40) bal
+    let bal' = rebalanceFixed (pct 60) bal
     let ch = changes bal bal'
     ch.bonds === usd (80)
     ch.stocks === usd (-80)
   
   expect "withdrawal " $ do
-    -- let changes = runActions (standard6040Withdraw4 start) bal
-    let bal' = runActions bal (standardWithdraw4 start)
+    let bal' = runActions bal (withdraw4 start)
     bal'.stocks === usd 800
     bal'.bonds === usd 360
 
   expect "rebalance" $ do
-    let bal' = runActions bal rebalance6040
+    let bal' = runActions bal $ rebalancePct (pct 60)
     bal'.stocks === usd 720
     bal'.bonds === usd 480
 
 
   -- run full standard
-  let bal' = runActions bal (standard6040Withdraw4 start)
+  let bal' = runActions bal (withdraw4 start >> rebalancePct (pct 60))
   let chs  = changes bal bal'
 
   expect "withdrawal should result in net -40" $ do

@@ -30,8 +30,7 @@ data SimResult = SimResult
 data Success
 
 data RateResult = RateResult
-  { years :: Int
-  , rate :: Pct Withdrawal
+  { rate :: Pct Withdrawal
   , success :: Pct Success
   , results :: [SimResult]
   , avgPortfolio :: USD Bal Total

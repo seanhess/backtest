@@ -21,6 +21,10 @@ total b = USD $
     (totalCents b.stocks)
   + (totalCents b.bonds)
 
+changes :: Balances -> Balances -> Changes
+changes start end =
+    Portfolio (gains start.stocks end.stocks) (gains start.bonds end.bonds)
+
 
 
 -- higher level functions with balances, amounts, etc
