@@ -115,11 +115,11 @@ runMSWR ss start reb = do
     where
 
         allRates :: [Pct Withdrawal]
-        allRates = map pct [3.5, 3.6 .. 4.5]
+        allRates = map pct [3.4, 3.5 .. 4.5]
 
         printRateResult :: RateResult -> IO ()
         printRateResult rr = do
-            print ("RateResult", rr.rate, rr.success, millions rr.medPortfolio, millions rr.avgPortfolio)
+            print ("RateResult", rr.rate, rr.success, millions rr.medEndPortfolio)
 
             -- mapM_ printSimResult $ head $ drop 10 srs
 

@@ -21,8 +21,8 @@ rateResults ss start reb rates =
             { rate = wdp
             , success = successRate srs
             , results = srs
-            , avgPortfolio = averagePortfolio srs
-            , medPortfolio = medianPortfolio srs
+            , avgEndPortfolio = averageEndPortfolio srs
+            , medEndPortfolio = medianEndPortfolio srs
             }
 
     runSim :: USD Amt Withdrawal -> [History] -> SimResult

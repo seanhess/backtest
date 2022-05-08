@@ -33,7 +33,7 @@ data RateResult = RateResult
   { rate :: Pct Withdrawal
   , success :: Pct Success
   , results :: [SimResult]
-  , avgPortfolio :: USD Bal Total
-  , medPortfolio :: USD Bal Total
+  , avgEndPortfolio :: USD Bal Total
+  , medEndPortfolio :: USD Bal Total
   } deriving (Show)
 

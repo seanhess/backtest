@@ -2,7 +2,7 @@
 module Backtest.Simulation
   ( simulation
   , calcReturns
-  , averagePortfolio, medianPortfolio
+  , averageEndPortfolio, medianEndPortfolio
   , rebalance
   , withdraw
   , bondsFirst
@@ -71,14 +71,15 @@ calcReturns h b =
 
 
 
-averagePortfolio :: [SimResult] -> USD Bal Total
-averagePortfolio srs =
+averageEndPortfolio :: [SimResult] -> USD Bal Total
+averageEndPortfolio srs =
     let tots = map (total . (.endBalance)) srs
         avg = fromCents $ round $ (fromIntegral $ sum $ map (totalCents) tots :: Float) / (fromIntegral $ length tots :: Float) :: USD Bal Total
     in avg
 
-medianPortfolio :: [SimResult] -> USD Bal Total
-medianPortfolio srs =
+-- Median END Balance, not portfolio
+medianEndPortfolio :: [SimResult] -> USD Bal Total
+medianEndPortfolio srs =
     let tots = map (total . (.endBalance)) srs
     in fromCents $ median $ map totalCents tots
 
