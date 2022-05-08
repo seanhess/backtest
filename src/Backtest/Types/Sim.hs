@@ -35,5 +35,6 @@ data RateResult = RateResult
   , success :: Pct Success
   , results :: [SimResult]
   , avgPortfolio :: USD Bal Total
+  , medPortfolio :: USD Bal Total
   } deriving (Show)
 

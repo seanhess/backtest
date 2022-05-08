@@ -4,6 +4,7 @@ module Backtest.Types.Usd where
 
 import Backtest.Prelude
 import Data.Csv (FromField(..))
+import Numeric (showFFloat)
 
 data Funds
   = Amt
@@ -27,6 +28,7 @@ instance Monoid (USD f a) where
 
 dollars :: USD f a -> Int
 dollars (USD c) = round $ fromIntegral c / 100
+
 
 cents :: USD f a -> Int
 cents (USD c) = c `rem` 100
@@ -85,3 +87,14 @@ toWithdrawal = fromUSD
 
 toTotal :: USD f a -> USD f Total
 toTotal = fromUSD
+
+
+
+newtype Millions = Millions Float
+  deriving (Eq)
+
+instance Show Millions where
+  show (Millions f) = "$" <> showFFloat (Just 3) f "M"
+
+millions :: USD f a -> Millions
+millions u = Millions $ fromIntegral (dollars u) / 1000000

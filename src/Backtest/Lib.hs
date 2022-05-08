@@ -32,6 +32,17 @@ run = do
     putStrLn "----------------"
     runMSWR years hs bal (rebalance alloc)
 
+    putStrLn ""
+    putStrLn ""
+
+    putStrLn "Swedroe 5/25 bands"
+    putStrLn "------------------"
+    runMSWR years hs bal (rebalance (rebalance525Bands ps pb))
+
+
+    putStrLn ""
+    putStrLn ""
+
     putStrLn "Prime Harvesting"
     putStrLn "----------------"
     runMSWR years hs bal (rebalance (rebalancePrime bal.stocks))
@@ -42,11 +53,6 @@ run = do
     putStrLn "Prime Harvesting 2"
     putStrLn "------------------"
     runMSWR years hs bal (rebalance (rebalancePrimeNew bal.stocks))
-
-    putStrLn "Swedroe 5/25 bands"
-    putStrLn "------------------"
-    runMSWR years hs bal (rebalance (rebalance525Bands ps pb))
-
 
     -- RUN ONE SAMPLE
     --------------------
@@ -68,12 +74,12 @@ run = do
     -- mapM_ (putStrLn . showSimResult) srs
 
     -- * Count failures
+    -- print $ (length $ filter isFailure srs, length srs)
+    -- print $ successRate srs
+    -- mapM_ printSimResult $ filter isFailure srs
 
-    print $ (length $ filter isFailure srs, length srs)
-    print $ successRate srs
-    mapM_ printSimResult $ filter isFailure srs
-
-    print $ averagePortfolio srs
+    -- print $ averagePortfolio srs
+    -- print $ medianPortfolio srs
 
     -- * 1966 failure year
     -- (Just s1966) <- pure $ List.find (isYear 1966) srs
@@ -123,7 +129,7 @@ runMSWR yrs hs start reb = do
 
         printRateResult :: RateResult -> IO ()
         printRateResult rr = do
-            print ("RateResult", rr.rate, rr.success, dollars rr.avgPortfolio)
+            print ("RateResult", rr.rate, rr.success, millions rr.medPortfolio, millions rr.avgPortfolio)
 
             -- mapM_ printSimResult $ head $ drop 10 srs
 
@@ -160,6 +166,7 @@ runMSWR yrs hs start reb = do
               , success = successRate srs
               , results = srs
               , avgPortfolio = averagePortfolio srs
+              , medPortfolio = medianPortfolio srs
               }
 
 
@@ -175,6 +182,11 @@ averagePortfolio srs =
     let tots = map (total . (.endBalance)) srs
         avg = fromCents $ round $ (fromIntegral $ sum $ map (totalCents) tots :: Float) / (fromIntegral $ length tots :: Float) :: USD Bal Total
     in avg
+
+medianPortfolio :: [SimResult] -> USD Bal Total
+medianPortfolio srs =
+    let tots = map (total . (.endBalance)) srs
+    in fromCents $ median $ map totalCents tots
 
 
 loadReturns :: IO [HistoryRow]
@@ -456,3 +468,10 @@ rebalance6040 = rebalance $ rebalanceFixed (pct 60) (pct 40)
 betweenYears :: Year -> Year -> History -> Bool
 betweenYears start end h = 
     start <= h.year && h.year <= end
+
+
+
+median :: (Ord a, Num a) => [a] -> a   
+median [] = 0  
+median xs = sort xs !! mid   
+ where mid = (length xs) `div` 2 

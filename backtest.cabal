@@ -28,7 +28,10 @@ library
       Backtest.Lib
       Backtest.Prelude
       Backtest.Types
+      Backtest.Types.History
       Backtest.Types.Pct
+      Backtest.Types.Portfolio
+      Backtest.Types.Sim
       Backtest.Types.Usd
   other-modules:
       Paths_backtest
@@ -65,6 +68,7 @@ library
     , bytestring
     , cassava
     , containers
+    , dsp
     , exceptions
     , mtl
     , record-dot-preprocessor
@@ -113,6 +117,7 @@ executable backtest-exe
     , bytestring
     , cassava
     , containers
+    , dsp
     , exceptions
     , mtl
     , record-dot-preprocessor
@@ -130,7 +135,10 @@ test-suite backtest-test
       Backtest.Lib
       Backtest.Prelude
       Backtest.Types
+      Backtest.Types.History
       Backtest.Types.Pct
+      Backtest.Types.Portfolio
+      Backtest.Types.Sim
       Backtest.Types.Usd
       Paths_backtest
   hs-source-dirs:
@@ -168,6 +176,7 @@ test-suite backtest-test
     , bytestring
     , cassava
     , containers
+    , dsp
     , exceptions
     , mtl
     , record-dot-preprocessor
