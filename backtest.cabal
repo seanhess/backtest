@@ -28,6 +28,8 @@ library
       Backtest.Lib
       Backtest.Prelude
       Backtest.Types
+      Backtest.Types.Pct
+      Backtest.Types.Usd
   other-modules:
       Paths_backtest
   hs-source-dirs:
@@ -128,6 +130,8 @@ test-suite backtest-test
       Backtest.Lib
       Backtest.Prelude
       Backtest.Types
+      Backtest.Types.Pct
+      Backtest.Types.Usd
       Paths_backtest
   hs-source-dirs:
       test
