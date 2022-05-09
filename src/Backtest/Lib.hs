@@ -2,10 +2,11 @@
 module Backtest.Lib where
 
 import Backtest.Prelude
-import Backtest.Types
+import Backtest.Types hiding (history)
 import Backtest.History (loadReturns, samples, toHistories)
-import Backtest.Simulation (simulation, Actions, rebalance, withdraw)
+import Backtest.Simulation (simulation, Actions, rebalance, withdraw, bondsFirst, balances, yearsLeft, history)
 import Backtest.Strategy (staticWithdrawal, rebalanceFixed, rebalance525Bands, rebalancePrime, rebalancePrimeNew)
+import Backtest.Strategy.ABW (amortizedWithdrawal)
 import Backtest.MSWR (rateResults, isFailure)
 import Debug.Trace (trace)
 import Data.List as List
@@ -15,15 +16,15 @@ run :: IO ()
 run = do
     rs <- loadReturns
     let hs = toHistories rs
-    runMSWRs hs
+    -- mapM_ print hs
+
+    -- runMSWRs hs
+    runSample hs
 
     pure ()
 
 
--- runSingle :: Int -> [History] -> Actions () -> IO ()
--- runSingle yrs hs rebalance = do
---     let ss = samples yrs hs
---     let start = runActions million rebalance
+
 
 
 runSample :: [History] -> IO ()
@@ -33,21 +34,29 @@ runSample hs = do
     --------------------
     let yrs = 50
     let ss = samples yrs hs
-    let start = million (pct 60)
-    let wda = staticWithdrawal swr4 start :: USD Amt Withdrawal
+    let ps = (pct 60)
+    let start = million ps
+    -- let wda = staticWithdrawal swr4 start :: USD Amt Withdrawal
     -- let sim = simulation start $ do
     --             action $ withdrawBondsFirst wda
     --             action $ rebalancePrimeNew start.stocks
+    -- how many years are left?
     let sim = simulation start $ do
-                withdraw wda
-                rebalance $ rebalanceFixed (pct 60)
+                h <- history
+                bal <- balances
+                yl <- yearsLeft
+                withdraw $ amortizedWithdrawal yl h.cape bal
+                rebalance $ rebalanceFixed ps
     let srs = map sim ss :: [SimResult]
 
     -- let ys = (head srs).years
     -- mapM_ print $ take 10 ys
 
-    -- -- * Show all years
-    -- mapM_ (putStrLn . showSimResult) srs
+    -- * Show all years
+    forM_ srs $ \sr -> do
+        printSimResult sr
+        mapM_ (print . (.withdrawals)) $ take 10 sr.years
+
 
     -- * Count failures
     -- print $ (length $ filter isFailure srs, length srs)

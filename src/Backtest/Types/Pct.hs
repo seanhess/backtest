@@ -17,6 +17,9 @@ pct f = Pct (f / 100)
 pctFromFloat :: Float -> Pct a
 pctFromFloat = Pct
 
+fromPct :: Pct a -> Pct b
+fromPct (Pct a) = Pct a
+
 instance Eq (Pct a) where
   -- if they are equal to the nearest thousandth
   (Pct a) == (Pct b) =

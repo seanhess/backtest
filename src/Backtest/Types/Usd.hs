@@ -29,12 +29,14 @@ instance Monoid (USD f a) where
 dollars :: USD f a -> Int
 dollars (USD c) = round $ fromIntegral c / 100
 
-
 cents :: USD f a -> Int
 cents (USD c) = c `rem` 100
 
 fromFloat :: Float -> USD f a
 fromFloat f = USD $ round (f * 100)
+
+toFloat :: USD f a -> Float
+toFloat (USD c) = fromIntegral c / 100
 
 fromCents :: Int -> USD f a
 fromCents = USD

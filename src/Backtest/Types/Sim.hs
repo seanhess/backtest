@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Backtest.Types.Sim where
 
 import Backtest.Prelude
@@ -5,6 +6,7 @@ import Backtest.Types.Usd
 import Backtest.Types.Pct
 import Backtest.Types.History
 import Backtest.Types.Portfolio
+
 
 
 
@@ -36,4 +38,5 @@ data RateResult = RateResult
   , avgEndPortfolio :: USD Bal Total
   , medEndPortfolio :: USD Bal Total
   } deriving (Show)
+
 

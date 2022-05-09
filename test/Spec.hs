@@ -7,6 +7,9 @@ import Backtest.History
 import Backtest.MSWR
 import Backtest.Simulation
 import Backtest.Strategy
+import Backtest.Strategy.ABW
+import qualified Backtest.Types.Pct as Pct
+
 import Control.Monad.Catch (try, throwM)
 import Control.Monad.Reader (MonadReader, ReaderT, runReaderT, ask)
 import Control.Monad.State (runState)
@@ -48,6 +51,8 @@ main = do
   test "primeHarvesting" assertPrimeHarvesting
   test "primeNew" assertPrimeNew
   test "testBands" assertBands
+  test "testPMT" assertPMT
+  test "testABW" assertABW
 
 
 
@@ -118,7 +123,7 @@ assertAmount = do
 
 assertReturns :: Test ()
 assertReturns = do
-  let h = History (Year 1872) (pct 10.0) (pct 1.0)
+  let h = History (Year 1872) (pct 10.0) (pct 1.0) (CAPE 10)
   let b = Portfolio (usd 100) (usd 100)
 
   expect "returns to match history" $ do
@@ -200,7 +205,7 @@ assertPercent :: Test ()
 assertPercent = do
 
   expect "to use 3 decimal places" $ do
-    toFloat (pct 25.0140) === 0.25014
+    Pct.toFloat (pct 25.0140) === 0.25014
 
   expect "to calculate gains" $ do
     gainsPercent (usd 100) (usd 110) === pct 10.0
@@ -211,8 +216,8 @@ assertPercent = do
 
 assertHistory :: Test ()
 assertHistory = do
-  let hr1 = HistoryRow (Year 1871) 1 (usd 1.00) (usd 1.00) (pct 10.0)
-  let hr2 = HistoryRow (Year 1872) 1 (usd 1.10) (usd 1.10) (pct 20.0)
+  let hr1 = HistoryRow (Year 1871) 1 (usd 1.00) (usd 1.00) (pct 10.0) (Just $ CAPE 10)
+  let hr2 = HistoryRow (Year 1872) 1 (usd 1.10) (usd 1.10) (pct 20.0) (Just $ CAPE 10)
   let hs = toHistories [hr1, hr2]
 
   expect "to combine into one history entry" $ do
@@ -226,9 +231,9 @@ assertHistory = do
 
 assertInflation :: Test ()
 assertInflation = do
-  let hr1 = HistoryRow (Year 1871) 1 (usd 100) (usd 100) (pct 10)
-  let hr2 = HistoryRow (Year 1872) 1 (usd 110) (usd 101) (pct 20)
-  let hr3 = HistoryRow (Year 1873) 1 (usd 95)  (usd 101) (pct 20)
+  let hr1 = HistoryRow (Year 1871) 1 (usd 100) (usd 100) (pct 10) (Just $ CAPE 10)
+  let hr2 = HistoryRow (Year 1872) 1 (usd 110) (usd 101) (pct 20) (Just $ CAPE 10)
+  let hr3 = HistoryRow (Year 1873) 1 (usd 95)  (usd 101) (pct 20) (Just $ CAPE 10)
   let hs = toHistories [hr1, hr2, hr3]
 
   -- we want to only withdraw
@@ -246,8 +251,8 @@ assertInflation = do
 
 assertSimEndBalance :: Test ()
 assertSimEndBalance = do
-  let hr1 = HistoryRow (Year 1871) 1 (usd 1.00) (usd 1.00) (pct 10.0)
-  let hr2 = HistoryRow (Year 1872) 1 (usd 1.10) (usd 1.01) (pct 20.0)
+  let hr1 = HistoryRow (Year 1871) 1 (usd 1.00) (usd 1.00) (pct 10.0) (Just $ CAPE 10)
+  let hr2 = HistoryRow (Year 1872) 1 (usd 1.10) (usd 1.01) (pct 20.0) (Just $ CAPE 10)
   let hs = toHistories [hr1, hr2]
   let sim = simulation million60 noActions hs
   
@@ -267,8 +272,8 @@ assertSimEndBalance = do
 assertSimWithdrawEnd :: Test ()
 assertSimWithdrawEnd = do
   -- 10% gain in both
-  let hr1 = HistoryRow (Year 1871) 1 (usd 1.00) (usd 1.00) (pct 10.0)
-  let hr2 = HistoryRow (Year 1872) 1 (usd 1.10) (usd 2.00) (pct 10.0)
+  let hr1 = HistoryRow (Year 1871) 1 (usd 1.00) (usd 1.00) (pct 10.0) (Just $ CAPE 10)
+  let hr2 = HistoryRow (Year 1872) 1 (usd 1.10) (usd 2.00) (pct 10.0) (Just $ CAPE 10)
   let hs = toHistories [hr1, hr2]
 
   -- just below the threshhold to 
@@ -321,6 +326,9 @@ assertStandard = do
   let start = Portfolio (usd 600) (usd 400)
   let bal = Portfolio   (usd 800) (usd 400)
   let wda = staticWithdrawal swr4 start
+  let h = History (Year 1872) (pct 10.0) (pct 1.0) (CAPE 10)
+  let y = h.year
+
 
   -- ok, so what should happen?
 
@@ -341,18 +349,18 @@ assertStandard = do
     ch.stocks === usd (-80)
   
   expect "withdrawal " $ do
-    let bal' = runActions bal (withdraw4 start)
+    let bal' = runActions y h bal (withdraw4 start)
     bal'.stocks === usd 800
     bal'.bonds === usd 360
 
   expect "rebalance" $ do
-    let bal' = runActions bal $ rebalancePct (pct 60)
+    let bal' = runActions y h bal $ rebalancePct (pct 60)
     bal'.stocks === usd 720
     bal'.bonds === usd 480
 
 
   -- run full standard
-  let bal' = runActions bal (withdraw4 start >> rebalancePct (pct 60))
+  let bal' = runActions y h bal (withdraw4 start >> rebalancePct (pct 60))
   let chs  = changes bal bal'
 
   expect "withdrawal should result in net -40" $ do
@@ -376,11 +384,13 @@ assertStandard = do
 assertActions :: Test ()
 assertActions = do
   let bal = Portfolio (usd 100) (usd 200)
+  let h = History (Year 1872) (pct 10.0) (pct 1.0) (CAPE 10)
+  let y = Year 1872
 
   let ch = \b -> Portfolio (addToBalance (usd 20) b.stocks) (addToBalance (usd 30) b.bonds)
 
   expect "stocks should be the sum of both changes" $ do
-    let fin = runActions bal $ do
+    let fin = runActions y h bal $ do
                 rebalance ch
                 rebalance ch
 
@@ -470,3 +480,61 @@ assertBands = do
   expect "diffRelPercent low" $ do
     diffRelPercent (pct 50) (Portfolio (usd 30) (usd 70))  === pct 40
 
+
+assertPMT :: Test ()
+assertPMT = do
+  expect "same results as retirement spreadsheet" $ do
+    (round $ pmt' 0.0237 61 (-1) * 10000) === (-304)
+
+  expect "same results as spreadsheet function" $ do
+    (round $ pmt 0.01 360 100000 * 100) === 102861
+
+  expect "using calcWithdrawal" $ do
+    calcWithdrawal 61 (pct 2.37) === pct 3.045
+
+
+assertABW :: Test ()
+assertABW = do
+  expect "total return to match calculation" $ do
+    let ps = pct 50
+    let rs = pct 10
+    let rb = pct 2
+    (totalReturn [weightedReturn ps rs, weightedReturn ps rb]) === pct 6
+
+  expect "estimated return stocks to match CAPE" $ do
+    estimatedReturnStocks (CAPE 40) === pct 2.5
+
+  expect "estimated return total to match calc" $ do
+    (estimatedReturnTotal million50 (CAPE 40)) === pct 2.25
+
+
+
+  let p = million (pct 100)
+  let years = 50
+  let cape = CAPE 40
+  let ret = estimatedReturnTotal p cape
+  let wdp = calcWithdrawal years ret
+  let wda = amount wdp p.stocks
+
+  expect "return equals 1/cape" $ do
+    ret === pct 2.5
+
+  expect "withdrawal = pmt" $ do
+    wdp === pct 3.44
+
+  expect "withdrawal amount matches" $ do
+    amortizedWithdrawal years cape p === wda
+
+
+  -- check actual withdrawal
+  let y = Year 1900
+  let ye = Year 1950
+  let h = History y (pct 0.0) (pct 0.0) (CAPE 40)
+  let st = runActionState ye h p withdrawABW
+
+  expect "changes to equal withdrawal amount" $ do
+    st._balances.bonds === usd 0
+    st._balances.stocks === addToBalance (loss wda) p.stocks
+
+  expect "withdrawal amount to be the same" $ do
+    st._withdrawal === wda

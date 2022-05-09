@@ -12,7 +12,7 @@ Rebalance vs Prime vs PrimeNew
 Maximum Safe Withdrawal Rates, 50 year retirements
 
     Success | Fixed  | 5/25   | Prime  | Prime New
-    ------------------------------------------------
+    ----------------------------------------------
     100%    |  3.4%  | +3.5%  | +3.5%  | +3.6%   |
     99%     |  3.4%  | +3.6%  | +3.6%  | +3.7%   |
     98%     |  3.6%  | +3.8%  | +3.8%  | +4.0%   |

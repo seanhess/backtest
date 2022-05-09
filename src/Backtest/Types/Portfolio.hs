@@ -2,7 +2,7 @@ module Backtest.Types.Portfolio where
 
 import Backtest.Prelude
 import Backtest.Types.Usd
-import Backtest.Types.Pct
+import Backtest.Types.Pct as Pct
 
 
 data Portfolio f = Portfolio
@@ -41,7 +41,7 @@ balance :: Int -> USD Bal a
 balance n = minZero (USD n)
 
 -- | Applies a return to a balance
-addToBalance :: USD Amt b -> USD Bal b -> USD Bal b
+addToBalance :: USD Amt a -> USD Bal b -> USD Bal b
 addToBalance (USD ret) (USD b) = balance $ b + ret
 
 addAmounts :: USD Amt a -> USD Amt a -> USD Amt a
@@ -52,7 +52,7 @@ percentOf (USD a) (USD bal) = pctFromFloat (fromIntegral a / fromIntegral bal)
 
 amount :: Pct ass -> USD Bal b -> USD Amt ass
 amount p bal = fromFloat $
-    (fromIntegral $ totalCents bal) * toFloat p / 100
+    (fromIntegral $ totalCents bal) * Pct.toFloat p / 100
 
 amountBalance :: Pct ass -> USD Bal b -> USD Bal ass
 amountBalance p bal = fromUSD $ amount p bal

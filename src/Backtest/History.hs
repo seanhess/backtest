@@ -21,15 +21,17 @@ loadReturns = do
 
 
 toHistories :: [HistoryRow] -> [History]
-toHistories hr = zipWith toHistory hr (drop 1 hr)
+toHistories hr = catMaybes $ zipWith toHistory hr (drop 1 hr)
 
 
-toHistory :: HistoryRow -> HistoryRow -> History
-toHistory past now =
-    History
+toHistory :: HistoryRow -> HistoryRow -> Maybe History
+toHistory past now = do
+    c <- now.cape
+    pure $ History
       { year = now.year
       , stocks = gainsPercent past.stocks now.stocks
       , bonds = gainsPercent past.bonds now.bonds
+      , cape = c
       }
 
 

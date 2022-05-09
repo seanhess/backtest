@@ -10,21 +10,28 @@ module Backtest.Simulation
   , noActions
   , noChanges
   , runActions
+  , runActionState
+  , history
+  , balances
+  , yearsLeft
   ) where
 
 import Backtest.Prelude
-import Backtest.Types
+import Backtest.Types hiding (history)
+import qualified Backtest.Types.Sim as Sim
 
-import Control.Monad.State (State, MonadState, modify, execState, put, get)
+import Control.Monad.State (State, MonadState, modify, execState, put, get, gets)
 import Data.List as List
 
 
 simulation :: Balances -> Actions () -> [History] -> SimResult
+simulation _ _ [] = error "Simulation: [History] is empty"
 simulation initial actions hs =
-    let yr  = (head hs).year
-        (bal', yrs) = List.mapAccumL eachReturns initial hs
+    let ys  = (head hs).year
+        ye  = (last hs).year
+        (bal', yrs) = List.mapAccumL (eachReturns ye) initial hs
     in SimResult
-      { startYear = (head hs).year
+      { startYear = ys
       , startBalance = initial
       , endYear = (last yrs).history.year
       , endBalance = bal'
@@ -33,21 +40,21 @@ simulation initial actions hs =
     
   where
 
-    eachReturns :: Balances -> History -> (Balances, YearResult)
-    eachReturns b r =
-        let yr = yearResult r b
+    eachReturns :: Year -> Balances -> History -> (Balances, YearResult)
+    eachReturns ye b h =
+        let yr = yearResult ye h b
         in (yr.end, yr)
 
 
 
-    yearResult :: History -> Balances -> YearResult
-    yearResult h bal = 
+    yearResult :: Year -> History -> Balances -> YearResult
+    yearResult  ye h bal = 
 
         let bal' = calcReturns h bal
             ret = changes bal bal'
 
-            st = runActionState bal' actions
-            end = st.balances
+            st = runActionState ye h bal' actions
+            end = st._balances
             act = changes bal' end
 
         in YearResult
@@ -56,7 +63,7 @@ simulation initial actions hs =
           , returns = ret
           , actions = act
           , end = end
-          , withdrawals = st.withdrawal
+          , withdrawals = st._withdrawal
           }
 
 
@@ -91,24 +98,27 @@ medianEndPortfolio srs =
 -- * Actions
 -----------------------------------
 
+
+
 newtype Actions a = Actions { fromActions :: State ActionState a }
   deriving (Monad, Applicative, Functor, MonadState ActionState)
 
 data ActionState = ActionState
-  { balances :: Balances
-  , withdrawal :: USD Amt Withdrawal
+  { _balances :: Balances
+  , _withdrawal :: USD Amt Withdrawal
+  , _history :: History
+  , _end :: Year
   }
 
-runActions :: Balances -> Actions () -> Balances
-runActions bal act = 
-    let as = runActionState bal act
-    in as.balances
+runActions :: Year -> History -> Balances -> Actions () -> Balances
+runActions y h bal act = 
+    let as = runActionState y h bal act
+    in as._balances
 
-runActionState :: Balances -> Actions () -> ActionState
-runActionState bal (Actions st) = 
-    let as = ActionState bal (usd 0) :: ActionState
+runActionState :: Year -> History -> Balances -> Actions () -> ActionState
+runActionState ye h bal (Actions st) = 
+    let as = ActionState bal (usd 0) h ye :: ActionState
     in execState st as
-
 
 
 
@@ -117,8 +127,8 @@ runActionState bal (Actions st) =
 withdraw :: USD Amt Withdrawal -> Actions ()
 withdraw wda = do
     modify $ \st -> st
-      { withdrawal = wda
-      , balances = bondsFirst wda st.balances
+      { _withdrawal = wda
+      , _balances = bondsFirst wda st._balances
       }
 
 bondsFirst :: USD Amt Withdrawal -> Balances -> Balances
@@ -130,8 +140,23 @@ bondsFirst wd b =
 rebalance :: (Balances -> Balances) -> Actions ()
 rebalance f = do
     modify $ \st -> st
-      { balances = f st.balances
+      { _balances = f st._balances
       }
+
+balances :: Actions Balances
+balances = do
+    gets _balances
+
+history :: Actions History
+history = do
+    gets _history
+
+
+yearsLeft :: Actions Int
+yearsLeft = do
+    Year ye <- gets _end
+    Year yc <- (.year) <$> gets _history
+    pure $ ye - yc
 
 noActions :: Actions ()
 noActions = pure ()
