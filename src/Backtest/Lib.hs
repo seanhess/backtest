@@ -32,7 +32,7 @@ runSample hs = do
 
     -- RUN ONE SAMPLE
     --------------------
-    let yrs = 50
+    let yrs = 30
     let ss = samples yrs hs
     let ps = (pct 60)
     let start = million ps
@@ -53,13 +53,19 @@ runSample hs = do
     forM_ srs $ \sr -> do
         printSimResult sr
         putStrLn $ " init: " <> show sr.withdrawals.init
+
+        putStrLn $ "  d50: " <> show sr.withdrawals.drawdown50
+        putStrLn $ "  d40: " <> show sr.withdrawals.drawdown40
+        putStrLn $ "  d30: " <> show sr.withdrawals.drawdown30
+        putStrLn $ "  d20: " <> show sr.withdrawals.drawdown20
+        putStrLn $ "  d10: " <> show sr.withdrawals.drawdown10
+
         putStrLn $ "  low: " <> show sr.withdrawals.low
         putStrLn $ "  p10: " <> show sr.withdrawals.p10
         putStrLn $ "  p25: " <> show sr.withdrawals.p25
         putStrLn $ "  med: " <> show sr.withdrawals.med
         putStrLn $ "  p75: " <> show sr.withdrawals.p75
         putStrLn $ "  p90: " <> show sr.withdrawals.p90
-        -- mapM_ (print) $ sr.years
 
 
     -- * Count failures
@@ -80,15 +86,18 @@ runSample hs = do
 
 runMSWRs :: [History] -> IO ()
 runMSWRs hs = do
+
    -- COMPARE MSWR
     -----------------
-    let yrs = 50
-    let ss = samples yrs hs
+
+    -- oh it's doing better with years > 50 because there are fewer samples
+    --  missing the 60s
+    let years = 50
+
+    let ss = samples years hs
     let ps = pct 60
     let bal = million ps
 
-    -- oh it's doing better with longer years because we are removing some of the worst cohorts
-    let years = 50
 
    
     putStrLn "Compare MSWRs"

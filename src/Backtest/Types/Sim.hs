@@ -41,9 +41,7 @@ data RateResult = RateResult
   } deriving (Show)
 
 
--- I want to know HOW MANY lows we have?
--- how many below...
--- a histogram of returns relative to initial
+-- number of years at X below start
 data WithdrawalResults = WithdrawalResults
   { init :: USD Amt Withdrawal
   , low :: USD Amt Withdrawal
@@ -52,4 +50,10 @@ data WithdrawalResults = WithdrawalResults
   , med :: USD Amt Withdrawal
   , p75 :: USD Amt Withdrawal
   , p90 :: USD Amt Withdrawal
+  , drawdown50 :: Int
+  , drawdown40 :: Int
+  , drawdown30 :: Int
+  , drawdown20 :: Int
+  , drawdown10 :: Int
   } deriving (Show)
+

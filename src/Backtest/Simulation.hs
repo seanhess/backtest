@@ -18,6 +18,7 @@ module Backtest.Simulation
 
 import Backtest.Prelude
 import Backtest.Types hiding (history)
+import Backtest.Types.Pct as Pct
 import qualified Backtest.Types.Sim as Sim
 
 import Control.Monad.State (State, MonadState, modify, execState, put, get, gets)
@@ -71,15 +72,27 @@ simulation initial actions hs =
 withdrawalResults :: [YearResult] -> WithdrawalResults
 withdrawalResults yrs =
     let wds = map (.withdrawal) yrs
+        int = (head yrs).withdrawal
     in WithdrawalResults
         { low = minimum wds
         , med = median wds
-        , init = (head yrs).withdrawal
+        , init = int
         , p10 = percentile 0.10 wds
         , p25 = percentile 0.25 wds
         , p75 = percentile 0.75 wds
         , p90 = percentile 0.90 wds
+        , drawdown50 = drawdown (pct 50) int wds
+        , drawdown40 = drawdown (pct 40) int wds
+        , drawdown30 = drawdown (pct 30) int wds
+        , drawdown20 = drawdown (pct 20) int wds
+        , drawdown10 = drawdown (pct 10) int wds
         }
+    where
+        drawdown :: Pct Withdrawal -> USD Amt Withdrawal -> [USD Amt Withdrawal] -> Int
+        drawdown p int wds =
+            let f = Pct.toFloat p
+                t = fromCents $ round $ (1 - f) * fromIntegral (totalCents int)
+            in length $ filter (<=t) wds
 
 
 calcReturns :: History -> Balances -> Balances
