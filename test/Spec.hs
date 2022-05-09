@@ -289,8 +289,8 @@ assertSimWithdrawEnd = do
   expect "withdraw from bonds first because they grow" $ do
     y.actions === Portfolio (usd 0) (loss $ toBonds wda)
 
-  expect "withdrawals should be equal to wda" $ do
-    y.withdrawals === loss wda
+  expect "withdrawal should be equal to wda" $ do
+    y.withdrawal === loss wda
 
   -- History {year = 1872, stocks = 13.907, bonds = 3.1000}
   -- Portfolio {stocks = $600000.00, bonds = $400000.00}

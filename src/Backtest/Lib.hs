@@ -6,7 +6,7 @@ import Backtest.Types hiding (history)
 import Backtest.History (loadReturns, samples, toHistories)
 import Backtest.Simulation (simulation, Actions, rebalance, withdraw, bondsFirst, balances, yearsLeft, history)
 import Backtest.Strategy (staticWithdrawal, rebalanceFixed, rebalance525Bands, rebalancePrime, rebalancePrimeNew)
-import Backtest.Strategy.ABW (amortizedWithdrawal)
+import Backtest.Strategy.ABW (withdrawABW)
 import Backtest.MSWR (rateResults, isFailure)
 import Debug.Trace (trace)
 import Data.List as List
@@ -42,10 +42,7 @@ runSample hs = do
     --             action $ rebalancePrimeNew start.stocks
     -- how many years are left?
     let sim = simulation start $ do
-                h <- history
-                bal <- balances
-                yl <- yearsLeft
-                withdraw $ amortizedWithdrawal yl h.cape bal
+                withdrawABW
                 rebalance $ rebalanceFixed ps
     let srs = map sim ss :: [SimResult]
 
@@ -55,7 +52,14 @@ runSample hs = do
     -- * Show all years
     forM_ srs $ \sr -> do
         printSimResult sr
-        mapM_ (print . (.withdrawals)) $ take 10 sr.years
+        putStrLn $ " init: " <> show sr.withdrawals.init
+        putStrLn $ "  low: " <> show sr.withdrawals.low
+        putStrLn $ "  p10: " <> show sr.withdrawals.p10
+        putStrLn $ "  p25: " <> show sr.withdrawals.p25
+        putStrLn $ "  med: " <> show sr.withdrawals.med
+        putStrLn $ "  p75: " <> show sr.withdrawals.p75
+        putStrLn $ "  p90: " <> show sr.withdrawals.p90
+        -- mapM_ (print) $ sr.years
 
 
     -- * Count failures
@@ -151,7 +155,7 @@ isYear y sr =
 
 showYear :: YearResult -> String
 showYear yr =
-    show ("YearResult", yr.history.year, yr.withdrawals, yr.start, yr.end)
+    show ("YearResult", yr.history.year, yr.withdrawal, yr.start, yr.end)
 
 printSimResult :: SimResult -> IO ()
 printSimResult sr = do

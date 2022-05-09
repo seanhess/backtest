@@ -15,7 +15,7 @@ data YearResult = YearResult
   , start      :: Balances
   , end        :: Balances
   , returns    :: Changes
-  , withdrawals :: USD Amt Withdrawal
+  , withdrawal :: USD Amt Withdrawal
   , actions    :: Changes
   -- , rebalance :: Changes
   -- , cpi        :: Pct Inflation
@@ -27,6 +27,7 @@ data SimResult = SimResult
   , endYear :: Year
   , endBalance :: Balances
   , years :: [YearResult]
+  , withdrawals :: WithdrawalResults
   } deriving (Show)
 
 data Success
@@ -40,3 +41,15 @@ data RateResult = RateResult
   } deriving (Show)
 
 
+-- I want to know HOW MANY lows we have?
+-- how many below...
+-- a histogram of returns relative to initial
+data WithdrawalResults = WithdrawalResults
+  { init :: USD Amt Withdrawal
+  , low :: USD Amt Withdrawal
+  , p10 :: USD Amt Withdrawal
+  , p25 :: USD Amt Withdrawal
+  , med :: USD Amt Withdrawal
+  , p75 :: USD Amt Withdrawal
+  , p90 :: USD Amt Withdrawal
+  } deriving (Show)

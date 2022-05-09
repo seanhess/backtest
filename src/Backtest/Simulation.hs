@@ -22,6 +22,7 @@ import qualified Backtest.Types.Sim as Sim
 
 import Control.Monad.State (State, MonadState, modify, execState, put, get, gets)
 import Data.List as List
+import Debug.Trace
 
 
 simulation :: Balances -> Actions () -> [History] -> SimResult
@@ -36,6 +37,7 @@ simulation initial actions hs =
       , endYear = (last yrs).history.year
       , endBalance = bal'
       , years = yrs
+      , withdrawals = withdrawalResults yrs
       }
     
   where
@@ -63,8 +65,21 @@ simulation initial actions hs =
           , returns = ret
           , actions = act
           , end = end
-          , withdrawals = st._withdrawal
+          , withdrawal = st._withdrawal
           }
+
+withdrawalResults :: [YearResult] -> WithdrawalResults
+withdrawalResults yrs =
+    let wds = map (.withdrawal) yrs
+    in WithdrawalResults
+        { low = minimum wds
+        , med = median wds
+        , init = (head yrs).withdrawal
+        , p10 = percentile 0.10 wds
+        , p25 = percentile 0.25 wds
+        , p75 = percentile 0.75 wds
+        , p90 = percentile 0.90 wds
+        }
 
 
 calcReturns :: History -> Balances -> Balances
@@ -156,7 +171,7 @@ yearsLeft :: Actions Int
 yearsLeft = do
     Year ye <- gets _end
     Year yc <- (.year) <$> gets _history
-    pure $ ye - yc
+    pure $ (ye - yc) + 1
 
 noActions :: Actions ()
 noActions = pure ()
@@ -173,9 +188,15 @@ noChanges _ = Portfolio mempty mempty
 
 
 
-median :: (Ord a, Num a) => [a] -> a   
-median [] = 0  
+
+median :: (Ord a) => [a] -> a   
+median [] = error "Median of empty list"
 median xs = sort xs !! mid   
  where mid = (length xs) `div` 2 
+
+percentile :: (Ord a) => Float -> [a] -> a   
+percentile _ [] = error "Percentile of empty list"
+percentile p xs = sort xs !! n
+ where n = round $ (fromIntegral $ length xs) * p
 
 
