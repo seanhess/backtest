@@ -11,7 +11,7 @@ import Backtest.Types.Portfolio (Balances, amount, total)
 import Backtest.Strategy (pctBonds, allocationStocks)
 import Backtest.Simulation (bondsFirst, Actions, history, balances, yearsLeft, withdraw)
 
-import Debug.Trace (traceM)
+import Debug.Trace (traceM, trace)
 
 
 

@@ -45,8 +45,8 @@ main = do
   test "withdrawal" assertWithdrawal
   test "rebalance" assertRebalance
   test "inflation" assertInflation
-  test "simWithdrawEnd" assertSimWithdrawEnd
   test "simEndBalance" assertSimEndBalance
+  test "simulation" assertSimulation
   test "standard" assertStandard
   test "primeHarvesting" assertPrimeHarvesting
   test "primeNew" assertPrimeNew
@@ -269,35 +269,21 @@ assertSimEndBalance = do
     dollars (y.end.bonds) === 404000
 
 
-assertSimWithdrawEnd :: Test ()
-assertSimWithdrawEnd = do
-  -- 10% gain in both
-  let hr1 = HistoryRow (Year 1871) 1 (usd 1.00) (usd 1.00) (pct 10.0) (Just $ CAPE 10)
-  let hr2 = HistoryRow (Year 1872) 1 (usd 1.10) (usd 2.00) (pct 10.0) (Just $ CAPE 10)
-  let hs = toHistories [hr1, hr2]
 
-  -- just below the threshhold to 
-  let bal = Portfolio (usd 1000) (usd 30)
-  let sim = simulation bal (withdraw4 bal) hs
-  let wda = amount swr4 (total bal)
-  
-  [y] <- pure sim.years
 
-  expect "returns should put us over the threshold for withdrawal amount" $ do
-    y.returns === Portfolio (usd 100) (usd 30)
+assertSimulation :: Test ()
+assertSimulation = do
 
-  expect "withdraw from bonds first because they grow" $ do
-    y.actions === Portfolio (usd 0) (loss $ toBonds wda)
+  let h = History (Year 1872) (pct 10.0) (pct 1.0) (CAPE 10)
 
-  expect "withdrawal should be equal to wda" $ do
-    y.withdrawal === loss wda
+  let bal = Portfolio (usd 1000) (usd 0)
+  let sim = simulation bal (withdraw4 bal) [h]
+  -- let wda = amount swr4 (total bal)
 
-  -- History {year = 1872, stocks = 13.907, bonds = 3.1000}
-  -- Portfolio {stocks = $600000.00, bonds = $400000.00}
-
-  -- expect "historical returns (was causing error)" $ do
-  --   let h' = History (Year 1872) (Pct 0 0) (Pct 3 100)
-  --   calcReturns h' million === Portfolio (usd 0) (usd 12400)
+  expect "should withdraw immediately" $ do
+    let final = fromIntegral (1000 - 40) * 1.10 :: Float
+    -- if it withdraws after, total will be 1060
+    sim.endBalance.stocks === usd final
 
 
 assertRebalance :: Test ()
@@ -516,6 +502,7 @@ assertABW = do
   let wdp = calcWithdrawal years ret
   let wda = amount wdp p.stocks
 
+
   expect "return equals 1/cape" $ do
     ret === pct 2.5
 
@@ -528,13 +515,14 @@ assertABW = do
 
   -- check actual withdrawal
   let y = Year 1900
-  let ye = Year 1950
+  let ye = Year 1949 -- the last year. We don't take action in 1950
   let h = History y (pct 0.0) (pct 0.0) (CAPE 40)
   let st = runActionState ye h p withdrawABW
+
+  expect "withdrawal amount to be the same" $ do
+    st._withdrawal === wda
 
   expect "changes to equal withdrawal amount" $ do
     st._balances.bonds === usd 0
     st._balances.stocks === addToBalance (loss wda) p.stocks
 
-  expect "withdrawal amount to be the same" $ do
-    st._withdrawal === wda

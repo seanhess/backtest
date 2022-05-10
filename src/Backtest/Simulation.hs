@@ -32,13 +32,15 @@ simulation initial actions hs =
     let ys  = (head hs).year
         ye  = (last hs).year
         (bal', yrs) = List.mapAccumL (eachReturns ye) initial hs
+        wds = map (.withdrawal) yrs
     in SimResult
       { startYear = ys
       , startBalance = initial
       , endYear = (last yrs).history.year
       , endBalance = bal'
       , years = yrs
-      , withdrawals = withdrawalResults yrs
+      , wdAmts = withdrawalResults wds
+      , wdSpread = withdrawalSpread wds
       }
     
   where
@@ -51,14 +53,15 @@ simulation initial actions hs =
 
 
     yearResult :: Year -> History -> Balances -> YearResult
-    yearResult  ye h bal = 
+    yearResult ye h bal = 
 
-        let bal' = calcReturns h bal
-            ret = changes bal bal'
+        let st = runActionState ye h bal actions
+            bal' = st._balances
+            act = changes bal bal'
 
-            st = runActionState ye h bal' actions
-            end = st._balances
-            act = changes bal' end
+            end = calcReturns h bal'
+            ret = changes bal' end
+
 
         in YearResult
           { history = h
@@ -69,30 +72,60 @@ simulation initial actions hs =
           , withdrawal = st._withdrawal
           }
 
-withdrawalResults :: [YearResult] -> WithdrawalResults
-withdrawalResults yrs =
-    let wds = map (.withdrawal) yrs
-        int = (head yrs).withdrawal
-    in WithdrawalResults
+withdrawalResults :: [USD Amt Withdrawal] -> WithdrawalResults
+withdrawalResults wds =
+    WithdrawalResults
         { low = minimum wds
         , med = median wds
-        , init = int
+        , init = head wds
         , p10 = percentile 0.10 wds
         , p25 = percentile 0.25 wds
         , p75 = percentile 0.75 wds
         , p90 = percentile 0.90 wds
-        , drawdown50 = drawdown (pct 50) int wds
-        , drawdown40 = drawdown (pct 40) int wds
-        , drawdown30 = drawdown (pct 30) int wds
-        , drawdown20 = drawdown (pct 20) int wds
-        , drawdown10 = drawdown (pct 10) int wds
         }
     where
-        drawdown :: Pct Withdrawal -> USD Amt Withdrawal -> [USD Amt Withdrawal] -> Int
-        drawdown p int wds =
-            let f = Pct.toFloat p
-                t = fromCents $ round $ (1 - f) * fromIntegral (totalCents int)
-            in length $ filter (<=t) wds
+
+
+withdrawalSpread :: [USD Amt Withdrawal] -> WithdrawalSpread
+withdrawalSpread wds =
+    WithdrawalSpread
+        { wlow = lowWithdrawals (usd 00000) (usd 20000) wds
+        , w20p = lowWithdrawals (usd 20000) (usd 25000) wds
+        , w25p = lowWithdrawals (usd 25000) (usd 30000) wds
+        , w30p = lowWithdrawals (usd 30000) (usd 35000) wds
+        , w35p = lowWithdrawals (usd 35000) (usd 40000) wds
+        }
+
+lowWithdrawals :: USD Amt Withdrawal -> USD Amt Withdrawal -> [USD Amt Withdrawal] -> Int
+lowWithdrawals low high wds =
+    length $ filter (\w -> low <= w && w < high) wds
+
+
+-- drawdowns :: USD Amt Withdrawal -> [YearResult] -> [[YearResult]]
+-- drawdowns med ys =
+--     filter (not . null) $ map (takeWhile (isDrawdown med)) (tails ys)
+
+-- -- longest drawdown
+-- drawdownLength' :: [[YearResult]] -> Int
+-- drawdownLength' dds =
+--     maximum $ map length dds
+
+-- -- deepest drawdown
+-- drawdownPeak' :: [[YearResult]] -> USD Amt Withdrawal
+-- drawdownPeak' dds =
+--     minimum $ map peak dds
+--     where
+--         peak yrs = minimum $ map (.withdrawal) yrs
+
+-- isDrawdown :: USD Amt Withdrawal -> YearResult -> Bool
+-- isDrawdown med yr = yr.withdrawal < med
+
+
+-- drawdown :: Pct Withdrawal -> USD Amt Withdrawal -> [USD Amt Withdrawal] -> Int
+-- drawdown p int wds =
+--     let f = Pct.toFloat p
+--         t = fromCents $ round $ (1 - f) * fromIntegral (totalCents int)
+--     in length (filter (<=t) wds)
 
 
 calcReturns :: History -> Balances -> Balances

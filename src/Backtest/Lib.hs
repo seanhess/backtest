@@ -8,6 +8,7 @@ import Backtest.Simulation (simulation, Actions, rebalance, withdraw, bondsFirst
 import Backtest.Strategy (staticWithdrawal, rebalanceFixed, rebalance525Bands, rebalancePrime, rebalancePrimeNew)
 import Backtest.Strategy.ABW (withdrawABW)
 import Backtest.MSWR (rateResults, isFailure)
+import Backtest.Aggregate (aggregateWithdrawals)
 import Debug.Trace (trace)
 import Data.List as List
 
@@ -32,7 +33,7 @@ runSample hs = do
 
     -- RUN ONE SAMPLE
     --------------------
-    let yrs = 30
+    let yrs = 50
     let ss = samples yrs hs
     let ps = (pct 60)
     let start = million ps
@@ -46,26 +47,19 @@ runSample hs = do
                 rebalance $ rebalanceFixed ps
     let srs = map sim ss :: [SimResult]
 
-    -- let ys = (head srs).years
-    -- mapM_ print $ take 10 ys
+    print $ head hs
+
 
     -- * Show all years
     forM_ srs $ \sr -> do
         printSimResult sr
-        putStrLn $ " init: " <> show sr.withdrawals.init
+        printWithdrawalResults sr.wdAmts
+        printWithdrawalSpread sr.wdSpread
 
-        putStrLn $ "  d50: " <> show sr.withdrawals.drawdown50
-        putStrLn $ "  d40: " <> show sr.withdrawals.drawdown40
-        putStrLn $ "  d30: " <> show sr.withdrawals.drawdown30
-        putStrLn $ "  d20: " <> show sr.withdrawals.drawdown20
-        putStrLn $ "  d10: " <> show sr.withdrawals.drawdown10
+    let aws = aggregateWithdrawals $ map (.wdSpread) srs
+    printAggregateWithdrawals aws
 
-        putStrLn $ "  low: " <> show sr.withdrawals.low
-        putStrLn $ "  p10: " <> show sr.withdrawals.p10
-        putStrLn $ "  p25: " <> show sr.withdrawals.p25
-        putStrLn $ "  med: " <> show sr.withdrawals.med
-        putStrLn $ "  p75: " <> show sr.withdrawals.p75
-        putStrLn $ "  p90: " <> show sr.withdrawals.p90
+        -- mapM_ print $ sr.years
 
 
     -- * Count failures
@@ -157,6 +151,34 @@ runMSWR ss start reb = do
             -- print $ isFailure s1966
 
 
+printWithdrawalResults :: WithdrawalResults -> IO ()
+printWithdrawalResults wr = do
+    putStrLn $ "  low: " <> show wr.low
+    putStrLn $ "  p10: " <> show wr.p10
+    putStrLn $ "  p25: " <> show wr.p25
+    putStrLn $ "  med: " <> show wr.med
+    putStrLn $ "  p75: " <> show wr.p75
+    putStrLn $ "  p90: " <> show wr.p90
+
+printWithdrawalSpread :: WithdrawalSpread -> IO ()
+printWithdrawalSpread wr = do
+    putStrLn $ " w35p: " <> show wr.w35p
+    putStrLn $ " w30p: " <> show wr.w30p
+    putStrLn $ " w25p: " <> show wr.w25p
+    putStrLn $ " w20p: " <> show wr.w20p
+    putStrLn $ " wlow: " <> show wr.wlow
+
+printAggregateWithdrawals :: AggregateWithdrawals -> IO ()
+printAggregateWithdrawals aw = do
+    putStrLn "\nTotals:"
+    printWithdrawalSpread aw.totalSpread
+
+    putStrLn "\nWorst:"
+    printWithdrawalSpread aw.worstSpread
+
+    putStrLn "\nNum Samples:"
+    printWithdrawalSpread aw.numSamples
+
 
 isYear :: Int -> SimResult -> Bool
 isYear y sr =
@@ -168,7 +190,7 @@ showYear yr =
 
 printSimResult :: SimResult -> IO ()
 printSimResult sr = do
-    print ("SimResult", sr.startYear, isFailure sr, sr.endYear, sr.endBalance)
+    print ("SimResult", sr.startYear, sr.endYear, sr.endBalance)
 
 
 withdraw4 :: Balances -> Actions ()

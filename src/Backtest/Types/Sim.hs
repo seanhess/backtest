@@ -10,6 +10,7 @@ import Backtest.Types.Portfolio
 
 
 
+-- Where you are at the end of the given year, before taking any action
 data YearResult = YearResult
   { history    :: History
   , start      :: Balances
@@ -27,7 +28,8 @@ data SimResult = SimResult
   , endYear :: Year
   , endBalance :: Balances
   , years :: [YearResult]
-  , withdrawals :: WithdrawalResults
+  , wdAmts :: WithdrawalResults
+  , wdSpread :: WithdrawalSpread
   } deriving (Show)
 
 data Success
@@ -40,8 +42,13 @@ data RateResult = RateResult
   , medEndPortfolio :: USD Bal Total
   } deriving (Show)
 
+data AggregateWithdrawals = AggregateWithdrawals
+  { totalSpread :: WithdrawalSpread -- ^ add them all together
+  , worstSpread :: WithdrawalSpread -- ^ the worst year
+  , numSamples  :: WithdrawalSpread -- ^ number of samples that have at least one of each
+  } deriving Show
 
--- number of years at X below start
+-- how do you decide? Oh, below median
 data WithdrawalResults = WithdrawalResults
   { init :: USD Amt Withdrawal
   , low :: USD Amt Withdrawal
@@ -50,10 +57,13 @@ data WithdrawalResults = WithdrawalResults
   , med :: USD Amt Withdrawal
   , p75 :: USD Amt Withdrawal
   , p90 :: USD Amt Withdrawal
-  , drawdown50 :: Int
-  , drawdown40 :: Int
-  , drawdown30 :: Int
-  , drawdown20 :: Int
-  , drawdown10 :: Int
+  } deriving (Show)
+
+data WithdrawalSpread = WithdrawalSpread
+  { wlow :: Int
+  , w20p :: Int
+  , w25p :: Int
+  , w30p :: Int
+  , w35p :: Int
   } deriving (Show)
 

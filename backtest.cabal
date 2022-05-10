@@ -25,14 +25,21 @@ source-repository head
 
 library
   exposed-modules:
+      Backtest.Aggregate
+      Backtest.History
       Backtest.Lib
+      Backtest.MSWR
       Backtest.Prelude
+      Backtest.Simulation
+      Backtest.Strategy
+      Backtest.Strategy.ABW
       Backtest.Types
       Backtest.Types.History
       Backtest.Types.Pct
       Backtest.Types.Portfolio
       Backtest.Types.Sim
       Backtest.Types.Usd
+      Backtest.VariableTest
   other-modules:
       Paths_backtest
   hs-source-dirs:
@@ -132,14 +139,21 @@ test-suite backtest-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Backtest.Aggregate
+      Backtest.History
       Backtest.Lib
+      Backtest.MSWR
       Backtest.Prelude
+      Backtest.Simulation
+      Backtest.Strategy
+      Backtest.Strategy.ABW
       Backtest.Types
       Backtest.Types.History
       Backtest.Types.Pct
       Backtest.Types.Portfolio
       Backtest.Types.Sim
       Backtest.Types.Usd
+      Backtest.VariableTest
       Paths_backtest
   hs-source-dirs:
       test

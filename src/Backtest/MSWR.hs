@@ -31,9 +31,9 @@ rateResults ss start reb rates =
             withdraw (loss wda)
             reb
 
-mswr :: [RateResult] -> Maybe RateResult
-mswr rrs =
-    List.find (isSuccessful . (.success)) $ reverse rrs
+-- mswr :: [RateResult] -> Maybe RateResult
+-- mswr rrs =
+--     List.find (isSuccessful . (.success)) $ reverse rrs
 
 
 
@@ -52,8 +52,8 @@ isFailure :: SimResult -> Bool
 isFailure sr =
     sr.endBalance == Portfolio mempty mempty
 
-maximumSuccessRate :: Pct Success
-maximumSuccessRate = pct 99.0 
+-- maximumSuccessRate :: Pct Success
+-- maximumSuccessRate = pct 99.0 
 
-isSuccessful :: Pct Success -> Bool
-isSuccessful p = p >= maximumSuccessRate
+-- isSuccessful :: Pct Success -> Bool
+-- isSuccessful p = p >= maximumSuccessRate
