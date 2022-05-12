@@ -11,15 +11,14 @@ import Backtest.Types.Portfolio
 
 
 -- Where you are at the end of the given year, before taking any action
-data YearResult = YearResult
-  { history    :: History
+data YearStart = YearStart
+  { year       :: Year
+  , history    :: Maybe History
   , start      :: Balances
   , end        :: Balances
   , returns    :: Changes
   , withdrawal :: USD Amt Withdrawal
   , actions    :: Changes
-  -- , rebalance :: Changes
-  -- , cpi        :: Pct Inflation
   } deriving (Show)
 
 data SimResult = SimResult
@@ -27,7 +26,7 @@ data SimResult = SimResult
   , startBalance :: Balances
   , endYear :: Year
   , endBalance :: Balances
-  , years :: [YearResult]
+  , years :: [YearStart]
   , wdAmts :: WithdrawalResults
   , wdSpread :: WithdrawalSpread
   } deriving (Show)
@@ -61,9 +60,12 @@ data WithdrawalResults = WithdrawalResults
 
 data WithdrawalSpread = WithdrawalSpread
   { wlow :: Int
-  , w20p :: Int
-  , w25p :: Int
-  , w30p :: Int
-  , w35p :: Int
+  , w2_0 :: Int
+  , w2_5 :: Int
+  , w3_0 :: Int
+  , w3_5 :: Int
+  , w4_0 :: Int
+  , w4_5 :: Int
+  , whigh :: Int
   } deriving (Show)
 

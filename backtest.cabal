@@ -75,7 +75,6 @@ library
     , bytestring
     , cassava
     , containers
-    , dsp
     , exceptions
     , mtl
     , record-dot-preprocessor
@@ -124,7 +123,6 @@ executable backtest-exe
     , bytestring
     , cassava
     , containers
-    , dsp
     , exceptions
     , mtl
     , record-dot-preprocessor
@@ -190,7 +188,6 @@ test-suite backtest-test
     , bytestring
     , cassava
     , containers
-    , dsp
     , exceptions
     , mtl
     , record-dot-preprocessor

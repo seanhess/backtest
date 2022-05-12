@@ -22,6 +22,8 @@ data Return a
 data Weighted
 type YearsLeft = Int
 
+-- TODO it uses the END OF YEAR cape balance to withdraw stocks at the beginning of the year.
+-- Oops
 withdrawABW :: Actions ()
 withdrawABW = do
     h <- history

@@ -216,17 +216,24 @@ assertPercent = do
 
 assertHistory :: Test ()
 assertHistory = do
+  -- HistoryRow is a snapshot of the market at the START of the year
+  -- TODO should I be using month 12? Are they end of month values or beginning?
   let hr1 = HistoryRow (Year 1871) 1 (usd 1.00) (usd 1.00) (pct 10.0) (Just $ CAPE 10)
-  let hr2 = HistoryRow (Year 1872) 1 (usd 1.10) (usd 1.10) (pct 20.0) (Just $ CAPE 10)
+  let hr2 = HistoryRow (Year 1872) 1 (usd 1.10) (usd 1.10) (pct 20.0) (Just $ CAPE 20)
   let hs = toHistories [hr1, hr2]
 
   expect "to combine into one history entry" $ do
     length hs === 1
 
-  expect "history entry to match second year gains" $ do
+  expect "history entry is for second year" $ do
     map (.year) hs === [Year 1872]
+
+  expect "history gains are diff between two years" $ do
     map (.stocks) hs === [pct 10.0]
     map (.bonds) hs === [pct 10.0]
+
+  expect "CAPE ratio is for the start of the current year (from second row)" $ do
+    map (.cape) hs === [CAPE 20]
 
 
 assertInflation :: Test ()
@@ -251,39 +258,95 @@ assertInflation = do
 
 assertSimEndBalance :: Test ()
 assertSimEndBalance = do
+
+  -- This results in only 1872, with returns over 1871 and the current cape raito (20)
   let hr1 = HistoryRow (Year 1871) 1 (usd 1.00) (usd 1.00) (pct 10.0) (Just $ CAPE 10)
-  let hr2 = HistoryRow (Year 1872) 1 (usd 1.10) (usd 1.01) (pct 20.0) (Just $ CAPE 10)
+  let hr2 = HistoryRow (Year 1872) 1 (usd 1.10) (usd 1.01) (pct 20.0) (Just $ CAPE 20)
   let hs = toHistories [hr1, hr2]
+
+  -- there are no withdrawals or rebalancing, so it is only returns
   let sim = simulation million60 noActions hs
   
   [y] <- pure sim.years
 
-  expect "stock return to be exactly 10%" $ do
-    [h] <- pure hs
-    h.stocks === pct 10.0
+  expect "first year is 1872" $ do
+    y.year === Year 1872
+    ((.cape) <$> y.history) === Just (CAPE 20)
 
-  expect "stocks to end 10% higher than start" $ do
-    dollars (y.end.stocks) === 660000
+  expect "no first year returns" $ do
+    y.returns === Portfolio mempty mempty
 
-  expect "bonds to end 1% higher than start" $ do
-    dollars (y.end.bonds) === 404000
+  let hr3 = HistoryRow (Year 1873) 1 (usd 2.20) (usd 2.02) (pct 30.0) (Just $ CAPE 30)
+  let hs' = toHistories [hr1, hr2, hr3]
+  let sim' = simulation million60 noActions hs'
 
+  expect "two years of history" $ do
+    (map (.year) hs') === [Year 1872, Year 1873]
+
+  [_, h1873] <- pure hs'
+
+  expect "1873 stock returns are 100%" $ do
+    h1873.stocks === pct 100
+
+  expect "1873 bond returns are 100%" $ do
+    h1873.bonds === pct 100
+
+  expect "two years of simulation. One at the beginning of 1872, and one at the beginning of 1873" $ do
+    (map (.year) sim'.years) === [Year 1872, Year 1873]
+
+  expect "stock end balance to be only 1873 returns" $ do
+    dollars (sim'.endBalance.stocks) === 1200000
 
 
 
 assertSimulation :: Test ()
 assertSimulation = do
 
-  let h = History (Year 1872) (pct 10.0) (pct 1.0) (CAPE 10)
+  -- These are PREVIOUS YEARS gains
+  -- CURRENT cape ratio 
+  -- State at the beginning of the year
+  --   past returns
+  --   current cape ratio
+  let h1 = History (Year 1900) (pct 10.0) (pct 1.0) (CAPE 10)
+  let h2 = History (Year 1901) (pct 20.0) (pct 2.0) (CAPE 20)
+  let h3 = History (Year 1902) (pct 30.0) (pct 2.0) (CAPE 30)
 
   let bal = Portfolio (usd 1000) (usd 0)
-  let sim = simulation bal (withdraw4 bal) [h]
-  -- let wda = amount swr4 (total bal)
 
-  expect "should withdraw immediately" $ do
-    let final = fromIntegral (1000 - 40) * 1.10 :: Float
-    -- if it withdraws after, total will be 1060
-    sim.endBalance.stocks === usd final
+  -- withdraw, but don't rebalance
+  let sim = simulation bal (withdraw4 bal) [h1, h2, h3]
+
+  expect "should give results for all years of history" $ do
+    map (.year) sim.years === [Year 1900, Year 1901, Year 1902]
+
+  expect "start year should not have returns" $ do
+    (y:_) <- pure sim.years
+    y.year === Year 1900
+    y.returns === Portfolio mempty mempty
+
+  expect "start year should use first CAPE ratio" $ do
+    (y:_) <- pure sim.years
+    ((.cape) <$> y.history) === (Just $ CAPE 10)
+
+  let s1900 = 1000-40
+  expect "start year should withdraw immediately with no returns" $ do
+    (y:_) <- pure sim.years
+    y.returns === Portfolio mempty mempty
+    y.end.stocks === usd s1900
+
+  let r1901 = s1900 * 1.2
+  let s1901 = r1901 - 40
+  expect "second year should include returns from 1901 history entry, and withdrawal" $ do
+    [_, y2, _] <- pure sim.years
+    y2.returns === Portfolio (usd (r1901 - s1900)) mempty
+    y2.end.stocks === usd s1901
+
+  let r1902 = s1901 * 1.3
+  let s1902 = r1902 - 40
+  expect "third year should apply its returns and withdraw also" $ do
+    [_, _, y3] <- pure sim.years
+    y3.returns === Portfolio (usd (r1902 - s1901)) mempty
+    y3.end.stocks === usd s1902
 
 
 assertRebalance :: Test ()
@@ -515,7 +578,7 @@ assertABW = do
 
   -- check actual withdrawal
   let y = Year 1900
-  let ye = Year 1949 -- the last year. We don't take action in 1950
+  let ye = Year 1950 -- the year we are out of money and take no actions
   let h = History y (pct 0.0) (pct 0.0) (CAPE 40)
   let st = runActionState ye h p withdrawABW
 
@@ -525,4 +588,36 @@ assertABW = do
   expect "changes to equal withdrawal amount" $ do
     st._balances.bonds === usd 0
     st._balances.stocks === addToBalance (loss wda) p.stocks
+
+
+  let h1 = History (Year 1900) (pct 0.0) (pct 10.0) (CAPE 10)
+  let h2 = History (Year 1901) (pct 0.0) (pct 20.0) (CAPE 20)
+  let h3 = History (Year 1902) (pct 0.0) (pct 30.0) (CAPE 30)
+  let hs = [h1, h2, h3]
+  let bal = Portfolio (usd 1000) (usd 0)
+
+  -- withdraw, but don't rebalance
+  let sim = simulation bal withdrawABW [h1, h2, h3]
+
+  expect "years to cover 1900-1902" $ do
+    map (.year) sim.years === map (.year) hs
+
+  expect "first year withdrawal to be based on CAPE 10" $ do
+    (y1:_) <- pure sim.years
+    y1.year === Year 1900
+    let wdp1 = calcWithdrawal 3 (pctFromFloat (1/10))
+    y1.withdrawal === amount wdp1 (total bal)
+
+  expect "second year withdrawal to be based on CAPE 20" $ do
+    (y1:y2:_) <- pure sim.years
+    y2.year === Year 1901
+    let wpd2 = calcWithdrawal 2 (pctFromFloat (1/20))
+    y2.withdrawal === amount wpd2 (total y1.end)
+
+  expect "third year withdrawal to be based on CAPE 30" $ do
+    [_,y2,y3] <- pure sim.years
+    y3.year === Year 1902
+    let wpd3 = calcWithdrawal 1 (pctFromFloat (1/30))
+    y3.withdrawal === amount wpd3 (total y2.end)
+    dollars (y3.withdrawal) === dollars (total y2.end)
 

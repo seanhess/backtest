@@ -26,46 +26,115 @@ import Data.List as List
 import Debug.Trace
 
 
+-- Year 0 = 1900 = START at the beginning of 1900
+-- Year 1 = 1901
+-- Year 2 = 1902
+
+-- It's the beginning of year 1900
+--  a. withdraw (balance start)
+--  b. rebalance
+
+-- It's the beginning of 1901
+--  a. apply returns (1900)
+--  b. withdraw (cape 1900)
+--  c. rebalance
+
+
+
+
+-- TODO START withdraw, rebalance
+-- TODO NEXT apply returns, withdraw, rebalance
+
 simulation :: Balances -> Actions () -> [History] -> SimResult
 simulation _ _ [] = error "Simulation: [History] is empty"
 simulation initial actions hs =
     let ys  = (head hs).year
-        ye  = (last hs).year
-        (bal', yrs) = List.mapAccumL (eachReturns ye) initial hs
+
+        -- the last year the simulation is run
+        yl  = (last hs).year
+
+        -- the year the money should run out
+        ye  = nextYear yl
+
+        (h:hs') = hs
+
+        firstYear = firstYearResult ye h initial
+
+        (bal', yrs) = List.mapAccumL (eachReturns ye) firstYear.end hs'
         wds = map (.withdrawal) yrs
+
     in SimResult
       { startYear = ys
       , startBalance = initial
-      , endYear = (last yrs).history.year
+      , endYear = ye
       , endBalance = bal'
-      , years = yrs
+      , years = firstYear:yrs
       , wdAmts = withdrawalResults wds
-      , wdSpread = withdrawalSpread wds
+      , wdSpread = withdrawalSpread (total initial) wds
       }
     
   where
 
-    eachReturns :: Year -> Balances -> History -> (Balances, YearResult)
+    eachReturns :: Year -> Balances -> History -> (Balances, YearStart)
     eachReturns ye b h =
-        let yr = yearResult ye h b
+        let yr = nextYearResult ye h b
         in (yr.end, yr)
 
 
+    firstYearResult :: Year -> History -> Balances -> YearStart
+    firstYearResult ye h start = 
 
-    yearResult :: Year -> History -> Balances -> YearResult
-    yearResult ye h bal = 
+        -- run actions, but do not apply returns
+        -- simply withdraw, etc
+        let st = runActionState ye h start actions
+            end = st._balances
+            act = changes start end
+            ret = Portfolio mempty mempty
 
-        let st = runActionState ye h bal actions
-            bal' = st._balances
-            act = changes bal bal'
+        in YearStart
+          { history = Just h
+          , year = h.year
+          , start = start
+          , returns = ret
+          , actions = act
+          , end = end
+          , withdrawal = st._withdrawal
+          }
 
-            end = calcReturns h bal'
-            ret = changes bal' end
 
+    -- Produces:
+    -- YearResult 1900 (0 ret) Withdrawal Rebalance
+    -- YearResult 1901 (10% ret) (Withdrawal) Rebalance
 
-        in YearResult
-          { history = h
-          , start = bal
+    -- ye = the simulation ends in which year?
+    nextYearResult :: Year -> History -> Balances -> YearStart
+    nextYearResult ye h balOld = 
+
+        -- Its the beginning of simulation
+        --   a. withdraw
+        --   b. rebalance
+
+        -- It's the END of year 1900
+        --  a. apply returns (1900)
+        --  a. withdraw (cape 1900)
+        --  b. rebalance
+
+        -- It's the end of 1901
+        --  a. apply returns (1901)
+        --  b. withdraw (cape 1901)
+        --  c. rebalance
+
+        let balRet = calcReturns h balOld
+            ret = changes balOld balRet
+            
+            st = runActionState ye h balRet actions
+            end = st._balances
+            act = changes balRet end
+
+        in YearStart
+          { history = Just h
+          , year = h.year
+          , start = balOld
           , returns = ret
           , actions = act
           , end = end
@@ -86,19 +155,24 @@ withdrawalResults wds =
     where
 
 
-withdrawalSpread :: [USD Amt Withdrawal] -> WithdrawalSpread
-withdrawalSpread wds =
+withdrawalSpread :: USD Bal Total -> [USD Amt Withdrawal] -> WithdrawalSpread
+withdrawalSpread start wds =
     WithdrawalSpread
-        { wlow = lowWithdrawals (usd 00000) (usd 20000) wds
-        , w20p = lowWithdrawals (usd 20000) (usd 25000) wds
-        , w25p = lowWithdrawals (usd 25000) (usd 30000) wds
-        , w30p = lowWithdrawals (usd 30000) (usd 35000) wds
-        , w35p = lowWithdrawals (usd 35000) (usd 40000) wds
+        { wlow = lowWithdrawals start (pct 0.0) (pct 2.0) wds
+        , w2_0 = lowWithdrawals start (pct 2.0) (pct 2.5) wds
+        , w2_5 = lowWithdrawals start (pct 2.5) (pct 3.0) wds
+        , w3_0 = lowWithdrawals start (pct 3.0) (pct 3.5) wds
+        , w3_5 = lowWithdrawals start (pct 3.5) (pct 4.0) wds
+        , w4_0 = lowWithdrawals start (pct 4.0) (pct 4.5) wds
+        , w4_5 = lowWithdrawals start (pct 4.5) (pct 5.0) wds
+        , whigh = lowWithdrawals start (pct 5.0) (pct 100) wds
         }
 
-lowWithdrawals :: USD Amt Withdrawal -> USD Amt Withdrawal -> [USD Amt Withdrawal] -> Int
-lowWithdrawals low high wds =
-    length $ filter (\w -> low <= w && w < high) wds
+lowWithdrawals :: USD Bal Total -> Pct Withdrawal -> Pct Withdrawal -> [USD Amt Withdrawal] -> Int
+lowWithdrawals start low high wds =
+    let l = amount low start
+        h = amount high start
+    in length $ filter (\w -> l <= w && w < h) wds
 
 
 -- drawdowns :: USD Amt Withdrawal -> [YearResult] -> [[YearResult]]
@@ -168,6 +242,12 @@ data ActionState = ActionState
   { _balances :: Balances
   , _withdrawal :: USD Amt Withdrawal
   , _history :: History
+
+  -- the year you are out of money and take no actions
+  -- 1900 - 1950
+  -- 1900 = start
+  -- 1950 = end
+  -- 1949 = last year you take action
   , _end :: Year
   }
 
@@ -217,7 +297,7 @@ yearsLeft :: Actions Int
 yearsLeft = do
     Year ye <- gets _end
     Year yc <- (.year) <$> gets _history
-    pure $ (ye - yc) + 1
+    pure $ ye - yc
 
 noActions :: Actions ()
 noActions = pure ()
