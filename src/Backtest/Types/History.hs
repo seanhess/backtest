@@ -13,6 +13,9 @@ import Data.Either (fromRight)
 newtype Year = Year Int
   deriving (Eq, FromField, Ord)
 
+nextYear :: Year -> Year
+nextYear (Year n) = Year (n+1)
+
 instance Show Year where 
   show (Year i) = show i
 
@@ -31,6 +34,7 @@ instance FromField CAPE where
       "NA" -> pure NA
       _ -> pure $ CAPE (read s)
 
+-- Performance of a particular year
 data HistoryRow = HistoryRow
   { year      :: Year
   , month     :: Int
@@ -59,6 +63,7 @@ clean s = do
   parseField $ cs $ filter (/= ',') $ cs s
 
 
+-- Performance of the PREVIOUS year
 data History = History
   { year      :: Year
   , stocks    :: Pct Stocks
