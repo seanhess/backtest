@@ -130,7 +130,7 @@ assertReturns = do
     calcReturns h b === Portfolio (usd 110) (usd 101)
 
   expect "apply returns should add up" $ do
-    let ret = calcReturns h million60
+    let ret = calcReturns h thousand60
     dollars ret.stocks === 660000
     dollars ret.bonds === 404000
 
@@ -244,7 +244,7 @@ assertInflation = do
   let hs = toHistories [hr1, hr2, hr3]
 
   -- we want to only withdraw
-  let sim = simulation million50 (withdraw4 million50) hs
+  let sim = simulation thousand50 (withdraw4 thousand50) hs
   
   expect "3 histroy rows to 2 histories" $ do
     length sim.years === 2
@@ -265,7 +265,7 @@ assertSimEndBalance = do
   let hs = toHistories [hr1, hr2]
 
   -- there are no withdrawals or rebalancing, so it is only returns
-  let sim = simulation million60 noActions hs
+  let sim = simulation thousand60 noActions hs
   
   [y] <- pure sim.years
 
@@ -278,7 +278,7 @@ assertSimEndBalance = do
 
   let hr3 = HistoryRow (Year 1873) 1 (usd 2.20) (usd 2.02) (pct 30.0) (Just $ CAPE 30)
   let hs' = toHistories [hr1, hr2, hr3]
-  let sim' = simulation million60 noActions hs'
+  let sim' = simulation thousand60 noActions hs'
 
   expect "two years of history" $ do
     (map (.year) hs') === [Year 1872, Year 1873]
@@ -554,11 +554,11 @@ assertABW = do
     estimatedReturnStocks (CAPE 40) === pct 2.5
 
   expect "estimated return total to match calc" $ do
-    (estimatedReturnTotal million50 (CAPE 40)) === pct 2.25
+    (estimatedReturnTotal thousand50 (CAPE 40)) === pct 2.25
 
 
 
-  let p = million (pct 100)
+  let p = thousand (pct 100)
   let years = 50
   let cape = CAPE 40
   let ret = estimatedReturnTotal p cape

@@ -155,7 +155,7 @@ withdrawalResults wds =
     where
 
 
-withdrawalSpread :: USD Bal Total -> [USD Amt Withdrawal] -> WithdrawalSpread
+withdrawalSpread :: USD Bal Total -> [USD Amt Withdrawal] -> WithdrawalSpread Int
 withdrawalSpread start wds =
     WithdrawalSpread
         { wlow = lowWithdrawals start (pct 0.0) (pct 2.0) wds

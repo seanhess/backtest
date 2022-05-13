@@ -28,8 +28,8 @@ data SimResult = SimResult
   , endBalance :: Balances
   , years :: [YearStart]
   , wdAmts :: WithdrawalResults
-  , wdSpread :: WithdrawalSpread
-  } deriving (Show)
+  , wdSpread :: WithdrawalSpread Int
+  }
 
 data Success
 
@@ -39,13 +39,13 @@ data RateResult = RateResult
   , results :: [SimResult]
   , avgEndPortfolio :: USD Bal Total
   , medEndPortfolio :: USD Bal Total
-  } deriving (Show)
+  }
 
 data AggregateWithdrawals = AggregateWithdrawals
-  { totalSpread :: WithdrawalSpread -- ^ add them all together
-  , worstSpread :: WithdrawalSpread -- ^ the worst year
-  , numSamples  :: WithdrawalSpread -- ^ number of samples that have at least one of each
-  } deriving Show
+  { totalSpread :: WithdrawalSpread Int -- ^ add them all together
+  , worstSpread :: WithdrawalSpread Int -- ^ the worst year
+  , numSamples  :: WithdrawalSpread (Pct Success) -- ^ number of samples that have at least one of each
+  }
 
 -- how do you decide? Oh, below median
 data WithdrawalResults = WithdrawalResults
@@ -58,14 +58,14 @@ data WithdrawalResults = WithdrawalResults
   , p90 :: USD Amt Withdrawal
   } deriving (Show)
 
-data WithdrawalSpread = WithdrawalSpread
-  { wlow :: Int
-  , w2_0 :: Int
-  , w2_5 :: Int
-  , w3_0 :: Int
-  , w3_5 :: Int
-  , w4_0 :: Int
-  , w4_5 :: Int
-  , whigh :: Int
-  } deriving (Show)
+data WithdrawalSpread a = WithdrawalSpread
+  { wlow :: a
+  , w2_0 :: a
+  , w2_5 :: a
+  , w3_0 :: a
+  , w3_5 :: a
+  , w4_0 :: a
+  , w4_5 :: a
+  , whigh :: a
+  }
 

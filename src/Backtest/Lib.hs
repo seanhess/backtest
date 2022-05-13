@@ -6,9 +6,9 @@ import Backtest.Types hiding (history)
 import Backtest.History (loadReturns, samples, toHistories)
 import Backtest.Simulation (simulation, Actions, rebalance, withdraw, bondsFirst, balances, yearsLeft, history)
 import Backtest.Strategy (staticWithdrawal, rebalanceFixed, rebalance525Bands, rebalancePrime, rebalancePrimeNew)
-import Backtest.Strategy.ABW (withdrawABW, pmt)
+import Backtest.Strategy.ABW (withdrawABW, withdrawABW', pmt, pmt', amortizedWithdrawal)
 import Backtest.MSWR (rateResults, isFailure)
-import Backtest.Aggregate (aggregateWithdrawals)
+import Backtest.Aggregate (aggregateWithdrawals, yearSpread)
 import Debug.Trace (trace)
 import Data.List as List
 
@@ -19,25 +19,10 @@ run = do
     let hs = toHistories rs
     -- mapM_ print hs
 
-    -- runSample hs
+    runSimulation hs
 
 
 -- |        1908 |   $63028.55 |  $693844.76 |  $260712.57 |       $0.00 |  $-63029.55 | $-156233.59 |    $8703.08 |  $537612.17 |  $206387.10 |   CAPE 11.9 |
-    let cape = 11.9
-    let sr = 1/17.2
-    let br = 0.02
-    let ts = 639844.76
-    let tb = 260712.57
-    let tot = ts + tb
-    let ps = ts / tot
-    let pb = tb / tot
-    let tr = sr * ps + br * pb
-    print ps
-    print tb
-    print tr
-    print $ pmt tr 44 tot
-    print $ pmt tr 45 tot
-    print $ pmt tr 46 tot
     -- runMSWRs hs
     -- runAggregates hs
 
@@ -47,21 +32,17 @@ run = do
 
 
 
-runSample :: [History] -> IO ()
-runSample hs = do
+runSimulation :: [History] -> IO ()
+runSimulation hs = do
 
-    -- RUN ONE SAMPLE
-    --------------------
     let yrs = 50
     let ss = samples yrs hs
-    let ps = (pct 60)
-    let start = million ps
+    let start = thousand60
 
     -- let wda = staticWithdrawal swr4 start :: USD Amt Withdrawal
     -- let sim = simulation start $ do
-    --             action $ withdrawBondsFirst wda
-    --             action $ rebalancePrimeNew start.stocks
-    -- how many years are left?
+    --             withdraw wda
+    --             rebalance $ rebalancePrimeNew start.stocks
 
     let sim = simulation start $ do
                 rebalance $ rebalancePrime start.stocks
@@ -78,11 +59,16 @@ runSample hs = do
         printSimResult sr
         printWithdrawalSpreadRow sr.wdSpread
 
+    putStrLn ""
     let aws = aggregateWithdrawals $ map (.wdSpread) srs
     printAggregateWithdrawals aws
 
+    putStrLn ""
+    printWithdrawalSpread $ yearSpread srs
+
         -- mapM_ print $ sr.years
 
+    putStrLn ""
 
     -- * Count failures
     -- print $ (length $ filter isFailure srs, length srs)
@@ -113,7 +99,7 @@ runAggregates hs = do
     let years = 50
     let ss = samples years hs
     let ps = pct 60
-    let bal = million ps
+    let bal = thousand ps
 
 
     putStrLn "Rebalance Fixed"
@@ -144,6 +130,7 @@ runAggregate ss start acts = do
     let srs = map sim ss :: [SimResult]
     let aws = aggregateWithdrawals $ map (.wdSpread) srs :: AggregateWithdrawals
 
+
     printAggregateWithdrawals aws
 
     -- printWithdrawalSpreadRow aws.totalSpread
@@ -167,7 +154,7 @@ runMSWRs hs = do
 
     let ss = samples years hs
     let ps = pct 60
-    let bal = million ps
+    let bal = thousand ps
 
 
    
@@ -236,16 +223,16 @@ printWithdrawalResults wr = do
     putStrLn $ "  p75: " <> show wr.p75
     putStrLn $ "  p90: " <> show wr.p90
 
-printWithdrawalSpread :: WithdrawalSpread -> IO ()
+printWithdrawalSpread :: Show a => WithdrawalSpread a -> IO ()
 printWithdrawalSpread wr = do
-    putStrLn $ "high%: " <> show wr.whigh
-    putStrLn $ " 4.5%: " <> show wr.w4_5
-    putStrLn $ " 4.0%: " <> show wr.w4_0
-    putStrLn $ " 3.5%: " <> show wr.w3_5
-    putStrLn $ " 3.0%: " <> show wr.w3_0
-    putStrLn $ " 2.5%: " <> show wr.w2_5
-    putStrLn $ " 2.0%: " <> show wr.w2_0
     putStrLn $ " low%: " <> show wr.wlow
+    putStrLn $ " 2.0%: " <> show wr.w2_0
+    putStrLn $ " 2.5%: " <> show wr.w2_5
+    putStrLn $ " 3.0%: " <> show wr.w3_0
+    putStrLn $ " 3.5%: " <> show wr.w3_5
+    putStrLn $ " 4.0%: " <> show wr.w4_0
+    putStrLn $ " 4.5%: " <> show wr.w4_5
+    putStrLn $ "high%: " <> show wr.whigh
 
 printAggregateWithdrawals :: AggregateWithdrawals -> IO ()
 printAggregateWithdrawals aw = do
@@ -263,11 +250,11 @@ printAggregateWithdrawals aw = do
 
 printWithdrawalSpreadHeader :: IO ()
 printWithdrawalSpreadHeader = do
-    printTableRow 5 ["low%", "2.0%", "2.5%", "3.0%", "3.5%", "4.0%", "4.5%", "high%"]
+    printTableRow 9 ["low%", "2.0%", "2.5%", "3.0%", "3.5%", "4.0%", "4.5%", "high%"]
 
-printWithdrawalSpreadRow :: WithdrawalSpread -> IO ()
+printWithdrawalSpreadRow :: Show a => WithdrawalSpread a -> IO ()
 printWithdrawalSpreadRow ws = do
-    printTableRow 5 [show ws.wlow, show ws.w2_0, show ws.w2_5, show ws.w3_0, show ws.w3_5, show ws.w4_0, show ws.w4_5, show ws.whigh]
+    printTableRow 9 [show ws.wlow, show ws.w2_0, show ws.w2_5, show ws.w3_0, show ws.w3_5, show ws.w4_0, show ws.w4_5, show ws.whigh]
 
 printTableRow :: Int -> [String] -> IO ()
 printTableRow p items = do
@@ -286,34 +273,34 @@ isYear y sr =
 
 printYearHeader :: IO ()
 printYearHeader =
-    printTableRow 12
+    printTableRow 9
       [ "Year"
+      , "beg.stck"
+      , "beg.bnds"
+      , "ret.stck"
+      , "ret.bnds"
       , "Withdrawal"
-      , "start.stocks"
-      , "start.bonds"
-      , "act.stocks"
-      , "act.bonds"
-      , "ret.stocks"
-      , "ret.bonds"
-      , "end.stocks"
-      , "end.bonds"
+      , "act.stck"
+      , "act.bnds"
+      , "end.stck"
+      , "end.bnds"
       , "cape"
       ]
 
 printYear :: YearStart -> IO ()
 printYear yr =
-    printTableRow 12
-      [ show $ (.year) <$> yr.history
-      , show yr.withdrawal
+    printTableRow 9
+      [ fromMaybe "" $ (show . (.year)) <$> yr.history
       , show yr.start.stocks
       , show yr.start.bonds
-      , show yr.actions.stocks
-      , show yr.actions.bonds
       , show yr.returns.stocks
       , show yr.returns.bonds
+      , show yr.withdrawal
+      , show yr.actions.stocks
+      , show yr.actions.bonds
       , show yr.end.stocks
       , show yr.end.bonds
-      , show $ (.cape) <$> yr.history
+      , fromMaybe "" $ (show . (.cape)) <$> yr.history
       ]
 
 port :: Portfolio f -> (USD f Stocks, USD f Bonds)
@@ -330,26 +317,26 @@ withdraw4 start = do
     withdraw const4Percent
 
 
-million :: Pct Stocks -> Balances
-million ps = rebalanceFixed ps $ Portfolio
-  { stocks = usd $ 500*1000
-  , bonds = usd $ 500*1000
+thousand :: Pct Stocks -> Balances
+thousand ps = rebalanceFixed ps $ Portfolio
+  { stocks = usd $ 500
+  , bonds = usd $ 500
   }
 
-million50 :: Balances
-million50 = million (pct 50)
+thousand50 :: Balances
+thousand50 = Portfolio (usd 500) (usd 500)
 
-million60 :: Balances
-million60 = million (pct 60)
+thousand60 :: Balances
+thousand60 = Portfolio (usd 600) (usd 400)
 
-million70 :: Balances
-million70 = million (pct 70)
+thousand70 :: Balances
+thousand70 = Portfolio (usd 700) (usd 300)
 
-million80 :: Balances
-million80 = million (pct 80)
+thousand80 :: Balances
+thousand80 = Portfolio (usd 800) (usd 200)
 
-million90 :: Balances
-million90 = million (pct 90)
+thousand90 :: Balances
+thousand90 = Portfolio (usd 900) (usd 100)
 
 swr4 :: Pct Withdrawal
 swr4 = pct 4
