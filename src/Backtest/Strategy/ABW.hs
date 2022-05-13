@@ -8,7 +8,7 @@ import Backtest.Types.Usd as Usd
 import Backtest.Types.Pct as Pct
 import Backtest.Types.History (CAPE(..))
 import Backtest.Types.Portfolio (Balances, amount, total)
-import Backtest.Strategy (pctBonds, allocationStocks)
+import Backtest.Strategy (pctBonds, allocationStocks, staticWithdrawal)
 import Backtest.Simulation (bondsFirst, Actions, history, balances, yearsLeft, withdraw)
 
 import Debug.Trace (traceM, trace)
@@ -22,8 +22,8 @@ data Return a
 data Weighted
 type YearsLeft = Int
 
--- TODO it uses the END OF YEAR cape balance to withdraw stocks at the beginning of the year.
--- Oops
+
+
 withdrawABW :: Actions ()
 withdrawABW = do
     h <- history
@@ -37,11 +37,26 @@ amortizedWithdrawal yrs cape bal =
   in amount wdp (total bal)
 
 
+withdrawABW' :: Actions ()
+withdrawABW' = do
+    h <- history
+    bal <- balances
+    yl <- yearsLeft
 
--- TODO calculate allocation (already done?)
--- Strategy.allocationStocks
+    -- withdrawal is capped at 4% of portfolio
+    let w4 = staticWithdrawal (pct 4) bal
+    let wa = amortizedWithdrawal yl h.cape bal
+
+    -- when times are GOOD cap it at 4% of portfolio
+    -- when times are BAD then don't
+    let w = min w4 wa
+
+    withdraw w
+
+
 
 -- | estimates total return given the CAPE ratio and your current portfolio
+-- this is too high. It's overdoing it a lot
 estimatedReturnTotal :: Balances -> CAPE -> Pct (Return Total)
 estimatedReturnTotal bal cape =
   let ps = allocationStocks bal
@@ -52,7 +67,7 @@ estimatedReturnTotal bal cape =
     ]
 
 estimatedReturnStocks :: CAPE -> Pct (Return Stocks)
-estimatedReturnStocks (CAPE r) = pctFromFloat (1/r)
+estimatedReturnStocks (CAPE r) = pctFromFloat (1/r) - (pct 1.0)
 
 -- 5% real worldwide return via bogleheads
 estimatedReturnStocks NA       = pct 5
@@ -70,6 +85,8 @@ weightedReturn alloc ret =
 totalReturn :: [Pct (Return Weighted)] -> Pct (Return Total)
 totalReturn rs = fromPct $ sum rs
 
+-- bumpReturn :: Pct (Return Total) -> Pct (Return Total)
+-- bumpReturn p = p - (pct 0.5)
 
 
 -- | current withdrawal% amortized for remaining lifespan
