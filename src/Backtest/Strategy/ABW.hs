@@ -7,7 +7,7 @@ import Backtest.Prelude
 import Backtest.Types.Usd as Usd
 import Backtest.Types.Pct as Pct
 import Backtest.Types.History (CAPE(..))
-import Backtest.Types.Portfolio (Balances, amount, total)
+import Backtest.Types.Portfolio (Balances, amount, total, gains, addToBalance, addAmounts, diff, Portfolio(..))
 import Backtest.Strategy (pctBonds, allocationStocks, staticWithdrawal)
 import Backtest.Simulation (bondsFirst, Actions, history, balances, yearsLeft, withdraw)
 
@@ -33,31 +33,38 @@ withdrawABW = do
 
 amortizedWithdrawal :: YearsLeft -> CAPE -> Balances -> USD Amt Withdrawal
 amortizedWithdrawal yrs cape bal =
-  let wdp = calcWithdrawal yrs $ estimatedReturnTotal bal cape :: Pct Withdrawal
-  in amount wdp (total bal)
+  amortize (estimatedReturnTotal bal cape) yrs (total bal)
 
+
+amortize :: Pct (Return Total) -> YearsLeft -> USD Bal Total -> USD Amt Withdrawal
+amortize ret yrs tot =
+  let wdp = calcWithdrawal yrs ret
+  in amount wdp tot
+
+
+-- the real problem is:
+-- 1/CAPE is too aggressive if your portfolio is drawn down
+-- what does drawn down mean?
+-- if you are way below 4% of current portfolio
 
 withdrawABW' :: Actions ()
 withdrawABW' = do
     h <- history
     bal <- balances
     yl <- yearsLeft
+    let er = estimatedReturnTotal bal h.cape
+    let rets = replicate (yl-1) er
+    let wda = pmtFluctuate rets (total bal)
+    traceM $ show ("yl", yl, "er", er, "rets", rets, "wda", wda, total bal)
+    withdraw wda
 
-    -- withdrawal is capped at 4% of portfolio
-    let w4 = staticWithdrawal (pct 4) bal
-    let wa = amortizedWithdrawal yl h.cape bal
-
-    -- when times are GOOD cap it at 4% of portfolio
-    -- when times are BAD then don't
-    let w = min w4 wa
-
-    withdraw w
 
 
 
 -- | estimates total return given the CAPE ratio and your current portfolio
 -- this is too high. It's overdoing it a lot
 estimatedReturnTotal :: Balances -> CAPE -> Pct (Return Total)
+estimatedReturnTotal (Portfolio (USD 0) (USD 0)) _ = 0
 estimatedReturnTotal bal cape =
   let ps = allocationStocks bal
       pb = pctBonds ps
@@ -67,7 +74,7 @@ estimatedReturnTotal bal cape =
     ]
 
 estimatedReturnStocks :: CAPE -> Pct (Return Stocks)
-estimatedReturnStocks (CAPE r) = pctFromFloat (1/r) - (pct 1.0)
+estimatedReturnStocks (CAPE r) = pctFromFloat (1/r)
 
 -- 5% real worldwide return via bogleheads
 estimatedReturnStocks NA       = pct 5
@@ -91,9 +98,15 @@ totalReturn rs = fromPct $ sum rs
 
 -- | current withdrawal% amortized for remaining lifespan
 calcWithdrawal :: YearsLeft -> Pct (Return Total) -> Pct Withdrawal
+calcWithdrawal n (Pct 0) = Pct $ (1 / fromIntegral n)
 calcWithdrawal n rp =
   pctFromFloat $ pmt' (Pct.toFloat rp) n 1
 
+
+calcNPV :: Pct (Return Total) -> [USD Amt a] -> USD Bal b
+calcNPV ret amts =
+  let as = map (fromIntegral . totalCents) amts :: [Float]
+  in fromCents $ round $ netPresentValue (Pct.toFloat ret) as
 
 
 -- https://www.bogleheads.org/wiki/Amortization_based_withdrawal_formulas
@@ -128,3 +141,99 @@ netPresentValue :: (Fractional a, Num a) =>
   -> a   -- ^ The net present value.
 netPresentValue _ [] = 0
 netPresentValue rate (x : xs) = (x + netPresentValue rate xs) / (1 + rate)
+
+
+           
+
+
+
+
+
+-- start with the average return and ABW?
+pmtFluctuate
+  :: [Pct (Return Total)] -- ^ Returns over time
+  -> USD Bal Total   -- ^ Net Present Value (loan amount)
+  -> USD Amt Withdrawal   -- ^ Payment
+pmtFluctuate rets bal =
+  -- guess, calculate remainder, subtract from guess
+  -- go until you reach the desired difference
+  let n = length rets + 1
+      er = average rets
+      w = amortize er n bal :: USD Amt Withdrawal
+  in pmtFluctuate' rets bal w
+
+
+pmtFluctuate' :: [Pct (Return Total)] -> USD Bal Total -> USD Amt Withdrawal -> USD Amt Withdrawal
+pmtFluctuate' rets bal wstart = 
+  let periods = length rets + 1
+      ws = take 15 $ drop 1 $ iterate (findWithdrawal periods) $ FlucWD Nothing 0 (usd 0) wstart wstart 0
+  in last $ mapMaybe (.withdrawal) ws
+
+  where
+
+
+    nextWithdrawal :: FlucWD -> Int -> USD Amt Withdrawal -> USD Amt Withdrawal
+    nextWithdrawal f left w
+      | left <  0  = avg f.low w
+      | left >  0  = avg f.high w
+      | otherwise  = w
+
+    lowWithdrawal :: FlucWD -> Int -> USD Amt Withdrawal -> USD Amt Withdrawal
+    lowWithdrawal f left w
+      | left >  0  = w
+      | otherwise  = f.low
+
+    highWithdrawal :: FlucWD -> Int -> USD Amt Withdrawal -> USD Amt Withdrawal
+    highWithdrawal f left w
+      | left <  0  = w
+      | otherwise  = f.high
+
+    avg :: USD f a -> USD f a -> USD f a
+    avg a b = fromCents $ (totalCents a + totalCents b) `div` 2
+
+    findWithdrawal :: YearsLeft -> FlucWD -> FlucWD
+    findWithdrawal periods f =
+      let w = f.next
+          count = f.count + 1
+          withdrawal = Just w
+          left = runReturns rets w (totalCents bal) :: Int
+
+          low  = lowWithdrawal f left w
+          high = highWithdrawal f left w
+
+          next = nextWithdrawal f left w
+
+          fwd = FlucWD {..}
+      -- in trace (show ("w", w, "l", left, "e", extra, "n", next)) $ (w, extra, next)
+      -- in trace (show fwd) $ fwd
+      in fwd
+
+
+data FlucWD = FlucWD
+  { withdrawal :: Maybe (USD Amt Withdrawal)
+  , left :: Int
+  , low  :: USD Amt Withdrawal
+  , high :: USD Amt Withdrawal
+  , next :: USD Amt Withdrawal
+  , count :: Int
+  } deriving (Show)
+
+
+-- wait, but what about the first year?
+runReturns :: [Pct (Return Total)] -> USD Amt Withdrawal -> Int -> Int
+runReturns rs w b =
+  (foldl nextYear b rs) - (totalCents $ gain w)
+
+  where
+    nextYear :: Int -> Pct (Return a) -> Int
+    nextYear bc r = 
+      let aw = bc - (totalCents $ gain w) :: Int
+          ye = round $ (1 + (Pct.toFloat r)) * fromIntegral aw
+      in if aw > 0
+          then ye
+          else aw
+
+
+
+
+

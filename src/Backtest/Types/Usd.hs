@@ -49,12 +49,18 @@ instance FromField (USD f a) where
 instance Show (USD f a) where
   show m = mconcat
     [ "$"
-    , show $ totalCents m `div` 100
+    , sign $ totalCents m
+    , show $ (abs $ totalCents m) `div` 100
     , "."
     , pad $ show $ abs $ cents m
     ]
     where pad [c] = ['0',c]
           pad x = x
+          
+          sign x
+            | x < 0 = "-"
+            | otherwise = ""
+
 
 -- | Convienence for making constants
 --   dollars.cents
@@ -89,6 +95,7 @@ toWithdrawal = fromUSD
 
 toTotal :: USD f a -> USD f Total
 toTotal = fromUSD
+
 
 
 

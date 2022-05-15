@@ -12,6 +12,7 @@ import Backtest.Aggregate (aggregateWithdrawals, yearSpread)
 import Debug.Trace (trace)
 import Data.List as List
 
+-- |     1999 |  $720.00 |  $167.45 |  $211.35 |   $17.35 |   $71.72 | $-212.35 |  $139.63 |  $720.00 |  $324.43 |CAPE 40.58 |
 
 run :: IO ()
 run = do
@@ -22,7 +23,6 @@ run = do
     runSimulation hs
 
 
--- |        1908 |   $63028.55 |  $693844.76 |  $260712.57 |       $0.00 |  $-63029.55 | $-156233.59 |    $8703.08 |  $537612.17 |  $206387.10 |   CAPE 11.9 |
     -- runMSWRs hs
     -- runAggregates hs
 
@@ -37,38 +37,36 @@ runSimulation hs = do
 
     let yrs = 50
     let ss = samples yrs hs
+    let ps = pct 60
     let start = thousand60
 
-    -- let wda = staticWithdrawal swr4 start :: USD Amt Withdrawal
+    let wda = staticWithdrawal swr4 start :: USD Amt Withdrawal
     -- let sim = simulation start $ do
+    --             rebalance $ rebalancePrime start.stocks
     --             withdraw wda
-    --             rebalance $ rebalancePrimeNew start.stocks
 
     let sim = simulation start $ do
-                rebalance $ rebalancePrime start.stocks
-                withdrawABW
+                rebalance $ rebalancePrimeNew start.stocks
+                withdrawABW'
     let srs = map sim ss :: [SimResult]
 
     -- print $ head hs
 
 
-    printWithdrawalSpreadHeader
+    -- printWithdrawalSpreadHeader
 
-    -- * Show all years
-    forM_ srs $ \sr -> do
-        printSimResult sr
-        printWithdrawalSpreadRow sr.wdSpread
+    -- -- * Show all years
+    -- forM_ srs $ \sr -> do
+    --     printSimResult sr
+    --     printWithdrawalSpreadRow sr.wdSpread
 
-    putStrLn ""
-    let aws = aggregateWithdrawals $ map (.wdSpread) srs
-    printAggregateWithdrawals aws
+    -- putStrLn ""
+    -- let aws = aggregateWithdrawals $ map (.wdSpread) srs
+    -- printAggregateWithdrawals aws
 
-    putStrLn ""
-    printWithdrawalSpread $ yearSpread srs
+    -- putStrLn ""
+    -- printWithdrawalSpread $ yearSpread srs
 
-        -- mapM_ print $ sr.years
-
-    putStrLn ""
 
     -- * Count failures
     -- print $ (length $ filter isFailure srs, length srs)
@@ -79,12 +77,13 @@ runSimulation hs = do
     -- print $ medianPortfolio srs
 
     -- * 1903 failure year
-    (Just s1903) <- pure $ List.find (isYear 1903) srs
-    print $ s1903.startYear
-    print $ s1903.endBalance
+    putStrLn ""
+    (Just s1966) <- pure $ List.find (isYear 1966) srs
+    print $ s1966.startYear
+    print $ s1966.endBalance
 
     printYearHeader
-    mapM_ printYear $ s1903.years
+    mapM_ printYear $ s1966.years
 
     -- * 1966 failure year
     -- (Just s1966) <- pure $ List.find (isYear 1966) srs

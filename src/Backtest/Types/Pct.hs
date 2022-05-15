@@ -31,3 +31,7 @@ instance Show (Pct a) where
 
 
 
+
+average :: [Pct a] -> Pct a
+average ps =
+  Pct $ (toFloat $ sum ps) / fromIntegral (length ps)

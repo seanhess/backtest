@@ -53,6 +53,7 @@ main = do
   test "testBands" assertBands
   test "testPMT" assertPMT
   test "testABW" assertABW
+  test "pmtFluctate" assertFluctate
 
 
 
@@ -131,8 +132,8 @@ assertReturns = do
 
   expect "apply returns should add up" $ do
     let ret = calcReturns h thousand60
-    dollars ret.stocks === 660000
-    dollars ret.bonds === 404000
+    dollars ret.stocks === 660
+    dollars ret.bonds === 404
 
 
     
@@ -253,7 +254,7 @@ assertInflation = do
     map (\r -> r.actions.stocks) sim.years === [usd 0, usd 0]
 
   expect "keep withdrawals constant from year to year in real dollars" $
-    map (\r -> r.actions.bonds)  sim.years === [usd (-40000), usd (-40000)]
+    map (\r -> r.actions.bonds)  sim.years === [usd (-40), usd (-40)]
 
 
 assertSimEndBalance :: Test ()
@@ -295,7 +296,7 @@ assertSimEndBalance = do
     (map (.year) sim'.years) === [Year 1872, Year 1873]
 
   expect "stock end balance to be only 1873 returns" $ do
-    dollars (sim'.endBalance.stocks) === 1200000
+    dollars (sim'.endBalance.stocks) === 1200
 
 
 
@@ -620,4 +621,27 @@ assertABW = do
     let wpd3 = calcWithdrawal 1 (pctFromFloat (1/30))
     y3.withdrawal === amount wpd3 (total y2.end)
     dollars (y3.withdrawal) === dollars (total y2.end)
+
+
+assertFluctate :: Test ()
+assertFluctate = do
+  expect "to run known example" $ do
+    runReturns [pct 0, pct 3, pct 3, pct 3] (usd 20) 10000 === 374
+
+  expect "to run negative at the end" $ do
+    runReturns [pct 0, pct 10, pct 10, pct 10] (usd 25) 10000 === (-1620)
+
+  expect "to run without returns when negative" $ do
+    runReturns [pct 0, pct 0, pct 10, pct 10] (usd 50) 10000 === (-15000)
+
+  expect "to converge on example" $ do
+    pmtFluctuate [pct 10, pct 10, pct 10, pct 10] (usd 100) === usd (23.98)
+
+  expect "to converge when initial withdrawal is too high" $ do
+    pmtFluctuate' [pct 0, pct 0, pct 0, pct 0] (usd 100) (usd 71.56) === usd 20
+
+  expect "to converge with high end percent" $ do
+    pmtFluctuate' [pct 0, pct 0, pct 0, pct 1000] (usd 100) (usd 71.56) === usd (24.44)
+
+
 

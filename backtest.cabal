@@ -33,6 +33,7 @@ library
       Backtest.Simulation
       Backtest.Strategy
       Backtest.Strategy.ABW
+      Backtest.Strategy.Steps
       Backtest.Types
       Backtest.Types.History
       Backtest.Types.Pct
@@ -145,6 +146,7 @@ test-suite backtest-test
       Backtest.Simulation
       Backtest.Strategy
       Backtest.Strategy.ABW
+      Backtest.Strategy.Steps
       Backtest.Types
       Backtest.Types.History
       Backtest.Types.Pct

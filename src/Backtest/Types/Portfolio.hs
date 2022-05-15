@@ -32,6 +32,9 @@ changes start end =
 gains :: USD f a -> USD f a -> USD Amt a
 gains (USD s) (USD e) = USD $ abs e - abs s
 
+diff :: USD f a -> USD f a -> USD Amt a
+diff (USD a) (USD b) = USD $ abs (a - b)
+
 gainsPercent :: USD f a -> USD f a -> Pct a
 gainsPercent s e =
     Pct $ (fromIntegral e.totalCents) / (fromIntegral s.totalCents) - 1
