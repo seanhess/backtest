@@ -16,6 +16,7 @@ module Backtest.Strategy.Steps where
 -- TODO I need the last withdrawal, or the history of withdrawals
 withdrawSteps :: Actions ()
 withdrawSteps = do
+  -- What was my last withdrawal?
   pure ()
 
 

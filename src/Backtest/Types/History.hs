@@ -22,17 +22,15 @@ instance Show Year where
 data Inflation
 data RealTotal
 
-data CAPE
-  = NA
-  | CAPE Float
-  deriving (Show, Eq, Read)
+data CAPE = CAPE { fromCAPE :: Float }
+  deriving (Show, Eq, Read, Ord)
 
-instance FromField CAPE where
-  parseField bs = do
-    s <- parseField bs
-    case s of
-      "NA" -> pure NA
-      _ -> pure $ CAPE (read s)
+-- instance FromField CAPE where
+--   parseField bs = do
+--     s <- parseField bs
+--     case readMaybe s of
+--       "NA" -> pure NA
+--       _ -> pure $ CAPE (read s)
 
 -- Performance of a particular year
 data HistoryRow = HistoryRow
@@ -48,13 +46,15 @@ instance FromNamedRecord HistoryRow where
   parseNamedRecord m = do
     date   <- m .: "Date" :: Parser Float
     cpi    <- m .: "CPI"
-    cape   <- m .: "CAPE"
+    capes  <- m .: "CAPE"
     stocks <- clean =<< m .: "Real Total Return Price"
     bonds  <- clean =<< m .: "Real Total Bond Returns"
 
     let yr = round date :: Int
     let month = (round $ (date - (fromIntegral yr)) * 100) :: Int
     let year = Year yr
+
+    let cape = CAPE <$> readMaybe capes
         
     pure HistoryRow {..}
 

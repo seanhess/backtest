@@ -13,7 +13,7 @@ module Backtest.Prelude
   , Map
 
   -- * List functions
-  , group, sort, sortOn, find
+  , module Data.List
 
   -- * Monadic functions
   , unless, guard, zipWithM_, forM_
@@ -40,7 +40,7 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad (unless, guard, zipWithM_, mapM_, forM_)
 import Control.Monad.Catch (MonadCatch, try, throwM, Exception, MonadThrow)
 import Data.Function ((&))
-import Data.List (group, sort, sortOn, find)
+import Data.List (group, sort, sortOn, find, groupBy, tails, head)
 import Control.Applicative ((<|>))
 import Data.Maybe (fromMaybe, listToMaybe, mapMaybe, catMaybes, isJust, isNothing)
 import GHC.Generics (Generic)

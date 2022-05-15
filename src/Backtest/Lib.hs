@@ -5,8 +5,8 @@ import Backtest.Prelude
 import Backtest.Types hiding (history)
 import Backtest.History (loadReturns, samples, toHistories)
 import Backtest.Simulation (simulation, Actions, rebalance, withdraw, bondsFirst, balances, yearsLeft, history)
-import Backtest.Strategy (staticWithdrawal, rebalanceFixed, rebalance525Bands, rebalancePrime, rebalancePrimeNew)
-import Backtest.Strategy.ABW (withdrawABW, withdrawABW', pmt, pmt', amortizedWithdrawal)
+import Backtest.Strategy
+import Backtest.Strategy.ABW
 import Backtest.MSWR (rateResults, isFailure)
 import Backtest.Aggregate (aggregateWithdrawals, yearSpread)
 import Debug.Trace (trace)
@@ -18,11 +18,9 @@ run :: IO ()
 run = do
     rs <- loadReturns
     let hs = toHistories rs
-    -- mapM_ print hs
+    -- mapM_ print rs
 
     runSimulation hs
-
-
     -- runMSWRs hs
     -- runAggregates hs
 
@@ -39,15 +37,16 @@ runSimulation hs = do
     let ss = samples yrs hs
     let ps = pct 60
     let start = thousand60
+    let wr = worstHistory hs
 
-    let wda = staticWithdrawal swr4 start :: USD Amt Withdrawal
+    -- let wda = staticWithdrawal swr4 start :: USD Amt Withdrawal
     -- let sim = simulation start $ do
     --             rebalance $ rebalancePrime start.stocks
     --             withdraw wda
 
     let sim = simulation start $ do
-                rebalance $ rebalancePrimeNew start.stocks
-                withdrawABW'
+                rebalance $ rebalancePrime start.stocks
+                withdrawABW
     let srs = map sim ss :: [SimResult]
 
     -- print $ head hs
@@ -60,12 +59,12 @@ runSimulation hs = do
     --     printSimResult sr
     --     printWithdrawalSpreadRow sr.wdSpread
 
-    -- putStrLn ""
-    -- let aws = aggregateWithdrawals $ map (.wdSpread) srs
-    -- printAggregateWithdrawals aws
+    putStrLn ""
+    let aws = aggregateWithdrawals $ map (.wdSpread) srs
+    printAggregateWithdrawals aws
 
-    -- putStrLn ""
-    -- printWithdrawalSpread $ yearSpread srs
+    putStrLn ""
+    printWithdrawalSpread $ yearSpread srs
 
 
     -- * Count failures
@@ -77,13 +76,13 @@ runSimulation hs = do
     -- print $ medianPortfolio srs
 
     -- * 1903 failure year
-    putStrLn ""
-    (Just s1966) <- pure $ List.find (isYear 1966) srs
-    print $ s1966.startYear
-    print $ s1966.endBalance
+    -- putStrLn ""
+    -- (Just s1966) <- pure $ List.find (isYear 1966) srs
+    -- print $ s1966.startYear
+    -- print $ s1966.endBalance
 
-    printYearHeader
-    mapM_ printYear $ s1966.years
+    -- printYearHeader
+    -- mapM_ printYear $ s1966.years
 
     -- * 1966 failure year
     -- (Just s1966) <- pure $ List.find (isYear 1966) srs
@@ -154,8 +153,6 @@ runMSWRs hs = do
     let ss = samples years hs
     let ps = pct 60
     let bal = thousand ps
-
-
    
     putStrLn "Compare MSWRs"
     putStrLn "=============="
@@ -310,38 +307,6 @@ printSimResult sr = do
     print ("SimResult", sr.startYear, sr.endYear, sr.endBalance)
 
 
-withdraw4 :: Balances -> Actions ()
-withdraw4 start = do
-    let const4Percent = loss $ staticWithdrawal swr4 start :: USD Amt Withdrawal
-    withdraw const4Percent
-
-
-thousand :: Pct Stocks -> Balances
-thousand ps = rebalanceFixed ps $ Portfolio
-  { stocks = usd $ 500
-  , bonds = usd $ 500
-  }
-
-thousand50 :: Balances
-thousand50 = Portfolio (usd 500) (usd 500)
-
-thousand60 :: Balances
-thousand60 = Portfolio (usd 600) (usd 400)
-
-thousand70 :: Balances
-thousand70 = Portfolio (usd 700) (usd 300)
-
-thousand80 :: Balances
-thousand80 = Portfolio (usd 800) (usd 200)
-
-thousand90 :: Balances
-thousand90 = Portfolio (usd 900) (usd 100)
-
-swr4 :: Pct Withdrawal
-swr4 = pct 4
-
-rebalancePct :: Pct Stocks -> Actions ()
-rebalancePct ps = rebalance $ rebalanceFixed ps
 
 betweenYears :: Year -> Year -> History -> Bool
 betweenYears start end h = 

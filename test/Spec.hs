@@ -399,18 +399,18 @@ assertStandard = do
     ch.stocks === usd (-80)
   
   expect "withdrawal " $ do
-    let bal' = runActions y h bal (withdraw4 start)
+    let bal' = runActions y h (Left bal) (withdraw4 start)
     bal'.stocks === usd 800
     bal'.bonds === usd 360
 
   expect "rebalance" $ do
-    let bal' = runActions y h bal $ rebalancePct (pct 60)
+    let bal' = runActions y h (Left bal) $ rebalancePct (pct 60)
     bal'.stocks === usd 720
     bal'.bonds === usd 480
 
 
   -- run full standard
-  let bal' = runActions y h bal (withdraw4 start >> rebalancePct (pct 60))
+  let bal' = runActions y h (Left bal) (withdraw4 start >> rebalancePct (pct 60))
   let chs  = changes bal bal'
 
   expect "withdrawal should result in net -40" $ do
@@ -440,7 +440,7 @@ assertActions = do
   let ch = \b -> Portfolio (addToBalance (usd 20) b.stocks) (addToBalance (usd 30) b.bonds)
 
   expect "stocks should be the sum of both changes" $ do
-    let fin = runActions y h bal $ do
+    let fin = runActions y h (Left bal) $ do
                 rebalance ch
                 rebalance ch
 
@@ -581,7 +581,7 @@ assertABW = do
   let y = Year 1900
   let ye = Year 1950 -- the year we are out of money and take no actions
   let h = History y (pct 0.0) (pct 0.0) (CAPE 40)
-  let st = runActionState ye h p withdrawABW
+  let st = runActionState ye h (Left p) withdrawABW
 
   expect "withdrawal amount to be the same" $ do
     st._withdrawal === wda
@@ -642,6 +642,9 @@ assertFluctate = do
 
   expect "to converge with high end percent" $ do
     pmtFluctuate' [pct 0, pct 0, pct 0, pct 1000] (usd 100) (usd 71.56) === usd (24.44)
+
+  expect "to withdraw everything with no returns" $ do
+    pmtFluctuate [] (usd 100) === usd (100)
 
 
 

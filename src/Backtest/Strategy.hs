@@ -2,6 +2,7 @@ module Backtest.Strategy where
 
 import Backtest.Prelude
 import Backtest.Types
+import Backtest.Simulation (Actions, withdraw, rebalance)
 
 
 
@@ -70,3 +71,38 @@ diffRelPercent ps bal =
 
 allocationStocks :: Balances -> Pct Stocks
 allocationStocks bal = percentOf bal.stocks (total bal)
+
+
+
+withdraw4 :: Balances -> Actions ()
+withdraw4 start = do
+    let const4Percent = loss $ staticWithdrawal swr4 start :: USD Amt Withdrawal
+    withdraw const4Percent
+
+
+thousand :: Pct Stocks -> Balances
+thousand ps = rebalanceFixed ps $ Portfolio
+  { stocks = usd $ 500
+  , bonds = usd $ 500
+  }
+
+thousand50 :: Balances
+thousand50 = Portfolio (usd 500) (usd 500)
+
+thousand60 :: Balances
+thousand60 = Portfolio (usd 600) (usd 400)
+
+thousand70 :: Balances
+thousand70 = Portfolio (usd 700) (usd 300)
+
+thousand80 :: Balances
+thousand80 = Portfolio (usd 800) (usd 200)
+
+thousand90 :: Balances
+thousand90 = Portfolio (usd 900) (usd 100)
+
+swr4 :: Pct Withdrawal
+swr4 = pct 4
+
+rebalancePct :: Pct Stocks -> Actions ()
+rebalancePct ps = rebalance $ rebalanceFixed ps

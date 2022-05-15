@@ -6,10 +6,10 @@ module Backtest.Strategy.ABW where
 import Backtest.Prelude
 import Backtest.Types.Usd as Usd
 import Backtest.Types.Pct as Pct
-import Backtest.Types.History (CAPE(..))
+import Backtest.Types.History (CAPE(..), History(..))
 import Backtest.Types.Portfolio (Balances, amount, total, gains, addToBalance, addAmounts, diff, Portfolio(..))
-import Backtest.Strategy (pctBonds, allocationStocks, staticWithdrawal)
-import Backtest.Simulation (bondsFirst, Actions, history, balances, yearsLeft, withdraw)
+import Backtest.Strategy (pctBonds, allocationStocks, staticWithdrawal, thousand60, withdraw4, rebalancePct)
+import Backtest.Simulation (bondsFirst, Actions, history, balances, yearsLeft, withdraw, simulation)
 
 import Debug.Trace (traceM, trace)
 
@@ -47,16 +47,90 @@ amortize ret yrs tot =
 -- what does drawn down mean?
 -- if you are way below 4% of current portfolio
 
-withdrawABW' :: Actions ()
-withdrawABW' = do
+withdrawABW' :: WorstReturns -> Actions ()
+withdrawABW' wr = do
     h <- history
     bal <- balances
     yl <- yearsLeft
-    let er = estimatedReturnTotal bal h.cape
-    let rets = replicate (yl-1) er
+    -- let er = estimatedReturnTotal bal h.cape
+    let hs = badHistory wr h.cape
+    let rets = take (yl-1) $ historicalReturns bal hs
     let wda = pmtFluctuate rets (total bal)
-    traceM $ show ("yl", yl, "er", er, "rets", rets, "wda", wda, total bal)
+    traceM $ show ("yl", yl, "rets", rets, "wda", wda, total bal)
     withdraw wda
+
+
+-- -- I want to take the actual worst historical returns based on that CAPE ratio
+-- -- and see if we can survive that
+-- -- worst = lowest ending balance?
+-- -- worst = lowest compound return (no, with withdrawals)
+-- badReturns :: YearsLeft -> Pct (Return Total) -> [Pct (Return Total)]
+-- badReturns yl er =
+--   -- take (yl-1) $ earlyCrash <> flat <> rets
+--   take (yl-1) $ flat 8 <> rets
+
+--   where
+--     earlyCrash = [pct (-10), pct (-30), pct (-10)] :: [Pct (Return Total)]
+--     flat     n = replicate n (pct 0)
+--     rets       = cycle [er]
+
+
+
+type WorstReturns = [(Int, [History])]
+
+
+historicalReturns :: Balances -> [History] -> [Pct (Return Total)]
+historicalReturns bal hs =
+  let ps = allocationStocks bal
+      pb = pctBonds ps
+  in map (ret ps pb) hs
+    where
+      ret :: Pct Stocks -> Pct Bonds -> History -> Pct (Return Total)
+      ret ps pb h = totalReturn
+        [ weightedReturn ps (fromPct h.stocks)
+        , weightedReturn pb (fromPct h.bonds)
+        ]
+
+
+badHistory :: WorstReturns -> CAPE -> [History]
+badHistory []   _ = error "Missing historical bad returns"
+badHistory hret c = snd $ fromMaybe (last hret) $ find isCape hret
+  where
+    isCape (cr, _) = cr == round c.fromCAPE
+
+
+worstHistory :: [History] -> WorstReturns
+worstHistory hs = map worst $ samples
+
+  where
+    roundedCape :: History -> Int
+    roundedCape h = round $ h.cape.fromCAPE
+
+    samples :: [[History]]
+    samples = groupBy sameCape $ sortOn roundedCape hs
+
+    sameCape :: History -> History -> Bool
+    sameCape h1 h2 = roundedCape h1 == roundedCape h2
+
+    worst :: [History] -> (Int, [History])
+    worst s = 
+      let sw = head $ sortOn score $ filter (not . null) $ tails s
+      in (sampleCape sw, allYears $ head sw)
+
+    allYears :: History -> [History]
+    allYears start =
+      dropWhile (/= start) hs
+
+    sampleCape :: [History] -> Int
+    sampleCape hs' = roundedCape (head hs')
+
+    score :: [History] -> Int
+    score [] = 0
+    score s =
+      let yrs = 50
+          bal = thousand60
+          sr = simulation bal ((withdraw4 bal) >> rebalancePct (pct 60)) s
+      in totalCents $ total sr.endBalance
 
 
 
@@ -75,9 +149,6 @@ estimatedReturnTotal bal cape =
 
 estimatedReturnStocks :: CAPE -> Pct (Return Stocks)
 estimatedReturnStocks (CAPE r) = pctFromFloat (1/r)
-
--- 5% real worldwide return via bogleheads
-estimatedReturnStocks NA       = pct 5
 
 -- SOMEDAY get interest rate data and come up with a better formula
 -- estimate 5% nominal on average? 5.33% long term average according to vanguard
@@ -164,6 +235,7 @@ pmtFluctuate rets bal =
 
 
 pmtFluctuate' :: [Pct (Return Total)] -> USD Bal Total -> USD Amt Withdrawal -> USD Amt Withdrawal
+pmtFluctuate' []   bal _ = fromUSD $ bal
 pmtFluctuate' rets bal wstart = 
   let periods = length rets + 1
       ws = take 15 $ drop 1 $ iterate (findWithdrawal periods) $ FlucWD Nothing 0 (usd 0) wstart wstart 0
@@ -204,7 +276,6 @@ pmtFluctuate' rets bal wstart =
           next = nextWithdrawal f left w
 
           fwd = FlucWD {..}
-      -- in trace (show ("w", w, "l", left, "e", extra, "n", next)) $ (w, extra, next)
       -- in trace (show fwd) $ fwd
       in fwd
 

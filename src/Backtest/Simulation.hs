@@ -60,7 +60,12 @@ simulation initial actions hs =
 
         firstYear = firstYearResult ye h initial
 
-        (bal', yrs) = List.mapAccumL (eachReturns ye) firstYear.end hs'
+        (yr, yrs) = List.mapAccumL (eachReturns ye) (Left firstYear.end) hs'
+
+        bal' = case yr of
+                Left b -> b
+                Right y -> y.end
+
         wds = map (.withdrawal) yrs
 
     in SimResult
@@ -75,10 +80,13 @@ simulation initial actions hs =
     
   where
 
-    eachReturns :: Year -> Balances -> History -> (Balances, YearStart)
-    eachReturns ye b h =
-        let yr = nextYearResult ye h b
-        in (yr.end, yr)
+    eachReturns :: Year -> Either Balances YearStart -> History -> (Either Balances YearStart, YearStart)
+    eachReturns ye (Left b) h =
+        let yr = nextYearResult ye h Nothing b
+        in (Right yr, yr)
+    eachReturns ye (Right lastYear) h =
+        let yr = nextYearResult ye h (Just lastYear) lastYear.end
+        in (Right yr, yr)
 
 
     firstYearResult :: Year -> History -> Balances -> YearStart
@@ -86,7 +94,7 @@ simulation initial actions hs =
 
         -- run actions, but do not apply returns
         -- simply withdraw, etc
-        let st = runActionState ye h start actions
+        let st = runActionState ye h (Left start) actions
             end = st._balances
             act = changes start end
             ret = Portfolio mempty mempty
@@ -107,8 +115,8 @@ simulation initial actions hs =
     -- YearResult 1901 (10% ret) (Withdrawal) Rebalance
 
     -- ye = the simulation ends in which year?
-    nextYearResult :: Year -> History -> Balances -> YearStart
-    nextYearResult ye h balOld = 
+    nextYearResult :: Year -> History -> Maybe YearStart -> Balances -> YearStart
+    nextYearResult ye h lastYear balOld = 
 
         -- Its the beginning of simulation
         --   a. withdraw
@@ -127,7 +135,7 @@ simulation initial actions hs =
         let balRet = calcReturns h balOld
             ret = changes balOld balRet
             
-            st = runActionState ye h balRet actions
+            st = runActionState ye h (Left balRet) actions
             end = st._balances
             act = changes balRet end
 
@@ -242,6 +250,7 @@ data ActionState = ActionState
   { _balances :: Balances
   , _withdrawal :: USD Amt Withdrawal
   , _history :: History
+  , _lastYear :: Maybe YearStart
 
   -- the year you are out of money and take no actions
   -- 1900 - 1950
@@ -251,14 +260,16 @@ data ActionState = ActionState
   , _end :: Year
   }
 
-runActions :: Year -> History -> Balances -> Actions () -> Balances
+runActions :: Year -> History -> Either Balances YearStart -> Actions () -> Balances
 runActions y h bal act = 
     let as = runActionState y h bal act
     in as._balances
 
-runActionState :: Year -> History -> Balances -> Actions () -> ActionState
-runActionState ye h bal (Actions st) = 
-    let as = ActionState bal (usd 0) h ye :: ActionState
+runActionState :: Year -> History -> Either Balances YearStart -> Actions () -> ActionState
+runActionState ye h eby (Actions st) = 
+    let bal = either identity (.end) eby :: Balances
+        ly = either (const Nothing) Just eby :: Maybe YearStart
+        as = ActionState bal (usd 0) h ly ye :: ActionState
     in execState st as
 
 
