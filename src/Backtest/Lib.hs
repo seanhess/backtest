@@ -3,12 +3,12 @@ module Backtest.Lib where
 
 import Backtest.Prelude
 import Backtest.Types hiding (history)
-import Backtest.History (loadReturns, samples, toHistories)
+import Backtest.History (loadReturns, samples, toHistories, crashes, crashInfo, Crash)
 import Backtest.Simulation (simulation, Actions, rebalance, withdraw, bondsFirst, balances, yearsLeft, history)
 import Backtest.Strategy
 import Backtest.Strategy.ABW
 import Backtest.MSWR (rateResults, isFailure)
-import Backtest.Aggregate (aggregateWithdrawals, yearSpread)
+import Backtest.Aggregate (aggregateWithdrawals, yearSpread, spreadPoints)
 import Debug.Trace (trace)
 import Data.List as List
 
@@ -18,11 +18,29 @@ run :: IO ()
 run = do
     rs <- loadReturns
     let hs = toHistories rs
-    -- mapM_ print rs
+    mapM_ print hs
 
-    runSimulation hs
-    -- runMSWRs hs
-    -- runAggregates hs
+    forM_ (tails hs) $ \hs' -> do
+        start <- pure $ headMay hs'
+
+        let mc = flip crashInfo (crashes hs') =<< start :: Maybe Crash
+
+        case mc of
+            Nothing -> pure ()
+            Just (c :: Crash) -> do
+                putStrLn ""
+                putStrLn $ "start: " <> show c.start
+                putStrLn $ "cape: " <> show (fromCAPE c.cape)
+                putStrLn $ "balance: " <> show (millions c.balance)
+                putStrLn $ "depth: " <> show c.depth
+                putStrLn $ "duration: " <> show (length c.years)
+                mapM_ print c.years
+
+    -- mapM_ (print) $ map (map (map (.year)) . crashes) $ tails hs
+
+    -- runSimulation 50 hs
+    -- runMSWRs 50 hs
+    -- runAggregates 50 hs
 
     pure ()
 
@@ -30,10 +48,9 @@ run = do
 
 
 
-runSimulation :: [History] -> IO ()
-runSimulation hs = do
+runSimulation :: YearsLeft -> [History] -> IO ()
+runSimulation yrs hs = do
 
-    let yrs = 50
     let ss = samples yrs hs
     let ps = pct 60
     let start = thousand60
@@ -91,9 +108,8 @@ runSimulation hs = do
     -- print $ isFailure s1966
     pure ()
 
-runAggregates :: [History] -> IO ()
-runAggregates hs = do
-    let years = 50
+runAggregates :: YearsLeft -> [History] -> IO ()
+runAggregates years hs = do
     let ss = samples years hs
     let ps = pct 60
     let bal = thousand ps
@@ -106,6 +122,12 @@ runAggregates hs = do
         rebalance $ rebalanceFixed ps
     putStrLn ""
 
+    putStrLn "Swedroe 5/25"
+    putStrLn "----------------"
+    runAggregate ss bal $ do
+        withdrawABW
+        rebalance (rebalance525Bands ps)
+
     putStrLn "Prime Harvesting"
     putStrLn "----------------"
     runAggregate ss bal $ do
@@ -113,22 +135,26 @@ runAggregates hs = do
         rebalance $ rebalancePrime bal.stocks
     putStrLn ""
 
-    putStrLn "Prime Harvesting New"
-    putStrLn "----------------"
-    runAggregate ss bal $ do
-        withdrawABW
-        rebalance $ rebalancePrimeNew bal.stocks
-    putStrLn ""
+    -- putStrLn "Prime Harvesting New"
+    -- putStrLn "----------------"
+    -- runAggregate ss bal $ do
+    --     withdrawABW
+    --     rebalance $ rebalancePrimeNew bal.stocks
+    -- putStrLn ""
 
 
 runAggregate :: [[History]] -> Balances -> Actions () -> IO ()
 runAggregate ss start acts = do 
     let sim = simulation start acts
     let srs = map sim ss :: [SimResult]
-    let aws = aggregateWithdrawals $ map (.wdSpread) srs :: AggregateWithdrawals
+    let wds = map (.wdSpread) srs
 
+    let wdBest95Pct = drop 4 $ sortOn spreadPoints wds
+    -- print $ length srs
+    -- mapM_ printWithdrawalSpread $ take 5 wdBest95Pct
 
-    printAggregateWithdrawals aws
+    let aws = aggregateWithdrawals wds
+    printAggregateWithdrawals $ aggregateWithdrawals wdBest95Pct
 
     -- printWithdrawalSpreadRow aws.totalSpread
     -- printWithdrawalSpreadRow aws.worstSpread
@@ -139,15 +165,14 @@ runAggregate ss start acts = do
 
 
 
-runMSWRs :: [History] -> IO ()
-runMSWRs hs = do
+runMSWRs :: YearsLeft -> [History] -> IO ()
+runMSWRs years hs = do
 
    -- COMPARE MSWR
     -----------------
 
     -- oh it's doing better with years > 50 because there are fewer samples
     --  missing the 60s
-    let years = 50
 
     let ss = samples years hs
     let ps = pct 60
@@ -190,7 +215,7 @@ runMSWR ss start reb = do
     where
 
         allRates :: [Pct Withdrawal]
-        allRates = map pct [3.4, 3.5 .. 4.5]
+        allRates = map pct [3.3, 3.4 .. 4.5]
 
         printRateResult :: RateResult -> IO ()
         printRateResult rr = do
@@ -298,7 +323,7 @@ printYear yr =
       , fromMaybe "" $ (show . (.cape)) <$> yr.history
       ]
 
-port :: Portfolio f -> (USD (f Stocks), USD (f Bonds))
+port :: Portfolio USD f -> (USD (f Stocks), USD (f Bonds))
 port p = (p.stocks, p.bonds)
 
 printSimResult :: SimResult -> IO ()

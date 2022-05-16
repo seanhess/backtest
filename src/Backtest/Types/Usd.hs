@@ -12,11 +12,10 @@ data Fund a
   = Amt a
   | Bal a
 
-data Asset
-  = Stocks
-  | Bonds
-  | Total
-  | Withdrawal
+data Stocks
+data Bonds
+data Total
+data Withdrawal
 
 -- | Total in pennies
 data USD a = USD { totalCents :: Int }

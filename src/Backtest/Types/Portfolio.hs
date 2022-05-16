@@ -5,18 +5,28 @@ import Backtest.Types.Usd
 import Backtest.Types.Pct as Pct
 
 
-data Portfolio f = Portfolio
-  { stocks :: USD (f Stocks)
-  , bonds  :: USD (f Bonds)
-  } deriving (Show, Eq)
+data Portfolio a f = Portfolio
+  { stocks :: a (f Stocks)
+  , bonds  :: a (f Bonds)
+  }
 
-type Balances = Portfolio Bal
-type Changes  = Portfolio Amt
+type Balances = Portfolio USD Bal
+type Changes  = Portfolio USD Amt
 
-instance Semigroup (Portfolio f) where
+instance Semigroup (Portfolio USD f) where
   Portfolio s b <> Portfolio s' b' = Portfolio (s <> s') (b <> b')
 
-total :: Portfolio f -> USD (f Total)
+instance Show (Portfolio USD f) where
+  show (Portfolio s b) = show (s, b)
+
+instance Show (Portfolio Pct f) where
+  show (Portfolio s b) = show (s, b)
+
+instance Eq (Portfolio USD f) where
+  (Portfolio s b) == (Portfolio s' b') = s == s' && b == b'
+
+
+total :: Portfolio USD f -> USD (f Total)
 total b = USD $
     (totalCents b.stocks)
   + (totalCents b.bonds)

@@ -124,7 +124,7 @@ assertAmount = do
 
 assertReturns :: Test ()
 assertReturns = do
-  let h = History (Year 1872) (pct 10.0) (pct 1.0) (CAPE 10)
+  let h = History (Year 1872) (Portfolio (pct 10.0) (pct 1.0)) undefined (CAPE 10)
   let b = Portfolio (usd 100) (usd 100)
 
   expect "returns to match history" $ do
@@ -230,8 +230,8 @@ assertHistory = do
     map (.year) hs === [Year 1872]
 
   expect "history gains are diff between two years" $ do
-    map (.stocks) hs === [pct 10.0]
-    map (.bonds) hs === [pct 10.0]
+    map ((.stocks) . (.returns)) hs === [pct 10.0]
+    map ((.bonds) . (.returns)) hs === [pct 10.0]
 
   expect "CAPE ratio is for the start of the current year (from second row)" $ do
     map (.cape) hs === [CAPE 20]
@@ -287,10 +287,10 @@ assertSimEndBalance = do
   [_, h1873] <- pure hs'
 
   expect "1873 stock returns are 100%" $ do
-    h1873.stocks === pct 100
+    h1873.returns.stocks === pct 100
 
   expect "1873 bond returns are 100%" $ do
-    h1873.bonds === pct 100
+    h1873.returns.bonds === pct 100
 
   expect "two years of simulation. One at the beginning of 1872, and one at the beginning of 1873" $ do
     (map (.year) sim'.years) === [Year 1872, Year 1873]
@@ -308,9 +308,9 @@ assertSimulation = do
   -- State at the beginning of the year
   --   past returns
   --   current cape ratio
-  let h1 = History (Year 1900) (pct 10.0) (pct 1.0) (CAPE 10)
-  let h2 = History (Year 1901) (pct 20.0) (pct 2.0) (CAPE 20)
-  let h3 = History (Year 1902) (pct 30.0) (pct 2.0) (CAPE 30)
+  let h1 = History (Year 1900) (Portfolio (pct 10.0) (pct 1.0)) undefined (CAPE 10)
+  let h2 = History (Year 1901) (Portfolio (pct 20.0) (pct 2.0)) undefined (CAPE 20)
+  let h3 = History (Year 1902) (Portfolio (pct 30.0) (pct 2.0)) undefined (CAPE 30)
 
   let bal = Portfolio (usd 1000) (usd 0)
 
@@ -376,7 +376,7 @@ assertStandard = do
   let start = Portfolio (usd 600) (usd 400)
   let bal = Portfolio   (usd 800) (usd 400)
   let wda = staticWithdrawal swr4 start
-  let h = History (Year 1872) (pct 10.0) (pct 1.0) (CAPE 10)
+  let h = History (Year 1872) (Portfolio (pct 10.0) (pct 1.0)) undefined (CAPE 10)
   let y = h.year
 
 
@@ -434,7 +434,7 @@ assertStandard = do
 assertActions :: Test ()
 assertActions = do
   let bal = Portfolio (usd 100) (usd 200)
-  let h = History (Year 1872) (pct 10.0) (pct 1.0) (CAPE 10)
+  let h = History (Year 1872) (Portfolio (pct 10.0) (pct 1.0)) undefined (CAPE 10)
   let y = Year 1872
 
   let ch = \b -> Portfolio (addToBalance (usd 20) b.stocks) (addToBalance (usd 30) b.bonds)
@@ -580,7 +580,7 @@ assertABW = do
   -- check actual withdrawal
   let y = Year 1900
   let ye = Year 1950 -- the year we are out of money and take no actions
-  let h = History y (pct 0.0) (pct 0.0) (CAPE 40)
+  let h = History y (Portfolio (pct 0.0) (pct 0.0)) undefined (CAPE 40)
   let st = runActionState ye h (Left p) withdrawABW
 
   expect "withdrawal amount to be the same" $ do
@@ -591,9 +591,9 @@ assertABW = do
     st._balances.stocks === addToBalance (loss wda) p.stocks
 
 
-  let h1 = History (Year 1900) (pct 0.0) (pct 10.0) (CAPE 10)
-  let h2 = History (Year 1901) (pct 0.0) (pct 20.0) (CAPE 20)
-  let h3 = History (Year 1902) (pct 0.0) (pct 30.0) (CAPE 30)
+  let h1 = History (Year 1900) (Portfolio (pct 0.0) (pct 10.0)) undefined (CAPE 10)
+  let h2 = History (Year 1901) (Portfolio (pct 0.0) (pct 20.0)) undefined (CAPE 20)
+  let h3 = History (Year 1902) (Portfolio (pct 0.0) (pct 30.0)) undefined (CAPE 30)
   let hs = [h1, h2, h3]
   let bal = Portfolio (usd 1000) (usd 0)
 

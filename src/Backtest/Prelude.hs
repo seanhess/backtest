@@ -27,6 +27,7 @@ module Backtest.Prelude
 
   -- * lifted IO
   , putStrLn, print, putStr
+  , Identity
   ) where
 
 import Prelude hiding (id, head, print, putStrLn, readFile, writeFile, Real, putStr)
@@ -40,6 +41,7 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad (unless, guard, zipWithM_, mapM_, forM_)
 import Control.Monad.Catch (MonadCatch, try, throwM, Exception, MonadThrow)
 import Data.Function ((&))
+import Data.Functor.Identity (Identity)
 import Data.List (group, sort, sortOn, find, groupBy, tails, head)
 import Control.Applicative ((<|>))
 import Data.Maybe (fromMaybe, listToMaybe, mapMaybe, catMaybes, isJust, isNothing)

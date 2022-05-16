@@ -31,8 +31,6 @@ aggregateWithdrawals ws' =
     worstSpread' ws =
       List.head $ List.sortOn spreadPoints ws
 
-    -- count 15s highest, then 20s etc
-    spreadPoints ws = negate $ ws.wlow * 10000 + ws.w2_0 * 1000 + ws.w2_5 * 100 + ws.w3_0 * 10 + ws.w3_5
 
     numSamples' :: [WithdrawalSpread Int] -> WithdrawalSpread (Pct Success)
     numSamples' ws =
@@ -52,6 +50,10 @@ aggregateWithdrawals ws' =
     pctSamples :: Int -> (WithdrawalSpread Int -> Int) -> [WithdrawalSpread Int] -> Pct Success
     pctSamples tot toSpread ws =
       pctFromFloat $ (fromIntegral (length (filter (hasSpread toSpread) ws)) / fromIntegral tot)
+
+-- count 15s highest, then 20s etc
+spreadPoints :: WithdrawalSpread Int -> Int
+spreadPoints ws = negate $ ws.wlow * 10000 + ws.w2_0 * 1000 + ws.w2_5 * 100 + ws.w3_0 * 10 + ws.w3_5
 
 hasSpread :: (WithdrawalSpread Int -> Int) -> WithdrawalSpread Int -> Bool
 hasSpread toSpread wd = (toSpread wd) /= 0

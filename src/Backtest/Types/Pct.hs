@@ -30,7 +30,8 @@ instance Show (Pct a) where
   show p = showFFloat (Just 3) (toFloat p * 100) "%"
 
 
-
+inverse :: Pct a -> Pct a
+inverse (Pct a) = Pct (1 - a)
 
 average :: [Pct a] -> Pct a
 average ps =

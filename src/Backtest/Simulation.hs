@@ -212,8 +212,8 @@ lowWithdrawals start low high wds =
 
 calcReturns :: History -> Balances -> Balances
 calcReturns h b =
-    let ds = amount h.stocks b.stocks
-        db = amount h.bonds b.bonds
+    let ds = amount h.returns.stocks b.stocks
+        db = amount h.returns.bonds b.bonds
     in Portfolio (addToBalance ds b.stocks) (addToBalance db b.bonds)
 
 

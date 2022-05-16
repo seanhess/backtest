@@ -2,6 +2,7 @@ module Backtest.History where
 
 import Backtest.Prelude
 import Backtest.Types
+import Backtest.Types.Pct as Pct
 import Data.ByteString.Lazy (readFile)
 import Data.Csv as Csv (decodeByName, Header)
 import Data.List as List
@@ -29,8 +30,14 @@ toHistory past now = do
     c <- now.cape
     pure $ History
       { year = now.year
-      , stocks = gainsPercent past.stocks now.stocks
-      , bonds = gainsPercent past.bonds now.bonds
+      , returns = Portfolio 
+          { stocks = gainsPercent past.stocks now.stocks
+          , bonds = gainsPercent past.bonds now.bonds
+          }
+      , values = Portfolio
+          { stocks = now.stocks
+          , bonds = now.bonds
+          }
       , cape = c
       }
 
@@ -43,6 +50,37 @@ samples years hs = List.tails hs
 
 
 
+data Crash = Crash
+  { start :: Year
+  , depth :: Pct Stocks
+  , years :: [History]
+  , cape :: CAPE
+  , balance :: USD (Bal Stocks)
+  } deriving (Show)
+
+
+
+-- | All the years that are low
+crashes :: [History] -> [History]
+crashes hs = fromMaybe [] $ do
+  first <- headMay hs
+  let start = first.values.stocks
+  pure $ filter (\h -> h.values.stocks < start) hs
+
+crashDepth :: History -> [History] -> Pct Stocks
+crashDepth start hs =
+  fromPct $ Pct.inverse $ percentOf (minimum $ map (\h -> h.values.stocks) hs) start.values.stocks
+
+crashInfo :: History -> [History] -> Maybe Crash
+crashInfo _ [] = Nothing
+crashInfo start hs = Just $ Crash
+  { start = start.year
+  , depth = crashDepth start hs
+  , years = hs
+  , cape = start.cape
+  , balance = start.values.stocks
+  }
+
 
 
 
@@ -54,8 +92,8 @@ historicalReturns bal hs =
     where
       ret :: Pct Stocks -> Pct Bonds -> History -> Pct (Return Total)
       ret ps pb h = totalReturn
-        [ weightedReturn ps (fromPct h.stocks)
-        , weightedReturn pb (fromPct h.bonds)
+        [ weightedReturn ps (fromPct h.returns.stocks)
+        , weightedReturn pb (fromPct h.returns.bonds)
         ]
 
 

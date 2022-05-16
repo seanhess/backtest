@@ -5,12 +5,13 @@ module Backtest.Types.History where
 import Backtest.Prelude
 import Backtest.Types.Usd
 import Backtest.Types.Pct
+import Backtest.Types.Portfolio
 import Data.ByteString.Lazy (ByteString)
 import Data.Csv (FromNamedRecord(..), FromField(..), (.:), Parser)
 import Text.Read (readMaybe)
 import Data.Either (fromRight)
 
-newtype Year = Year Int
+newtype Year = Year { fromYear :: Int }
   deriving (Eq, FromField, Ord)
 
 nextYear :: Year -> Year
@@ -67,7 +68,7 @@ clean s = do
 -- Performance of the PREVIOUS year
 data History = History
   { year      :: Year
-  , stocks    :: Pct Stocks
-  , bonds     :: Pct Bonds
+  , returns   :: Portfolio Pct Identity
+  , values    :: Portfolio USD Bal
   , cape      :: CAPE
-  } deriving (Show, Eq)
+  } deriving (Show)

@@ -2,7 +2,7 @@ module Backtest.Types.Return where
 
 import Backtest.Prelude
 import Backtest.Types.Pct
-import Backtest.Types.Usd (Asset(Total))
+import Backtest.Types.Usd (Total)
 
 data Return a
 data Weighted

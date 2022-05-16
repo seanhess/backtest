@@ -19,7 +19,7 @@ data YearStart = YearStart
   , returns    :: Changes
   , withdrawal :: USD (Amt Withdrawal)
   , actions    :: Changes
-  } deriving (Show)
+  }
 
 data SimResult = SimResult
   { startYear :: Year
