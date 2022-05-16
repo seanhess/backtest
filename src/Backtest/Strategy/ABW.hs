@@ -52,27 +52,28 @@ withdrawABW' wr = do
     h <- history
     bal <- balances
     yl <- yearsLeft
-    -- let er = estimatedReturnTotal bal h.cape
-    let hs = badHistory wr h.cape
-    let rets = take (yl-1) $ historicalReturns bal hs
+    let er = estimatedReturnTotal bal h.cape
+    -- let hs = badHistory wr h.cape
+    -- let rets = take (yl-1) $ historicalReturns bal hs
+    let rets = take (yl-1) $ badReturns yl er
     let wda = pmtFluctuate rets (total bal)
     traceM $ show ("yl", yl, "rets", rets, "wda", wda, total bal)
     withdraw wda
 
 
--- -- I want to take the actual worst historical returns based on that CAPE ratio
--- -- and see if we can survive that
--- -- worst = lowest ending balance?
--- -- worst = lowest compound return (no, with withdrawals)
--- badReturns :: YearsLeft -> Pct (Return Total) -> [Pct (Return Total)]
--- badReturns yl er =
---   -- take (yl-1) $ earlyCrash <> flat <> rets
---   take (yl-1) $ flat 8 <> rets
+-- I want to take the actual worst historical returns based on that CAPE ratio
+-- and see if we can survive that
+-- worst = lowest ending balance?
+-- worst = lowest compound return (no, with withdrawals)
+badReturns :: YearsLeft -> Pct (Return Total) -> [Pct (Return Total)]
+badReturns yl er =
+  take (yl-1) $ earlyCrash <> flat 6 <> rets
+  -- take (yl-1) $ flat 8 <> rets
 
---   where
---     earlyCrash = [pct (-10), pct (-30), pct (-10)] :: [Pct (Return Total)]
---     flat     n = replicate n (pct 0)
---     rets       = cycle [er]
+  where
+    earlyCrash = [pct (-10), pct (-20)] :: [Pct (Return Total)]
+    flat     n = replicate n (pct 0)
+    rets       = cycle [er]
 
 
 
