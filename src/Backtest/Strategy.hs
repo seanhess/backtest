@@ -6,10 +6,7 @@ import Backtest.Simulation (Actions, withdraw, rebalance)
 
 
 
-pctBonds :: Pct Stocks -> Pct Bonds
-pctBonds (Pct s) = Pct (1 - s)
-
-staticWithdrawal :: Pct Withdrawal -> Balances -> USD Amt Withdrawal 
+staticWithdrawal :: Pct Withdrawal -> Balances -> USD (Amt Withdrawal) 
 staticWithdrawal p bal1 =
     amount p (total bal1)
 
@@ -17,8 +14,8 @@ rebalanceFixed :: Pct Stocks -> Balances -> Balances
 rebalanceFixed ps bal =
     let tot = total bal
         pb = pctBonds ps
-        ts = amountBalance ps tot :: USD Bal Stocks
-        tb = amountBalance pb tot :: USD Bal Bonds
+        ts = toBalance $ amount ps tot :: USD (Bal Stocks)
+        tb = toBalance $ amount pb tot :: USD (Bal Bonds)
     in Portfolio ts tb
 
 
@@ -28,23 +25,23 @@ rebalanceFixed ps bal =
 
 
 -- This is both the withdrawal AND the rebalancing
-rebalancePrime :: USD Bal Stocks -> Balances -> Balances
+rebalancePrime :: USD (Bal Stocks) -> Balances -> Balances
 rebalancePrime start bal =
-    let target = amountBalance (pct 120) start
-        extra = minZero $ gains target bal.stocks :: USD Amt Stocks
+    let target = toBalance $ amount (pct 120) start
+        extra = minZero $ gains target bal.stocks :: USD (Amt Stocks)
         ds = loss extra
         db = gain $ toBonds extra
     in Portfolio (addToBalance ds bal.stocks) (addToBalance db bal.bonds)
 
-rebalancePrimeNew :: USD Bal Stocks -> Balances -> Balances
+rebalancePrimeNew :: USD (Bal Stocks) -> Balances -> Balances
 rebalancePrimeNew start bal
-  | bal.stocks > amountBalance (pct 120) start = rebalancePrime start bal
-  | bal.stocks < amountBalance (pct 80) start = primeBuyStocks start (pct 80) bal
+  | bal.stocks > (toBalance $ amount (pct 120) start) = rebalancePrime start bal
+  | bal.stocks < (toBalance $ amount (pct 80) start) = primeBuyStocks start (pct 80) bal
   | otherwise = bal
 
-primeBuyStocks :: USD Bal Stocks -> Pct Stocks -> Balances -> Balances
+primeBuyStocks :: USD (Bal Stocks) -> Pct Stocks -> Balances -> Balances
 primeBuyStocks start p bal =
-    let target = amountBalance p start
+    let target = toBalance $ amount p start
         short  = minZero $ gains bal.stocks target
         actual = min short (toStocks $ toAmount bal.bonds)
     in Portfolio (addToBalance (gain actual) bal.stocks) (addToBalance (loss $ toBonds actual) bal.bonds)
@@ -69,14 +66,10 @@ diffRelPercent :: Pct Stocks -> Balances -> Pct Stocks
 diffRelPercent ps bal =
     abs $ (allocationStocks bal) / ps - 1
 
-allocationStocks :: Balances -> Pct Stocks
-allocationStocks bal = percentOf bal.stocks (total bal)
-
-
 
 withdraw4 :: Balances -> Actions ()
 withdraw4 start = do
-    let const4Percent = loss $ staticWithdrawal swr4 start :: USD Amt Withdrawal
+    let const4Percent = loss $ staticWithdrawal swr4 start :: USD (Amt Withdrawal)
     withdraw const4Percent
 
 

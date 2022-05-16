@@ -17,7 +17,7 @@ data YearStart = YearStart
   , start      :: Balances
   , end        :: Balances
   , returns    :: Changes
-  , withdrawal :: USD Amt Withdrawal
+  , withdrawal :: USD (Amt Withdrawal)
   , actions    :: Changes
   } deriving (Show)
 
@@ -37,8 +37,8 @@ data RateResult = RateResult
   { rate :: Pct Withdrawal
   , success :: Pct Success
   , results :: [SimResult]
-  , avgEndPortfolio :: USD Bal Total
-  , medEndPortfolio :: USD Bal Total
+  , avgEndPortfolio :: USD (Bal Total)
+  , medEndPortfolio :: USD (Bal Total)
   }
 
 data AggregateWithdrawals = AggregateWithdrawals
@@ -49,13 +49,13 @@ data AggregateWithdrawals = AggregateWithdrawals
 
 -- how do you decide? Oh, below median
 data WithdrawalResults = WithdrawalResults
-  { init :: USD Amt Withdrawal
-  , low :: USD Amt Withdrawal
-  , p10 :: USD Amt Withdrawal
-  , p25 :: USD Amt Withdrawal
-  , med :: USD Amt Withdrawal
-  , p75 :: USD Amt Withdrawal
-  , p90 :: USD Amt Withdrawal
+  { init :: USD (Amt Withdrawal)
+  , low :: USD (Amt Withdrawal)
+  , p10 :: USD (Amt Withdrawal)
+  , p25 :: USD (Amt Withdrawal)
+  , med :: USD (Amt Withdrawal)
+  , p75 :: USD (Amt Withdrawal)
+  , p90 :: USD (Amt Withdrawal)
   } deriving (Show)
 
 data WithdrawalSpread a = WithdrawalSpread

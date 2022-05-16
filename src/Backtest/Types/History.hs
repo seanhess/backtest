@@ -25,6 +25,7 @@ data RealTotal
 data CAPE = CAPE { fromCAPE :: Float }
   deriving (Show, Eq, Read, Ord)
 
+
 -- instance FromField CAPE where
 --   parseField bs = do
 --     s <- parseField bs
@@ -36,8 +37,8 @@ data CAPE = CAPE { fromCAPE :: Float }
 data HistoryRow = HistoryRow
   { year      :: Year
   , month     :: Int
-  , stocks    :: USD Bal Stocks
-  , bonds     :: USD Bal Bonds
+  , stocks    :: USD (Bal Stocks)
+  , bonds     :: USD (Bal Bonds)
   , cpi       :: Pct Inflation
   , cape      :: Maybe CAPE
   } deriving (Show, Eq)
@@ -70,7 +71,3 @@ data History = History
   , bonds     :: Pct Bonds
   , cape      :: CAPE
   } deriving (Show, Eq)
-
--- | Defines rebalancing rules and percentages, also withdrawal strategies?
--- we need to offload this to the user
--- data Portfolio = Portfolio

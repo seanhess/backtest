@@ -149,7 +149,7 @@ simulation initial actions hs =
           , withdrawal = st._withdrawal
           }
 
-withdrawalResults :: [USD Amt Withdrawal] -> WithdrawalResults
+withdrawalResults :: [USD (Amt Withdrawal)] -> WithdrawalResults
 withdrawalResults wds =
     WithdrawalResults
         { low = minimum wds
@@ -163,7 +163,7 @@ withdrawalResults wds =
     where
 
 
-withdrawalSpread :: USD Bal Total -> [USD Amt Withdrawal] -> WithdrawalSpread Int
+withdrawalSpread :: USD (Bal Total) -> [USD (Amt Withdrawal)] -> WithdrawalSpread Int
 withdrawalSpread start wds =
     WithdrawalSpread
         { wlow = lowWithdrawals start (pct 0.0) (pct 2.0) wds
@@ -176,14 +176,14 @@ withdrawalSpread start wds =
         , whigh = lowWithdrawals start (pct 5.0) (pct 100) wds
         }
 
-lowWithdrawals :: USD Bal Total -> Pct Withdrawal -> Pct Withdrawal -> [USD Amt Withdrawal] -> Int
+lowWithdrawals :: USD (Bal Total) -> Pct Withdrawal -> Pct Withdrawal -> [USD (Amt Withdrawal)] -> Int
 lowWithdrawals start low high wds =
     let l = amount low start
         h = amount high start
     in length $ filter (\w -> l <= w && w < h) wds
 
 
--- drawdowns :: USD Amt Withdrawal -> [YearResult] -> [[YearResult]]
+-- drawdowns :: USD (Amt Withdrawal) -> [YearResult] -> [[YearResult]]
 -- drawdowns med ys =
 --     filter (not . null) $ map (takeWhile (isDrawdown med)) (tails ys)
 
@@ -193,17 +193,17 @@ lowWithdrawals start low high wds =
 --     maximum $ map length dds
 
 -- -- deepest drawdown
--- drawdownPeak' :: [[YearResult]] -> USD Amt Withdrawal
+-- drawdownPeak' :: [[YearResult]] -> USD (Amt Withdrawal)
 -- drawdownPeak' dds =
 --     minimum $ map peak dds
 --     where
 --         peak yrs = minimum $ map (.withdrawal) yrs
 
--- isDrawdown :: USD Amt Withdrawal -> YearResult -> Bool
+-- isDrawdown :: USD (Amt Withdrawal) -> YearResult -> Bool
 -- isDrawdown med yr = yr.withdrawal < med
 
 
--- drawdown :: Pct Withdrawal -> USD Amt Withdrawal -> [USD Amt Withdrawal] -> Int
+-- drawdown :: Pct Withdrawal -> USD (Amt Withdrawal) -> [USD (Amt Withdrawal)] -> Int
 -- drawdown p int wds =
 --     let f = Pct.toFloat p
 --         t = fromCents $ round $ (1 - f) * fromIntegral (totalCents int)
@@ -221,14 +221,13 @@ calcReturns h b =
 
 
 
-averageEndPortfolio :: [SimResult] -> USD Bal Total
+averageEndPortfolio :: [SimResult] -> USD (Bal Total)
 averageEndPortfolio srs =
     let tots = map (total . (.endBalance)) srs
-        avg = fromCents $ round $ (fromIntegral $ sum $ map (totalCents) tots :: Float) / (fromIntegral $ length tots :: Float) :: USD Bal Total
-    in avg
+    in fromCents $ round $ (fromIntegral $ sum $ map (totalCents) tots :: Float) / (fromIntegral $ length tots :: Float) :: USD (Bal Total)
 
 -- Median END Balance, not portfolio
-medianEndPortfolio :: [SimResult] -> USD Bal Total
+medianEndPortfolio :: [SimResult] -> USD (Bal Total)
 medianEndPortfolio srs =
     let tots = map (total . (.endBalance)) srs
     in fromCents $ median $ map totalCents tots
@@ -248,7 +247,7 @@ newtype Actions a = Actions { fromActions :: State ActionState a }
 
 data ActionState = ActionState
   { _balances :: Balances
-  , _withdrawal :: USD Amt Withdrawal
+  , _withdrawal :: USD (Amt Withdrawal)
   , _history :: History
   , _lastYear :: Maybe YearStart
 
@@ -276,17 +275,17 @@ runActionState ye h eby (Actions st) =
 
 
 
-withdraw :: USD Amt Withdrawal -> Actions ()
+withdraw :: USD (Amt Withdrawal) -> Actions ()
 withdraw wda = do
     modify $ \st -> st
       { _withdrawal = wda
       , _balances = bondsFirst wda st._balances
       }
 
-bondsFirst :: USD Amt Withdrawal -> Balances -> Balances
+bondsFirst :: USD (Amt Withdrawal) -> Balances -> Balances
 bondsFirst wd b =
-    let wdb = toBonds wd :: USD Amt Bonds
-        wds = toStocks $ minZero $ gains (toAmount b.bonds) (toBonds wd) :: USD Amt Stocks
+    let wdb = toBonds wd :: USD (Amt Bonds)
+        wds = toStocks $ minZero $ gains (toAmount b.bonds) (toBonds wd) :: USD (Amt Stocks)
     in  Portfolio (addToBalance (loss wds) b.stocks) (addToBalance (loss wdb) b.bonds)
 
 rebalance :: (Balances -> Balances) -> Actions ()

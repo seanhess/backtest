@@ -4,6 +4,7 @@ module Backtest.Types
   , module Backtest.Types.History
   , module Backtest.Types.Sim
   , module Backtest.Types.Portfolio
+  , module Backtest.Types.Return
   ) where
 
 import Backtest.Prelude
@@ -12,3 +13,4 @@ import Backtest.Types.Pct
 import Backtest.Types.History
 import Backtest.Types.Sim
 import Backtest.Types.Portfolio
+import Backtest.Types.Return

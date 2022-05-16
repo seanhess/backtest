@@ -39,3 +39,24 @@ samples :: Int -> [History] -> [[History]]
 samples years hs = List.tails hs
   & fmap (take years)
   & filter (\hs' -> length hs' >= years)
+
+
+
+
+
+
+
+historicalReturns :: Balances -> [History] -> [Pct (Return Total)]
+historicalReturns bal hs =
+  let ps = allocationStocks bal
+      pb = pctBonds ps
+  in map (ret ps pb) hs
+    where
+      ret :: Pct Stocks -> Pct Bonds -> History -> Pct (Return Total)
+      ret ps pb h = totalReturn
+        [ weightedReturn ps (fromPct h.stocks)
+        , weightedReturn pb (fromPct h.bonds)
+        ]
+
+
+

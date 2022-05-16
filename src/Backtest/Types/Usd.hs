@@ -3,12 +3,14 @@
 module Backtest.Types.Usd where
 
 import Backtest.Prelude
+import Backtest.Types.Pct as Pct
 import Data.Csv (FromField(..))
 import Numeric (showFFloat)
 
-data Funds
-  = Amt
-  | Bal
+
+data Fund a
+  = Amt a
+  | Bal a
 
 data Asset
   = Stocks
@@ -17,36 +19,21 @@ data Asset
   | Withdrawal
 
 -- | Total in pennies
-data USD (at :: Funds) (asset :: Asset) = USD { totalCents :: Int }
+data USD a = USD { totalCents :: Int }
   deriving (Eq, Ord)
 
-instance Semigroup (USD f a) where
+instance Semigroup (USD a) where
   (USD a) <> (USD b) = USD (a + b)
 
-instance Monoid (USD f a) where
+instance Monoid (USD a) where
   mempty = USD 0
 
-dollars :: USD f a -> Int
-dollars (USD c) = round $ fromIntegral c / 100
-
-cents :: USD f a -> Int
-cents (USD c) = c `rem` 100
-
-fromFloat :: Float -> USD f a
-fromFloat f = USD $ round (f * 100)
-
-toFloat :: USD f a -> Float
-toFloat (USD c) = fromIntegral c / 100
-
-fromCents :: Int -> USD f a
-fromCents = USD
-
-instance FromField (USD f a) where
+instance FromField (USD a) where
   parseField f =
     fromFloat <$> parseField f
 
 -- show it rounded off
-instance Show (USD f a) where
+instance Show (USD a) where
   show m = mconcat
     [ "$"
     , sign $ totalCents m
@@ -61,40 +48,95 @@ instance Show (USD f a) where
             | x < 0 = "-"
             | otherwise = ""
 
+dollars :: USD a -> Int
+dollars (USD c) = round $ fromIntegral c / 100
+
+cents :: USD a -> Int
+cents (USD c) = c `rem` 100
+
+fromFloat :: Float -> USD a
+fromFloat f = USD $ round (f * 100)
+
+toFloat :: USD a -> Float
+toFloat (USD c) = fromIntegral c / 100
+
+fromCents :: Int -> USD a
+fromCents = USD
 
 -- | Convienence for making constants
 --   dollars.cents
-usd :: Float -> USD f ass
+usd :: Float -> USD ass
 usd f = fromFloat f
           
-fromUSD :: USD f a -> USD f' b
+fromUSD :: USD a -> USD b
 fromUSD (USD a) = USD a
 
-minZero :: USD f a -> USD f a
+minZero :: USD a -> USD a
 minZero (USD n)
   | n >= 0 = USD n
   | otherwise = USD 0
 
-loss :: USD Amt a -> USD Amt a
+-- | Ensures that the amt is treated as a loss
+loss :: USD (Amt a) -> USD (Amt a)
 loss (USD a) = USD (negate (abs a))
 
-gain :: USD Amt a -> USD Amt a
+-- | Ensures that the amt is treated as a gain
+gain :: USD (Amt a) -> USD (Amt a)
 gain (USD a) = USD (abs a)
 
-toAmount :: USD Bal a -> USD Amt a
+toAmount :: USD (Bal a) -> USD (Amt a)
 toAmount = fromUSD
 
-toBonds :: USD f a -> USD f Bonds
+toBalance :: USD (Amt a) -> USD (Bal a)
+toBalance = fromUSD
+
+toBonds :: USD (Amt a) -> USD (Amt Bonds)
 toBonds = fromUSD
 
-toStocks :: USD f a -> USD f Stocks
+toStocks :: USD (Amt a) -> USD (Amt Stocks)
 toStocks = fromUSD
 
-toWithdrawal :: USD f a -> USD f Withdrawal
+toWithdrawal :: USD (Amt a) -> USD (Amt Withdrawal)
 toWithdrawal = fromUSD
 
-toTotal :: USD f a -> USD f Total
+toTotal :: USD (Amt a) -> USD (Amt Total)
 toTotal = fromUSD
+
+
+
+-- | the gain or loss from the start to the end
+gains :: USD a -> USD a -> USD b
+gains (USD s) (USD e) = USD $ abs e - abs s
+
+-- | the absolute difference between two amounts
+diff :: USD a -> USD a -> USD b
+diff (USD a) (USD b) = USD $ abs (a - b)
+
+add :: USD a -> USD a -> USD a
+add (USD a) (USD b) = USD $ a + b
+
+avg :: USD a -> USD a -> USD a
+avg a b = fromCents $ (totalCents a + totalCents b) `div` 2
+
+
+gainsPercent :: USD a -> USD a -> Pct b
+gainsPercent s e =
+    Pct $ (fromIntegral e.totalCents) / (fromIntegral s.totalCents) - 1
+
+-- | balances can never be zero, but returns can
+balance :: Int -> USD (Bal a)
+balance n = minZero (USD n)
+
+-- | Applies a return to a balance
+addToBalance :: USD (Amt a) -> USD (Bal b) -> USD (Bal b)
+addToBalance (USD ret) (USD b) = balance $ b + ret
+
+percentOf :: USD a -> USD (Bal b) -> Pct a
+percentOf (USD a) (USD bal) = pctFromFloat (fromIntegral a / fromIntegral bal)
+
+amount :: Pct a -> USD (Bal b) -> USD (Amt a)
+amount p bal = fromFloat $
+    (fromIntegral $ totalCents bal) * Pct.toFloat p / 100
 
 
 
@@ -105,5 +147,5 @@ newtype Millions = Millions Float
 instance Show Millions where
   show (Millions f) = "$" <> showFFloat (Just 3) f "M"
 
-millions :: USD f a -> Millions
+millions :: USD a -> Millions
 millions u = Millions $ fromIntegral (dollars u) / 1000000

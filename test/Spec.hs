@@ -387,7 +387,7 @@ assertStandard = do
     wda === (usd 40)
 
   expect "bondsFirst 4%" $ do
-    let const4Percent = loss $ staticWithdrawal swr4 start :: USD Amt Withdrawal
+    let const4Percent = loss $ staticWithdrawal swr4 start :: USD (Amt Withdrawal)
     let bal' = bondsFirst const4Percent bal
     let ch = changes bal bal'
     ch.bonds === usd (-40)

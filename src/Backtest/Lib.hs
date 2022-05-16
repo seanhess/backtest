@@ -37,16 +37,15 @@ runSimulation hs = do
     let ss = samples yrs hs
     let ps = pct 60
     let start = thousand60
-    let wr = worstHistory hs
 
-    -- let wda = staticWithdrawal swr4 start :: USD Amt Withdrawal
+    -- let wda = staticWithdrawal swr4 start :: USD (Amt Withdrawal)
     -- let sim = simulation start $ do
     --             rebalance $ rebalancePrime start.stocks
     --             withdraw wda
 
     let sim = simulation start $ do
                 rebalance $ rebalancePrime start.stocks
-                withdrawABW' wr
+                withdrawABW
     let srs = map sim ss :: [SimResult]
 
     -- print $ head hs
@@ -299,7 +298,7 @@ printYear yr =
       , fromMaybe "" $ (show . (.cape)) <$> yr.history
       ]
 
-port :: Portfolio f -> (USD f Stocks, USD f Bonds)
+port :: Portfolio f -> (USD (f Stocks), USD (f Bonds))
 port p = (p.stocks, p.bonds)
 
 printSimResult :: SimResult -> IO ()
