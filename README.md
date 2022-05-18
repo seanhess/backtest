@@ -1,87 +1,106 @@
 # backtest
 
 
-
 TODO compare to other momentum strategies, 5/25 bands
 TODO variable withdrawals
 
 Rebalance vs Prime vs PrimeNew
 ------------------------------
 
+100% Maximum Safe Withdrawal Rates, 50 year retirements
 
-Maximum Safe Withdrawal Rates, 50 year retirements
+    Method           | MSWR | Median End Portfolio
+    ---------------------------------------------
+    Rebalance Fixed  | 3.3% | $2.770M
+    Swedroe 5/25     | 3.4% | $5.952M
+    Prime Harvesting | 3.4% | $2.380M
+    Prime Buy Stocks | 3.4% | $2.578M
 
-    Success | Fixed  | 5/25   | Prime  | Prime New
-    ----------------------------------------------
-    100%    |  3.4%  |  3.5%  |  3.5%  |  3.6%   |
-    99%     |  3.4%  |  3.6%  |  3.6%  |  3.7%   |
-    98%     |  3.6%  |  3.8%  |  3.8%  |  4.0%   |
-    97%     |  3.6%  |  3.8%  |  3.9%  |  4.0%   |
-    96%     |  3.7%  |  3.8%  |  3.9%  |  4.0%   |
-    95%     |  3.7%  |  3.8%  |  3.9%  |  4.0%   |
+98% Maximum Safe Withdrawal Rates, 50 year retirements
 
+    Method           | MSWR | Median End Portfolio
+    ---------------------------------------------
+    Rebalance Fixed  | 3.5% | $2.370M
+    Swedroe 5/25     | 3.7% | $5.071M
+    Prime Harvesting | 3.7% | $2.018M
+    Prime Buy Stocks | 3.8% | $2.171M
+
+96% Maximum Safe Withdrawal Rates, 50 year retirements
+
+    Method           | MSWR | Median End Portfolio
+    ---------------------------------------------
+    Rebalance Fixed  | 3.5% | $2.370M
+    Swedroe 5/25     | 3.7% | $5.071M
+    Prime Harvesting | 3.8% | $1.929M
+    Prime Buy Stocks | 3.9% | $2.080M
 
 Raw Results (MSWR, Success%, Median End Portfolio)
 
+    Years: 50
+
     Rebalance Fixed
     ----------------
-    ("RateResult",3.400%,100.000%,$3.436M)
-    ("RateResult",3.500%,98.039%,$3.153M)
-    ("RateResult",3.600%,98.039%,$3.051M)
-    ("RateResult",3.700%,96.078%,$2.896M)
-    ("RateResult",3.800%,92.157%,$2.566M)
-    ("RateResult",3.900%,91.176%,$2.267M)
-    ("RateResult",4.000%,89.216%,$2.081M)
-    ("RateResult",4.100%,84.314%,$1.900M)
-    ("RateResult",4.200%,80.392%,$1.727M)
-    ("RateResult",4.300%,74.510%,$1.533M)
-    ("RateResult",4.400%,68.627%,$1.341M)
-    ("RateResult",4.500%,67.647%,$1.064M)
+    ("RateResult",3.300%,100.000%,$2.770M)
+    ("RateResult",3.400%,97.849%,$2.541M)
+    ("RateResult",3.500%,97.849%,$2.370M)
+    ("RateResult",3.600%,92.473%,$2.186M)
+    ("RateResult",3.700%,91.398%,$2.028M)
+    ("RateResult",3.800%,90.323%,$1.812M)
+    ("RateResult",3.900%,82.796%,$1.496M)
+    ("RateResult",4.000%,79.570%,$1.299M)
+    ("RateResult",4.100%,74.194%,$1.114M)
+    ("RateResult",4.200%,66.667%,$0.871M)
+    ("RateResult",4.300%,63.441%,$0.744M)
+    ("RateResult",4.400%,60.215%,$0.559M)
+    ("RateResult",4.500%,56.989%,$0.374M)
 
     Swedroe 5/25 bands
     ------------------
-    ("RateResult",3.400%,100.000%,$7.770M)
-    ("RateResult",3.500%,100.000%,$7.471M)
-    ("RateResult",3.600%,99.020%,$7.172M)
-    ("RateResult",3.700%,98.039%,$6.801M)
-    ("RateResult",3.800%,98.039%,$6.361M)
-    ("RateResult",3.900%,94.118%,$6.091M)
-    ("RateResult",4.000%,93.137%,$5.807M)
-    ("RateResult",4.100%,92.157%,$5.516M)
-    ("RateResult",4.200%,90.196%,$5.225M)
-    ("RateResult",4.300%,88.235%,$4.776M)
-    ("RateResult",4.400%,84.314%,$4.548M)
-    ("RateResult",4.500%,79.412%,$4.241M)
+    ("RateResult",3.300%,100.000%,$6.289M)
+    ("RateResult",3.400%,100.000%,$5.952M)
+    ("RateResult",3.500%,98.925%,$5.645M)
+    ("RateResult",3.600%,97.849%,$5.347M)
+    ("RateResult",3.700%,97.849%,$5.071M)
+    ("RateResult",3.800%,93.548%,$4.833M)
+    ("RateResult",3.900%,92.473%,$4.621M)
+    ("RateResult",4.000%,91.398%,$4.404M)
+    ("RateResult",4.100%,88.172%,$4.176M)
+    ("RateResult",4.200%,83.871%,$3.752M)
+    ("RateResult",4.300%,78.495%,$3.419M)
+    ("RateResult",4.400%,76.344%,$3.137M)
+    ("RateResult",4.500%,73.118%,$2.850M)
 
     Prime Harvesting
     ----------------
-    ("RateResult",3.400%,100.000%,$2.565M)
-    ("RateResult",3.500%,100.000%,$2.497M)
-    ("RateResult",3.600%,99.020%,$2.429M)
-    ("RateResult",3.700%,98.039%,$2.356M)
-    ("RateResult",3.800%,98.039%,$2.283M)
-    ("RateResult",3.900%,97.059%,$2.207M)
-    ("RateResult",4.000%,94.118%,$2.069M)
-    ("RateResult",4.100%,93.137%,$1.978M)
-    ("RateResult",4.200%,92.157%,$1.888M)
-    ("RateResult",4.300%,91.176%,$1.787M)
-    ("RateResult",4.400%,89.216%,$1.680M)
-    ("RateResult",4.500%,86.275%,$1.569M)
+    ("RateResult",3.300%,100.000%,$2.477M)
+    ("RateResult",3.400%,100.000%,$2.380M)
+    ("RateResult",3.500%,98.925%,$2.276M)
+    ("RateResult",3.600%,97.849%,$2.183M)
+    ("RateResult",3.700%,97.849%,$2.018M)
+    ("RateResult",3.800%,96.774%,$1.929M)
+    ("RateResult",3.900%,92.473%,$1.840M)
+    ("RateResult",4.000%,92.473%,$1.762M)
+    ("RateResult",4.100%,91.398%,$1.687M)
+    ("RateResult",4.200%,87.097%,$1.611M)
+    ("RateResult",4.300%,86.022%,$1.497M)
+    ("RateResult",4.400%,81.720%,$1.405M)
+    ("RateResult",4.500%,75.269%,$1.236M)
 
-    Prime Harvesting New
+    Prime Harvesting 2
     ------------------
-    ("RateResult",3.400%,100.000%,$2.819M)
-    ("RateResult",3.500%,100.000%,$2.686M)
-    ("RateResult",3.600%,100.000%,$2.594M)
-    ("RateResult",3.700%,99.020%,$2.508M)
-    ("RateResult",3.800%,98.039%,$2.428M)
-    ("RateResult",3.900%,98.039%,$2.323M)
-    ("RateResult",4.000%,98.039%,$2.233M)
-    ("RateResult",4.100%,94.118%,$2.143M)
-    ("RateResult",4.200%,93.137%,$2.085M)
-    ("RateResult",4.300%,91.176%,$1.993M)
-    ("RateResult",4.400%,90.196%,$1.886M)
-    ("RateResult",4.500%,88.235%,$1.782M)
+    ("RateResult",3.300%,100.000%,$2.664M)
+    ("RateResult",3.400%,100.000%,$2.578M)
+    ("RateResult",3.500%,98.925%,$2.493M)
+    ("RateResult",3.600%,98.925%,$2.398M)
+    ("RateResult",3.700%,97.849%,$2.262M)
+    ("RateResult",3.800%,97.849%,$2.171M)
+    ("RateResult",3.900%,96.774%,$2.080M)
+    ("RateResult",4.000%,92.473%,$1.958M)
+    ("RateResult",4.100%,91.398%,$1.870M)
+    ("RateResult",4.200%,90.323%,$1.734M)
+    ("RateResult",4.300%,87.097%,$1.640M)
+    ("RateResult",4.400%,83.871%,$1.548M)
+    ("RateResult",4.500%,75.269%,$1.436M)
 
 
 Notes

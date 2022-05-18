@@ -6,6 +6,7 @@ import Backtest.Prelude
 import Backtest.Types.Usd
 import Backtest.Types.Pct
 import Backtest.Types.Portfolio
+import Backtest.Types.Return
 import Data.ByteString.Lazy (ByteString)
 import Data.Csv (FromNamedRecord(..), FromField(..), (.:), Parser)
 import Text.Read (readMaybe)
@@ -68,7 +69,7 @@ clean s = do
 -- Performance of the PREVIOUS year
 data History = History
   { year      :: Year
-  , returns   :: Portfolio Pct Identity
+  , returns   :: Portfolio Pct Return
   , values    :: Portfolio USD Bal
   , cape      :: CAPE
   } deriving (Show)

@@ -20,26 +20,29 @@ run = do
     let hs = toHistories rs
     mapM_ print hs
 
-    forM_ (tails hs) $ \hs' -> do
-        start <- pure $ headMay hs'
+    -- -- TODO remove samples with duration less than 3 years?
+    -- putStrLn $ intercalate ", " ["year", "cape", "depth", "length", "years"]
+    -- forM_ (tails hs) $ \hs' -> do
+    --     start <- pure $ headMay hs'
 
-        let mc = flip crashInfo (crashes hs') =<< start :: Maybe Crash
+    --     let mc = flip crashInfo (crashes hs') =<< start :: Maybe Crash
 
-        case mc of
-            Nothing -> pure ()
-            Just (c :: Crash) -> do
-                putStrLn ""
-                putStrLn $ "start: " <> show c.start
-                putStrLn $ "cape: " <> show (fromCAPE c.cape)
-                putStrLn $ "balance: " <> show (millions c.balance)
-                putStrLn $ "depth: " <> show c.depth
-                putStrLn $ "duration: " <> show (length c.years)
-                mapM_ print c.years
+    --     case mc of
+    --         Nothing -> pure ()
+    --         Just (c :: Crash) -> do
+    --             putStrLn $ intercalate ", " [show c.start, show (fromCAPE c.cape), show c.depth, show $ length c.years, show $ map (\h -> h.year) c.years]
+    --             -- putStrLn ""
+    --             -- putStrLn $ "start: " <> show c.start
+    --             -- putStrLn $ "cape: " <> show (fromCAPE c.cape)
+    --             -- putStrLn $ "balance: " <> show (millions c.balance)
+    --             -- putStrLn $ "depth: " <> show c.depth
+    --             -- putStrLn $ "duration: " <> show (length c.years)
+    --             -- mapM_ print c.years
 
     -- mapM_ (print) $ map (map (map (.year)) . crashes) $ tails hs
 
     -- runSimulation 50 hs
-    -- runMSWRs 50 hs
+    runMSWRs 50 hs
     -- runAggregates 50 hs
 
     pure ()
@@ -64,6 +67,8 @@ runSimulation yrs hs = do
                 rebalance $ rebalancePrime start.stocks
                 withdrawABW
     let srs = map sim ss :: [SimResult]
+
+
 
     -- print $ head hs
 
@@ -175,8 +180,8 @@ runMSWRs years hs = do
     --  missing the 60s
 
     let ss = samples years hs
-    let ps = pct 60
-    let bal = thousand ps
+    let ps = pct 70
+    let bal = million ps
    
     putStrLn "Compare MSWRs"
     putStrLn "=============="

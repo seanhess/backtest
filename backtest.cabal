@@ -38,6 +38,7 @@ library
       Backtest.Types.History
       Backtest.Types.Pct
       Backtest.Types.Portfolio
+      Backtest.Types.Return
       Backtest.Types.Sim
       Backtest.Types.Usd
       Backtest.VariableTest
@@ -151,6 +152,7 @@ test-suite backtest-test
       Backtest.Types.History
       Backtest.Types.Pct
       Backtest.Types.Portfolio
+      Backtest.Types.Return
       Backtest.Types.Sim
       Backtest.Types.Usd
       Backtest.VariableTest

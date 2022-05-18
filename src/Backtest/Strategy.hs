@@ -73,6 +73,12 @@ withdraw4 start = do
     withdraw const4Percent
 
 
+million :: Pct Stocks -> Balances
+million ps = rebalanceFixed ps $ Portfolio
+  { stocks = usd $ 500*1000
+  , bonds = usd $ 500*1000
+  }
+
 thousand :: Pct Stocks -> Balances
 thousand ps = rebalanceFixed ps $ Portfolio
   { stocks = usd $ 500

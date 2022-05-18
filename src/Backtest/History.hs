@@ -50,14 +50,22 @@ samples years hs = List.tails hs
 
 
 
+-- Trying to predict SHORT term returns / crashes
 data Crash = Crash
   { start :: Year
   , depth :: Pct Stocks
   , years :: [History]
   , cape :: CAPE
   , balance :: USD (Bal Stocks)
-  } deriving (Show)
 
+  -- priorReturns
+  -- , return1y :: Pct (Return Stocks)
+  -- , return2y :: Pct (Return Stocks)
+  -- , return3y :: Pct (Return Stocks)
+  -- , return4y :: Pct (Return Stocks)
+  -- , return5y :: Pct (Return Stocks)
+
+  } deriving (Show)
 
 
 -- | All the years that are low
@@ -72,13 +80,14 @@ crashDepth start hs =
   fromPct $ Pct.inverse $ percentOf (minimum $ map (\h -> h.values.stocks) hs) start.values.stocks
 
 crashInfo :: History -> [History] -> Maybe Crash
-crashInfo _ [] = Nothing
-crashInfo start hs = Just $ Crash
+crashInfo _ []      = Nothing
+crashInfo start low = Just $ Crash
   { start = start.year
-  , depth = crashDepth start hs
-  , years = hs
+  , depth = crashDepth start low
+  , years = low
   , cape = start.cape
   , balance = start.values.stocks
+  -- , priorReturns = _
   }
 
 
