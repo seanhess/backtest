@@ -9,7 +9,7 @@ module Backtest.Types
 
 import Backtest.Prelude
 import Backtest.Types.Usd
-import Backtest.Types.Pct
+import Backtest.Types.Pct hiding (diff)
 import Backtest.Types.History
 import Backtest.Types.Sim
 import Backtest.Types.Portfolio

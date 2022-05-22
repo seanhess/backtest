@@ -11,6 +11,7 @@ module Backtest.Simulation
   , noChanges
   , runActions
   , runActionState
+  , now
   , history
   , balances
   , yearsLeft
@@ -94,7 +95,7 @@ simulation initial actions hs =
 
         -- run actions, but do not apply returns
         -- simply withdraw, etc
-        let st = runActionState ye h (Left start) actions
+        let st = runActionState ye h hs (Left start) actions
             end = st._balances
             act = changes start end
             ret = Portfolio mempty mempty
@@ -135,7 +136,7 @@ simulation initial actions hs =
         let balRet = calcReturns h balOld
             ret = changes balOld balRet
             
-            st = runActionState ye h (Left balRet) actions
+            st = runActionState ye h hs (Left balRet) actions
             end = st._balances
             act = changes balRet end
 
@@ -248,8 +249,9 @@ newtype Actions a = Actions { fromActions :: State ActionState a }
 data ActionState = ActionState
   { _balances :: Balances
   , _withdrawal :: USD (Amt Withdrawal)
-  , _history :: History
+  , _now :: History
   , _lastYear :: Maybe YearStart
+  , _history :: [History]
 
   -- the year you are out of money and take no actions
   -- 1900 - 1950
@@ -259,16 +261,16 @@ data ActionState = ActionState
   , _end :: Year
   }
 
-runActions :: Year -> History -> Either Balances YearStart -> Actions () -> Balances
-runActions y h bal act = 
-    let as = runActionState y h bal act
+runActions :: Year -> History -> [History] -> Either Balances YearStart -> Actions () -> Balances
+runActions y h hs bal act = 
+    let as = runActionState y h hs bal act
     in as._balances
 
-runActionState :: Year -> History -> Either Balances YearStart -> Actions () -> ActionState
-runActionState ye h eby (Actions st) = 
+runActionState :: Year -> History -> [History] -> Either Balances YearStart -> Actions () -> ActionState
+runActionState ye h hs eby (Actions st) = 
     let bal = either identity (.end) eby :: Balances
         ly = either (const Nothing) Just eby :: Maybe YearStart
-        as = ActionState bal (usd 0) h ly ye :: ActionState
+        as = ActionState bal (usd 0) h ly hs ye :: ActionState
     in execState st as
 
 
@@ -298,7 +300,11 @@ balances :: Actions Balances
 balances = do
     gets _balances
 
-history :: Actions History
+now :: Actions History
+now = do
+    gets _now
+
+history :: Actions [History]
 history = do
     gets _history
 
@@ -306,7 +312,7 @@ history = do
 yearsLeft :: Actions Int
 yearsLeft = do
     Year ye <- gets _end
-    Year yc <- (.year) <$> gets _history
+    Year yc <- (.year) <$> gets _now
     pure $ ye - yc
 
 noActions :: Actions ()

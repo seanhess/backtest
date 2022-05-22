@@ -59,12 +59,11 @@ data Crash = Crash
   , balance :: USD (Bal Stocks)
 
   -- priorReturns
-  -- , return1y :: Pct (Return Stocks)
-  -- , return2y :: Pct (Return Stocks)
-  -- , return3y :: Pct (Return Stocks)
-  -- , return4y :: Pct (Return Stocks)
-  -- , return5y :: Pct (Return Stocks)
-
+  , prior1y :: Pct (Return Stocks)
+  , prior2y :: Pct (Return Stocks)
+  , prior3y :: Pct (Return Stocks)
+  , prior4y :: Pct (Return Stocks)
+  , prior5y :: Pct (Return Stocks)
   } deriving (Show)
 
 
@@ -79,17 +78,29 @@ crashDepth :: History -> [History] -> Pct Stocks
 crashDepth start hs =
   fromPct $ Pct.inverse $ percentOf (minimum $ map (\h -> h.values.stocks) hs) start.values.stocks
 
-crashInfo :: History -> [History] -> Maybe Crash
-crashInfo _ []      = Nothing
-crashInfo start low = Just $ Crash
+crashInfo :: [History] -> History -> [History] -> Maybe Crash
+crashInfo _ _ []        = Nothing
+crashInfo hs start low = Just $ Crash
   { start = start.year
   , depth = crashDepth start low
   , years = low
   , cape = start.cape
   , balance = start.values.stocks
   -- , priorReturns = _
+  , prior1y = compoundStockReturn $ take 1 $ priorYears start.year hs
+  , prior2y = compoundStockReturn $ take 2 $ priorYears start.year hs
+  , prior3y = compoundStockReturn $ take 3 $ priorYears start.year hs
+  , prior4y = compoundStockReturn $ take 4 $ priorYears start.year hs
+  , prior5y = compoundStockReturn $ take 5 $ priorYears start.year hs
   }
 
+-- it's more of a fold I think
+compoundStockReturn :: [History] -> Pct (Return Stocks)
+compoundStockReturn hs = foldl Pct.compound (pct 0) $ map (\h -> h.returns.stocks) hs
+
+
+priorYears :: Year -> [History] -> [History]
+priorYears y hs = reverse $ takeWhile (\h -> h.year < y) hs
 
 
 
@@ -104,6 +115,3 @@ historicalReturns bal hs =
         [ weightedReturn ps (fromPct h.returns.stocks)
         , weightedReturn pb (fromPct h.returns.bonds)
         ]
-
-
-

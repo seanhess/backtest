@@ -399,18 +399,18 @@ assertStandard = do
     ch.stocks === usd (-80)
   
   expect "withdrawal " $ do
-    let bal' = runActions y h (Left bal) (withdraw4 start)
+    let bal' = runActions y h [] (Left bal) (withdraw4 start)
     bal'.stocks === usd 800
     bal'.bonds === usd 360
 
   expect "rebalance" $ do
-    let bal' = runActions y h (Left bal) $ rebalancePct (pct 60)
+    let bal' = runActions y h [] (Left bal) $ rebalancePct (pct 60)
     bal'.stocks === usd 720
     bal'.bonds === usd 480
 
 
   -- run full standard
-  let bal' = runActions y h (Left bal) (withdraw4 start >> rebalancePct (pct 60))
+  let bal' = runActions y h [] (Left bal) (withdraw4 start >> rebalancePct (pct 60))
   let chs  = changes bal bal'
 
   expect "withdrawal should result in net -40" $ do
@@ -440,7 +440,7 @@ assertActions = do
   let ch = \b -> Portfolio (addToBalance (usd 20) b.stocks) (addToBalance (usd 30) b.bonds)
 
   expect "stocks should be the sum of both changes" $ do
-    let fin = runActions y h (Left bal) $ do
+    let fin = runActions y h [] (Left bal) $ do
                 rebalance ch
                 rebalance ch
 
@@ -555,14 +555,14 @@ assertABW = do
     estimatedReturnStocks (CAPE 40) === pct 2.5
 
   expect "estimated return total to match calc" $ do
-    (estimatedReturnTotal thousand50 (CAPE 40)) === pct 2.25
+    (estimatedReturnTotal thousand50 estimatedReturnBonds (estimatedReturnStocks $ CAPE 40)) === pct 2.25
 
 
 
   let p = thousand (pct 100)
   let years = 50
   let cape = CAPE 40
-  let ret = estimatedReturnTotal p cape
+  let ret = estimatedReturnTotal p estimatedReturnBonds (estimatedReturnStocks cape)
   let wdp = calcWithdrawal years ret
   let wda = amount wdp p.stocks
 
@@ -581,7 +581,7 @@ assertABW = do
   let y = Year 1900
   let ye = Year 1950 -- the year we are out of money and take no actions
   let h = History y (Portfolio (pct 0.0) (pct 0.0)) undefined (CAPE 40)
-  let st = runActionState ye h (Left p) withdrawABW
+  let st = runActionState ye h [] (Left p) withdrawABW
 
   expect "withdrawal amount to be the same" $ do
     st._withdrawal === wda

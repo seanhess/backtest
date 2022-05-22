@@ -1,8 +1,6 @@
 # backtest
 
-
-TODO compare to other momentum strategies, 5/25 bands
-TODO variable withdrawals
+- TODO is there a correlation between recent returns and crashes?
 
 Rebalance vs Prime vs PrimeNew
 ------------------------------

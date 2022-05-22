@@ -8,7 +8,8 @@ import Backtest.Types hiding (history, nextYear)
 import Backtest.Types.Usd as Usd
 import Backtest.Types.Pct as Pct
 import Backtest.Strategy (staticWithdrawal, thousand60, withdraw4, rebalancePct)
-import Backtest.Simulation (bondsFirst, Actions, history, balances, yearsLeft, withdraw, simulation)
+import Backtest.Simulation
+import Backtest.History (compoundStockReturn, priorYears, priorYears, priorYears, priorYears, priorYears, priorYears, priorYears, priorYears)
 
 import Debug.Trace (traceM, trace)
 
@@ -24,15 +25,16 @@ type YearsLeft = Int
 
 withdrawABW :: Actions ()
 withdrawABW = do
-    h <- history
+    h <- now
     bal <- balances
     yl <- yearsLeft
     withdraw $ amortizedWithdrawal yl h.cape bal
 
 amortizedWithdrawal :: YearsLeft -> CAPE -> Balances -> USD (Amt Withdrawal)
 amortizedWithdrawal yrs cape bal =
-  amortize (estimatedReturnTotal bal cape) yrs (total bal)
-
+  let retStk = estimatedReturnStocks cape
+      retBnd = estimatedReturnBonds
+  in amortize (estimatedReturnTotal bal retBnd retStk) yrs (total bal)
 
 amortize :: Pct (Return Total) -> YearsLeft -> USD (Bal Total) -> USD (Amt Withdrawal)
 amortize ret yrs tot =
@@ -40,10 +42,41 @@ amortize ret yrs tot =
   in amount wdp tot
 
 
--- the real problem is:
--- 1/CAPE is too aggressive if your portfolio is drawn down
--- what does drawn down mean?
--- if you are way below 4% of current portfolio
+withdrawABWDips :: Actions ()
+withdrawABWDips = do
+    h <- now
+    hs <- history
+    bal <- balances
+    yl <- yearsLeft
+    let rets = returnsWithRecentHistory yl bal h hs
+    -- traceM $ show (h.year, rets)
+    let wda = pmtFluctuate rets (total bal)
+    withdraw wda
+
+
+returnsWithRecentHistory :: YearsLeft -> Balances -> History -> [History] -> [Pct (Return Total)]
+returnsWithRecentHistory yl bal cur hs =
+    let retStk = estimatedReturnStocks cur.cape :: Pct (Return Stocks)
+        bonds  = replicate yl estimatedReturnBonds
+        depth  = estimatedCrashDepth $ compoundStockReturn $ take 5 $ priorYears cur.year hs
+        retStkAdj = adjustedReturn depth retStk
+        stocks = depth : replicate (duration-1) (pct 0) <> replicate (yl-duration) retStkAdj
+    in zipWith (estimatedReturnTotal bal) bonds stocks
+    -- in map fromPct stocks
+  where 
+    duration = 10
+    adjustedReturn d av = (av * fromIntegral yl - d) / (fromIntegral $ yl - duration)
+        
+
+estimatedCrashDepth :: Pct (Return Stocks) -> Pct (Return Stocks)
+estimatedCrashDepth retPast = min (pct 0) $ max crash crashMod
+    where
+      crash = pct (-40.0)
+      crashPast = min 0 retPast    -- only negative portion of recent return
+      crashMod = crash - crashPast -- -30 - -20 = -10
+
+
+
 
 -- withdrawABW' :: Actions ()
 -- withdrawABW' = do
@@ -79,14 +112,14 @@ badReturns yl er =
 
 -- | estimates total return given the CAPE ratio and your current portfolio
 -- this is too high. It's overdoing it a lot
-estimatedReturnTotal :: Balances -> CAPE -> Pct (Return Total)
-estimatedReturnTotal (Portfolio (USD 0) (USD 0)) _ = 0
-estimatedReturnTotal bal cape =
+estimatedReturnTotal :: Balances -> Pct (Return Bonds) -> Pct (Return Stocks) -> Pct (Return Total)
+estimatedReturnTotal (Portfolio (USD 0) (USD 0)) _ _ = 0
+estimatedReturnTotal bal rb rs =
   let ps = allocationStocks bal
       pb = pctBonds ps
   in totalReturn
-    [ weightedReturn ps $ estimatedReturnStocks cape
-    , weightedReturn pb estimatedReturnBonds
+    [ weightedReturn ps rs
+    , weightedReturn pb rb
     ]
 
 estimatedReturnStocks :: CAPE -> Pct (Return Stocks)

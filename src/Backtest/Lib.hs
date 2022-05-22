@@ -4,7 +4,7 @@ module Backtest.Lib where
 import Backtest.Prelude
 import Backtest.Types hiding (history)
 import Backtest.History (loadReturns, samples, toHistories, crashes, crashInfo, Crash)
-import Backtest.Simulation (simulation, Actions, rebalance, withdraw, bondsFirst, balances, yearsLeft, history)
+import Backtest.Simulation (simulation, Actions, rebalance, withdraw, bondsFirst, balances, yearsLeft, now)
 import Backtest.Strategy
 import Backtest.Strategy.ABW
 import Backtest.MSWR (rateResults, isFailure)
@@ -20,30 +20,10 @@ run = do
     let hs = toHistories rs
     mapM_ print hs
 
-    -- -- TODO remove samples with duration less than 3 years?
-    -- putStrLn $ intercalate ", " ["year", "cape", "depth", "length", "years"]
-    -- forM_ (tails hs) $ \hs' -> do
-    --     start <- pure $ headMay hs'
-
-    --     let mc = flip crashInfo (crashes hs') =<< start :: Maybe Crash
-
-    --     case mc of
-    --         Nothing -> pure ()
-    --         Just (c :: Crash) -> do
-    --             putStrLn $ intercalate ", " [show c.start, show (fromCAPE c.cape), show c.depth, show $ length c.years, show $ map (\h -> h.year) c.years]
-    --             -- putStrLn ""
-    --             -- putStrLn $ "start: " <> show c.start
-    --             -- putStrLn $ "cape: " <> show (fromCAPE c.cape)
-    --             -- putStrLn $ "balance: " <> show (millions c.balance)
-    --             -- putStrLn $ "depth: " <> show c.depth
-    --             -- putStrLn $ "duration: " <> show (length c.years)
-    --             -- mapM_ print c.years
-
-    -- mapM_ (print) $ map (map (map (.year)) . crashes) $ tails hs
-
     -- runSimulation 50 hs
-    runMSWRs 50 hs
-    -- runAggregates 50 hs
+    -- runMSWRs 50 hs
+    runAggregates 50 hs
+    -- runCrashes 50 hs
 
     pure ()
 
@@ -58,14 +38,22 @@ runSimulation yrs hs = do
     let ps = pct 60
     let start = thousand60
 
-    -- let wda = staticWithdrawal swr4 start :: USD (Amt Withdrawal)
-    -- let sim = simulation start $ do
-    --             rebalance $ rebalancePrime start.stocks
-    --             withdraw wda
 
+    -- (Just h1966) <- pure $ List.find (\h -> h.year == Year 1966) hs
+    -- print h1966
+    -- let rets = returnsWithRecentHistory 20 thousand50 h1966 hs
+    -- print $ rets
+    -- print $ sum rets
+
+
+    let wda = staticWithdrawal (pct 3.4) start :: USD (Amt Withdrawal)
     let sim = simulation start $ do
                 rebalance $ rebalancePrime start.stocks
-                withdrawABW
+                withdraw wda
+
+    -- let sim = simulation start $ do
+    --             rebalance $ rebalanceFixed ps
+    --             withdrawABWDips
     let srs = map sim ss :: [SimResult]
 
 
@@ -96,21 +84,15 @@ runSimulation yrs hs = do
     -- print $ averagePortfolio srs
     -- print $ medianPortfolio srs
 
-    -- * 1903 failure year
-    putStrLn ""
+
+
+    -- * 1966 failure year
     (Just s1966) <- pure $ List.find (isYear 1966) srs
     print $ s1966.startYear
     print $ s1966.endBalance
-
     printYearHeader
     mapM_ printYear $ s1966.years
-
-    -- * 1966 failure year
-    -- (Just s1966) <- pure $ List.find (isYear 1966) srs
-    -- print $ s1966.startYear
-    -- print $ s1966.endBalance
-    -- mapM_ (putStrLn . showYear) $ s1966.years
-    -- print $ isFailure s1966
+    print $ isFailure s1966
     pure ()
 
 runAggregates :: YearsLeft -> [History] -> IO ()
@@ -119,11 +101,17 @@ runAggregates years hs = do
     let ps = pct 60
     let bal = thousand ps
 
-
     putStrLn "Rebalance Fixed"
     putStrLn "----------------"
     runAggregate ss bal $ do
         withdrawABW
+        rebalance $ rebalanceFixed ps
+    putStrLn ""
+
+    putStrLn "Fixed Dips"
+    putStrLn "----------------"
+    runAggregate ss bal $ do
+        withdrawABWDips
         rebalance $ rebalanceFixed ps
     putStrLn ""
 
@@ -133,12 +121,20 @@ runAggregates years hs = do
         withdrawABW
         rebalance (rebalance525Bands ps)
 
+    putStrLn "Swedroe 5/25 Dips"
+    putStrLn "----------------"
+    runAggregate ss bal $ do
+        withdrawABWDips
+        rebalance (rebalance525Bands ps)
+
     putStrLn "Prime Harvesting"
     putStrLn "----------------"
     runAggregate ss bal $ do
         withdrawABW
         rebalance $ rebalancePrime bal.stocks
     putStrLn ""
+
+
 
     -- putStrLn "Prime Harvesting New"
     -- putStrLn "----------------"
@@ -168,6 +164,40 @@ runAggregate ss start acts = do
 
 
 
+runCrashes :: YearsLeft -> [History] -> IO ()
+runCrashes years hs = do
+    -- -- TODO remove samples with duration less than 3 years?
+    putStrLn $ intercalate ", " ["year", "cape", "depth", "length", "prior1y","prior2y","prior3y","prior4y","prior5y",     "years"]
+    forM_ (tails hs) $ \hs' -> do
+        start <- pure $ headMay hs'
+
+        let mc = flip (crashInfo hs) (crashes hs') =<< start :: Maybe Crash
+
+        case mc of
+            Nothing -> pure ()
+            Just (c :: Crash) -> do
+                putStrLn $ intercalate ", "
+                  [ show c.start
+                  , show (fromCAPE c.cape)
+                  , show c.depth
+                  , show $ length c.years
+                  , show $ c.prior1y
+                  , show $ c.prior2y
+                  , show $ c.prior3y
+                  , show $ c.prior4y
+                  , show $ c.prior1y
+                  , show $ map (\h -> h.year) c.years
+                  ]
+                -- putStrLn ""
+                -- putStrLn $ "start: " <> show c.start
+                -- putStrLn $ "cape: " <> show (fromCAPE c.cape)
+                -- putStrLn $ "balance: " <> show (millions c.balance)
+                -- putStrLn $ "depth: " <> show c.depth
+                -- putStrLn $ "duration: " <> show (length c.years)
+                -- mapM_ print c.years
+
+    -- mapM_ (print) $ map (map (map (.year)) . crashes) $ tails hs
+    pure ()
 
 
 runMSWRs :: YearsLeft -> [History] -> IO ()

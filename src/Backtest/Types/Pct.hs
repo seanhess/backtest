@@ -36,3 +36,9 @@ inverse (Pct a) = Pct (1 - a)
 average :: [Pct a] -> Pct a
 average ps =
   Pct $ (toFloat $ sum ps) / fromIntegral (length ps)
+
+compound :: Pct a -> Pct a -> Pct a
+compound (Pct a) (Pct b) = Pct $ ((1+a) * (1+b)) - 1
+
+diff :: Pct a -> Pct a -> Pct a
+diff (Pct a) (Pct b) = Pct (abs $ b - a)
