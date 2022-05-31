@@ -1,6 +1,8 @@
 # backtest
 
 - TODO is there a correlation between recent returns and crashes?
+- TODO getting to 100% stocks 
+- TODO stepping up methods?
 
 Rebalance vs Prime vs PrimeNew
 ------------------------------

@@ -8,6 +8,7 @@ import Backtest.MSWR
 import Backtest.Simulation
 import Backtest.Strategy
 import Backtest.Strategy.ABW
+import Backtest.Debug
 import qualified Backtest.Types.Pct as Pct
 
 import Control.Monad.Catch (try, throwM)
@@ -308,14 +309,15 @@ assertSimulation = do
   -- State at the beginning of the year
   --   past returns
   --   current cape ratio
-  let h1 = History (Year 1900) (Portfolio (pct 10.0) (pct 1.0)) undefined (CAPE 10)
-  let h2 = History (Year 1901) (Portfolio (pct 20.0) (pct 2.0)) undefined (CAPE 20)
-  let h3 = History (Year 1902) (Portfolio (pct 30.0) (pct 2.0)) undefined (CAPE 30)
+  let vals = Portfolio mempty mempty
+  let h0 = History (Year 1900) (Portfolio (pct 10.0) (pct 1.0)) vals (CAPE 10)
+  let h1 = History (Year 1901) (Portfolio (pct 20.0) (pct 2.0)) vals (CAPE 20)
+  let h2 = History (Year 1902) (Portfolio (pct 30.0) (pct 2.0)) vals (CAPE 30)
 
   let bal = Portfolio (usd 1000) (usd 0)
 
   -- withdraw, but don't rebalance
-  let sim = simulation bal (withdraw4 bal) [h1, h2, h3]
+  let sim = simulation bal (withdraw4 bal) [h0, h1, h2]
 
   expect "should give results for all years of history" $ do
     map (.year) sim.years === [Year 1900, Year 1901, Year 1902]
@@ -344,9 +346,11 @@ assertSimulation = do
 
   let r1902 = s1901 * 1.3
   let s1902 = r1902 - 40
+
+
   expect "third year should apply its returns and withdraw also" $ do
     [_, _, y3] <- pure sim.years
-    y3.returns === Portfolio (usd (r1902 - s1901)) mempty
+    y3.returns    === Portfolio (usd (r1902 - s1901)) mempty
     y3.end.stocks === usd s1902
 
 
@@ -399,18 +403,18 @@ assertStandard = do
     ch.stocks === usd (-80)
   
   expect "withdrawal " $ do
-    let bal' = runActions y h [] (Left bal) (withdraw4 start)
+    let bal' = runActions y h [] bal Nothing (withdraw4 start)
     bal'.stocks === usd 800
     bal'.bonds === usd 360
 
   expect "rebalance" $ do
-    let bal' = runActions y h [] (Left bal) $ rebalancePct (pct 60)
+    let bal' = runActions y h [] bal Nothing $ rebalancePct (pct 60)
     bal'.stocks === usd 720
     bal'.bonds === usd 480
 
 
   -- run full standard
-  let bal' = runActions y h [] (Left bal) (withdraw4 start >> rebalancePct (pct 60))
+  let bal' = runActions y h [] bal Nothing (withdraw4 start >> rebalancePct (pct 60))
   let chs  = changes bal bal'
 
   expect "withdrawal should result in net -40" $ do
@@ -440,7 +444,7 @@ assertActions = do
   let ch = \b -> Portfolio (addToBalance (usd 20) b.stocks) (addToBalance (usd 30) b.bonds)
 
   expect "stocks should be the sum of both changes" $ do
-    let fin = runActions y h [] (Left bal) $ do
+    let fin = runActions y h [] (bal) Nothing $ do
                 rebalance ch
                 rebalance ch
 
@@ -581,7 +585,7 @@ assertABW = do
   let y = Year 1900
   let ye = Year 1950 -- the year we are out of money and take no actions
   let h = History y (Portfolio (pct 0.0) (pct 0.0)) undefined (CAPE 40)
-  let st = runActionState ye h [] (Left p) withdrawABW
+  let st = runActionState ye h [] p Nothing withdrawABW
 
   expect "withdrawal amount to be the same" $ do
     st._withdrawal === wda

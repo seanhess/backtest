@@ -62,11 +62,9 @@ simulation initial actions hs =
 
         firstYear = firstYearResult ye h initial
 
-        (yr, yrs) = List.mapAccumL (eachReturns ye) (Left firstYear.end) hs'
+        (yr, yrs) = List.mapAccumL (eachReturns ye) (firstYear) hs'
 
-        bal' = case yr of
-                Left b -> b
-                Right y -> y.end
+        bal' = yr.end
 
         wds = map (.withdrawal) yrs
 
@@ -82,23 +80,21 @@ simulation initial actions hs =
     
   where
 
-    eachReturns :: Year -> Either Balances YearStart -> History -> (Either Balances YearStart, YearStart)
-    eachReturns ye (Left b) h =
-        let yr = nextYearResult ye h Nothing b
-        in (Right yr, yr)
-    eachReturns ye (Right lastYear) h =
-        let yr = nextYearResult ye h (Just lastYear) lastYear.end
-        in (Right yr, yr)
+    eachReturns :: Year -> YearStart -> History -> (YearStart, YearStart)
+    eachReturns ye lastYear h =
+        let yr = nextYearResult ye h lastYear lastYear.end
+        in (yr, yr)
 
 
     firstYearResult :: Year -> History -> Balances -> YearStart
     firstYearResult ye h start = 
 
-        let st = runActionState ye h hs (Left start) actions
+        let st = runActionState ye h hs start Nothing actions
             end = st._balances
             act = changes start end
             ret = Portfolio mempty mempty
 
+        -- in trace (show ("firstYearResult", h.year)) $ YearStart
         in YearStart
           { history = Just h
           , year = h.year
@@ -115,7 +111,7 @@ simulation initial actions hs =
     -- YearResult 1901 (10% ret) (Withdrawal) Rebalance
 
     -- ye = the simulation ends in which year?
-    nextYearResult :: Year -> History -> Maybe YearStart -> Balances -> YearStart
+    nextYearResult :: Year -> History -> YearStart -> Balances -> YearStart
     nextYearResult ye h lastYear balOld = 
 
         -- Its the beginning of simulation
@@ -135,8 +131,7 @@ simulation initial actions hs =
         let balRet = calcReturns h balOld
             ret = changes balOld balRet
             
-            eby = maybe (Left balRet) Right lastYear
-            st = runActionState ye h hs eby actions
+            st = runActionState ye h hs balRet (Just lastYear) actions
             end = st._balances
             act = changes balRet end
 
@@ -261,16 +256,15 @@ data ActionState = ActionState
   , _end :: Year
   }
 
-runActions :: Year -> History -> [History] -> Either Balances YearStart -> Actions () -> Balances
-runActions y h hs bal act = 
-    let as = runActionState y h hs bal act
+runActions :: Year -> History -> [History] -> Balances -> Maybe YearStart -> Actions () -> Balances
+runActions y h hs bal mys act = 
+    let as = runActionState y h hs bal mys act
     in as._balances
 
-runActionState :: Year -> History -> [History] -> Either Balances YearStart -> Actions () -> ActionState
-runActionState ye h hs eby (Actions st) = 
-    let bal = either identity (.end) eby :: Balances
-        ly = either (const Nothing) Just eby :: Maybe YearStart
-        as = ActionState bal (usd 0) h ly hs ye :: ActionState
+runActionState :: Year -> History -> [History] -> Balances -> Maybe YearStart -> Actions () -> ActionState
+runActionState ye h hs bal mys (Actions st) = 
+    let as = ActionState bal (usd 0) h mys hs ye :: ActionState
+    -- in trace (show ("runActionState", h.year)) $ execState st as
     in execState st as
 
 
@@ -345,5 +339,10 @@ percentile :: (Ord a) => Float -> [a] -> a
 percentile _ [] = error "Percentile of empty list"
 percentile p xs = sort xs !! n
  where n = round $ (fromIntegral $ length xs) * p
+
+
+
+
+
 
 
