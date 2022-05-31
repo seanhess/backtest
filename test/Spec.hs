@@ -125,7 +125,7 @@ assertAmount = do
 
 assertReturns :: Test ()
 assertReturns = do
-  let h = History (Year 1872) (Portfolio (pct 10.0) (pct 1.0)) undefined (CAPE 10)
+  let h = History (Year 1872) (Portfolio (pct 10.0) (pct 1.0)) (CAPE 10)
   let b = Portfolio (usd 100) (usd 100)
 
   expect "returns to match history" $ do
@@ -309,10 +309,9 @@ assertSimulation = do
   -- State at the beginning of the year
   --   past returns
   --   current cape ratio
-  let vals = Portfolio mempty mempty
-  let h0 = History (Year 1900) (Portfolio (pct 10.0) (pct 1.0)) vals (CAPE 10)
-  let h1 = History (Year 1901) (Portfolio (pct 20.0) (pct 2.0)) vals (CAPE 20)
-  let h2 = History (Year 1902) (Portfolio (pct 30.0) (pct 2.0)) vals (CAPE 30)
+  let h0 = History (Year 1900) (Portfolio (pct 10.0) (pct 1.0)) (CAPE 10)
+  let h1 = History (Year 1901) (Portfolio (pct 20.0) (pct 2.0)) (CAPE 20)
+  let h2 = History (Year 1902) (Portfolio (pct 30.0) (pct 2.0)) (CAPE 30)
 
   let bal = Portfolio (usd 1000) (usd 0)
 
@@ -380,7 +379,7 @@ assertStandard = do
   let start = Portfolio (usd 600) (usd 400)
   let bal = Portfolio   (usd 800) (usd 400)
   let wda = staticWithdrawal swr4 start
-  let h = History (Year 1872) (Portfolio (pct 10.0) (pct 1.0)) undefined (CAPE 10)
+  let h = History (Year 1872) (Portfolio (pct 10.0) (pct 1.0)) (CAPE 10)
   let y = h.year
 
 
@@ -438,7 +437,7 @@ assertStandard = do
 assertActions :: Test ()
 assertActions = do
   let bal = Portfolio (usd 100) (usd 200)
-  let h = History (Year 1872) (Portfolio (pct 10.0) (pct 1.0)) undefined (CAPE 10)
+  let h = History (Year 1872) (Portfolio (pct 10.0) (pct 1.0)) (CAPE 10)
   let y = Year 1872
 
   let ch = \b -> Portfolio (addToBalance (usd 20) b.stocks) (addToBalance (usd 30) b.bonds)
@@ -584,7 +583,7 @@ assertABW = do
   -- check actual withdrawal
   let y = Year 1900
   let ye = Year 1950 -- the year we are out of money and take no actions
-  let h = History y (Portfolio (pct 0.0) (pct 0.0)) undefined (CAPE 40)
+  let h = History y (Portfolio (pct 0.0) (pct 0.0)) (CAPE 40)
   let st = runActionState ye h [] p Nothing withdrawABW
 
   expect "withdrawal amount to be the same" $ do
@@ -595,9 +594,9 @@ assertABW = do
     st._balances.stocks === addToBalance (loss wda) p.stocks
 
 
-  let h1 = History (Year 1900) (Portfolio (pct 0.0) (pct 10.0)) undefined (CAPE 10)
-  let h2 = History (Year 1901) (Portfolio (pct 0.0) (pct 20.0)) undefined (CAPE 20)
-  let h3 = History (Year 1902) (Portfolio (pct 0.0) (pct 30.0)) undefined (CAPE 30)
+  let h1 = History (Year 1900) (Portfolio (pct 0.0) (pct 10.0)) (CAPE 10)
+  let h2 = History (Year 1901) (Portfolio (pct 0.0) (pct 20.0)) (CAPE 20)
+  let h3 = History (Year 1902) (Portfolio (pct 0.0) (pct 30.0)) (CAPE 30)
   let hs = [h1, h2, h3]
   let bal = Portfolio (usd 1000) (usd 0)
 

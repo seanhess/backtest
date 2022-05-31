@@ -8,6 +8,7 @@ import Data.Csv as Csv (decodeByName, Header)
 import Data.List as List
 import Data.Vector as Vector (Vector, toList)
 
+type YearsLeft = Int
 
 loadReturns :: IO [HistoryRow]
 loadReturns = do
@@ -22,8 +23,23 @@ loadReturns = do
 
 
 toHistories :: [HistoryRow] -> [History]
-toHistories hr = catMaybes $ zipWith toHistory hr (drop 1 hr)
+toHistories hr =
+  catMaybes $ zipWith toHistory hr (drop 1 hr)
 
+fakeHistory :: Year -> History
+fakeHistory y = History y (Portfolio (pct 5) (pct 2)) (CAPE 30)
+
+-- find the history or use a fake one
+simHistory :: [History] -> Year -> History
+simHistory hs y =
+  fromMaybe (fakeHistory y) $ List.find (\h -> h.year == y) hs
+
+simHistories :: YearsLeft -> [History] -> [History]
+simHistories _ [] = []
+simHistories yl hs@(h:_) =
+  let (Year s) = h.year
+      end = Year $ s + yl - 1
+  in map (simHistory hs) [h.year..end]
 
 toHistory :: HistoryRow -> HistoryRow -> Maybe History
 toHistory past now = do
@@ -34,17 +50,20 @@ toHistory past now = do
           { stocks = gainsPercent past.stocks now.stocks
           , bonds = gainsPercent past.bonds now.bonds
           }
-      , values = Portfolio
-          { stocks = now.stocks
-          , bonds = now.bonds
-          }
+      -- , values = Portfolio
+      --     { stocks = now.stocks
+      --     , bonds = now.bonds
+      --     }
       , cape = c
       }
 
 
-samples :: Int -> [History] -> [[History]]
+-- now it can extend them!
+-- but by how much?
+samples :: YearsLeft -> [History] -> [[History]]
 samples years hs = List.tails hs
   & fmap (take years)
+  & fmap (simHistories years)
   & filter (\hs' -> length hs' >= years)
 
 
@@ -67,32 +86,32 @@ data Crash = Crash
   } deriving (Show)
 
 
--- | All the years that are low
-crashes :: [History] -> [History]
-crashes hs = fromMaybe [] $ do
-  first <- headMay hs
-  let start = first.values.stocks
-  pure $ filter (\h -> h.values.stocks < start) hs
+-- -- | All the years that are low
+-- crashes :: [(HistoryRow, History)] -> [History]
+-- crashes hs = fromMaybe [] $ do
+--   (now, first) <- headMay hs
+--   let start = first.values.stocks
+--   pure $ filter (\h -> h.values.stocks < start) hs
 
-crashDepth :: History -> [History] -> Pct Stocks
-crashDepth start hs =
-  fromPct $ Pct.inverse $ percentOf (minimum $ map (\h -> h.values.stocks) hs) start.values.stocks
+-- crashDepth :: History -> [History] -> Pct Stocks
+-- crashDepth start hs =
+--   fromPct $ Pct.inverse $ percentOf (minimum $ map (\h -> h.values.stocks) hs) start.values.stocks
 
-crashInfo :: [History] -> History -> [History] -> Maybe Crash
-crashInfo _ _ []        = Nothing
-crashInfo hs start low = Just $ Crash
-  { start = start.year
-  , depth = crashDepth start low
-  , years = low
-  , cape = start.cape
-  , balance = start.values.stocks
-  -- , priorReturns = _
-  , prior1y = compoundStockReturn $ take 1 $ priorYears start.year hs
-  , prior2y = compoundStockReturn $ take 2 $ priorYears start.year hs
-  , prior3y = compoundStockReturn $ take 3 $ priorYears start.year hs
-  , prior4y = compoundStockReturn $ take 4 $ priorYears start.year hs
-  , prior5y = compoundStockReturn $ take 5 $ priorYears start.year hs
-  }
+-- crashInfo :: [History] -> History -> [History] -> Maybe Crash
+-- crashInfo _ _ []        = Nothing
+-- crashInfo hs start low = Just $ Crash
+--   { start = start.year
+--   , depth = crashDepth start low
+--   , years = low
+--   , cape = start.cape
+--   , balance = start.values.stocks
+--   -- , priorReturns = _
+--   , prior1y = compoundStockReturn $ take 1 $ priorYears start.year hs
+--   , prior2y = compoundStockReturn $ take 2 $ priorYears start.year hs
+--   , prior3y = compoundStockReturn $ take 3 $ priorYears start.year hs
+--   , prior4y = compoundStockReturn $ take 4 $ priorYears start.year hs
+--   , prior5y = compoundStockReturn $ take 5 $ priorYears start.year hs
+--   }
 
 -- it's more of a fold I think
 compoundStockReturn :: [History] -> Pct (Return Stocks)

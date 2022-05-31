@@ -13,7 +13,7 @@ import Text.Read (readMaybe)
 import Data.Either (fromRight)
 
 newtype Year = Year { fromYear :: Int }
-  deriving (Eq, FromField, Ord)
+  deriving (Eq, FromField, Ord, Enum)
 
 nextYear :: Year -> Year
 nextYear (Year n) = Year (n+1)
@@ -70,6 +70,6 @@ clean s = do
 data History = History
   { year      :: Year
   , returns   :: Portfolio Pct Return
-  , values    :: Portfolio USD Bal
   , cape      :: CAPE
   } deriving (Show)
+

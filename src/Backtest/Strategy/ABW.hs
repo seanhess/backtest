@@ -9,7 +9,7 @@ import Backtest.Types.Usd as Usd
 import Backtest.Types.Pct as Pct
 import Backtest.Strategy (staticWithdrawal, thousand60, withdraw4, rebalancePct)
 import Backtest.Simulation
-import Backtest.History (compoundStockReturn, priorYears, priorYears, priorYears, priorYears, priorYears, priorYears, priorYears, priorYears)
+import Backtest.History (compoundStockReturn, priorYears, priorYears, priorYears, priorYears, priorYears, priorYears, priorYears, priorYears, YearsLeft)
 
 import Debug.Trace (traceM, trace)
 
@@ -19,7 +19,6 @@ import Debug.Trace (traceM, trace)
 
 
 
-type YearsLeft = Int
 
 
 

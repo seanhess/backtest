@@ -3,7 +3,7 @@ module Backtest.Lib where
 
 import Backtest.Prelude
 import Backtest.Types hiding (history)
-import Backtest.History (loadReturns, samples, toHistories, crashes, crashInfo, Crash)
+import Backtest.History
 import Backtest.Simulation (simulation, Actions, rebalance, withdraw, bondsFirst, balances, yearsLeft, now)
 import Backtest.Strategy
 import Backtest.Strategy.ABW
@@ -20,10 +20,12 @@ run :: IO ()
 run = do
     rs <- loadReturns
     let hs = toHistories rs
-    mapM_ print hs
 
-    runSimulation 50 hs
-    -- runMSWRs 50 hs
+
+    -- mapM_ print hs
+
+    -- runSimulation 50 hs
+    runMSWRs 100 hs
     -- runAggregates 50 hs
     -- runCrashes 50 hs
 
@@ -173,40 +175,40 @@ runAggregate ss start acts = do
 
 
 
-runCrashes :: YearsLeft -> [History] -> IO ()
-runCrashes years hs = do
-    -- -- TODO remove samples with duration less than 3 years?
-    putStrLn $ intercalate ", " ["year", "cape", "depth", "length", "prior1y","prior2y","prior3y","prior4y","prior5y",     "years"]
-    forM_ (tails hs) $ \hs' -> do
-        start <- pure $ headMay hs'
+-- runCrashes :: YearsLeft -> [History] -> IO ()
+-- runCrashes years hs = do
+--     -- -- TODO remove samples with duration less than 3 years?
+--     putStrLn $ intercalate ", " ["year", "cape", "depth", "length", "prior1y","prior2y","prior3y","prior4y","prior5y",     "years"]
+--     forM_ (tails hs) $ \hs' -> do
+--         start <- pure $ headMay hs'
 
-        let mc = flip (crashInfo hs) (crashes hs') =<< start :: Maybe Crash
+--         let mc = flip (crashInfo hs) (crashes hs') =<< start :: Maybe Crash
 
-        case mc of
-            Nothing -> pure ()
-            Just (c :: Crash) -> do
-                putStrLn $ intercalate ", "
-                  [ show c.start
-                  , show (fromCAPE c.cape)
-                  , show c.depth
-                  , show $ length c.years
-                  , show $ c.prior1y
-                  , show $ c.prior2y
-                  , show $ c.prior3y
-                  , show $ c.prior4y
-                  , show $ c.prior1y
-                  , show $ map (\h -> h.year) c.years
-                  ]
-                -- putStrLn ""
-                -- putStrLn $ "start: " <> show c.start
-                -- putStrLn $ "cape: " <> show (fromCAPE c.cape)
-                -- putStrLn $ "balance: " <> show (millions c.balance)
-                -- putStrLn $ "depth: " <> show c.depth
-                -- putStrLn $ "duration: " <> show (length c.years)
-                -- mapM_ print c.years
+--         case mc of
+--             Nothing -> pure ()
+--             Just (c :: Crash) -> do
+--                 putStrLn $ intercalate ", "
+--                   [ show c.start
+--                   , show (fromCAPE c.cape)
+--                   , show c.depth
+--                   , show $ length c.years
+--                   , show $ c.prior1y
+--                   , show $ c.prior2y
+--                   , show $ c.prior3y
+--                   , show $ c.prior4y
+--                   , show $ c.prior1y
+--                   , show $ map (\h -> h.year) c.years
+--                   ]
+--                 -- putStrLn ""
+--                 -- putStrLn $ "start: " <> show c.start
+--                 -- putStrLn $ "cape: " <> show (fromCAPE c.cape)
+--                 -- putStrLn $ "balance: " <> show (millions c.balance)
+--                 -- putStrLn $ "depth: " <> show c.depth
+--                 -- putStrLn $ "duration: " <> show (length c.years)
+--                 -- mapM_ print c.years
 
-    -- mapM_ (print) $ map (map (map (.year)) . crashes) $ tails hs
-    pure ()
+--     -- mapM_ (print) $ map (map (map (.year)) . crashes) $ tails hs
+--     pure ()
 
 
 runMSWRs :: YearsLeft -> [History] -> IO ()
@@ -221,7 +223,7 @@ runMSWRs years hs = do
     let ss = samples years hs
     let ps = pct 70
     let bal = million ps
-   
+
     putStrLn "Compare MSWRs"
     putStrLn "=============="
     putStrLn $ "Years: " <> show years
@@ -259,7 +261,7 @@ runMSWR ss start reb = do
     where
 
         allRates :: [Pct Withdrawal]
-        allRates = map pct [3.3, 3.4 .. 4.5]
+        allRates = map pct [3.2, 3.3 .. 4.5]
 
         printRateResult :: RateResult -> IO ()
         printRateResult rr = do

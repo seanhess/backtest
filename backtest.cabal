@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       Backtest.Aggregate
+      Backtest.Debug
       Backtest.History
       Backtest.Lib
       Backtest.MSWR
@@ -140,6 +141,7 @@ test-suite backtest-test
   main-is: Spec.hs
   other-modules:
       Backtest.Aggregate
+      Backtest.Debug
       Backtest.History
       Backtest.Lib
       Backtest.MSWR
