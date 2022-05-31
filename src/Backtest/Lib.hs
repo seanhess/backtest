@@ -7,6 +7,7 @@ import Backtest.History (loadReturns, samples, toHistories, crashes, crashInfo, 
 import Backtest.Simulation (simulation, Actions, rebalance, withdraw, bondsFirst, balances, yearsLeft, now)
 import Backtest.Strategy
 import Backtest.Strategy.ABW
+import Backtest.Strategy.Steps
 import Backtest.MSWR (rateResults, isFailure)
 import Backtest.Aggregate (aggregateWithdrawals, yearSpread, spreadPoints)
 import Debug.Trace (trace)
@@ -20,9 +21,9 @@ run = do
     let hs = toHistories rs
     mapM_ print hs
 
-    -- runSimulation 50 hs
+    runSimulation 50 hs
     -- runMSWRs 50 hs
-    runAggregates 50 hs
+    -- runAggregates 50 hs
     -- runCrashes 50 hs
 
     pure ()
@@ -46,14 +47,14 @@ runSimulation yrs hs = do
     -- print $ sum rets
 
 
-    let wda = staticWithdrawal (pct 3.4) start :: USD (Amt Withdrawal)
-    let sim = simulation start $ do
-                rebalance $ rebalancePrime start.stocks
-                withdraw wda
-
+    -- let wda = staticWithdrawal (pct 3.4) start :: USD (Amt Withdrawal)
     -- let sim = simulation start $ do
-    --             rebalance $ rebalanceFixed ps
-    --             withdrawABWDips
+    --             rebalance $ rebalancePrime start.stocks
+    --             withdraw wda
+
+    let sim = simulation start $ do
+                withdrawSteps $ staticWithdrawal (pct 3.4) start
+                rebalance $ rebalanceFixed ps
     let srs = map sim ss :: [SimResult]
 
 
@@ -108,10 +109,17 @@ runAggregates years hs = do
         rebalance $ rebalanceFixed ps
     putStrLn ""
 
-    putStrLn "Fixed Dips"
+    -- putStrLn "Fixed Dips"
+    -- putStrLn "----------------"
+    -- runAggregate ss bal $ do
+    --     withdrawABWDips
+    --     rebalance $ rebalanceFixed ps
+    -- putStrLn ""
+
+    putStrLn "Fixed Steps"
     putStrLn "----------------"
     runAggregate ss bal $ do
-        withdrawABWDips
+        withdrawSteps $ staticWithdrawal (pct 4) bal
         rebalance $ rebalanceFixed ps
     putStrLn ""
 
@@ -121,11 +129,11 @@ runAggregates years hs = do
         withdrawABW
         rebalance (rebalance525Bands ps)
 
-    putStrLn "Swedroe 5/25 Dips"
-    putStrLn "----------------"
-    runAggregate ss bal $ do
-        withdrawABWDips
-        rebalance (rebalance525Bands ps)
+    -- putStrLn "Swedroe 5/25 Dips"
+    -- putStrLn "----------------"
+    -- runAggregate ss bal $ do
+    --     withdrawABWDips
+    --     rebalance (rebalance525Bands ps)
 
     putStrLn "Prime Harvesting"
     putStrLn "----------------"

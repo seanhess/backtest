@@ -15,6 +15,7 @@ module Backtest.Simulation
   , history
   , balances
   , yearsLeft
+  , lastWithdrawal
   ) where
 
 import Backtest.Prelude
@@ -93,8 +94,6 @@ simulation initial actions hs =
     firstYearResult :: Year -> History -> Balances -> YearStart
     firstYearResult ye h start = 
 
-        -- run actions, but do not apply returns
-        -- simply withdraw, etc
         let st = runActionState ye h hs (Left start) actions
             end = st._balances
             act = changes start end
@@ -136,7 +135,8 @@ simulation initial actions hs =
         let balRet = calcReturns h balOld
             ret = changes balOld balRet
             
-            st = runActionState ye h hs (Left balRet) actions
+            eby = maybe (Left balRet) Right lastYear
+            st = runActionState ye h hs eby actions
             end = st._balances
             act = changes balRet end
 
@@ -314,6 +314,11 @@ yearsLeft = do
     Year ye <- gets _end
     Year yc <- (.year) <$> gets _now
     pure $ ye - yc
+
+lastWithdrawal :: Actions (Maybe (USD (Amt Withdrawal)))
+lastWithdrawal = do
+    my <- gets _lastYear
+    pure $ (.withdrawal) <$> my
 
 noActions :: Actions ()
 noActions = pure ()
