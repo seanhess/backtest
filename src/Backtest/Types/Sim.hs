@@ -18,6 +18,7 @@ data YearStart = YearStart
   , end        :: Balances
   , returns    :: Changes
   , withdrawal :: USD (Amt Withdrawal)
+  , netIncome  :: USD (Amt Income)
   , actions    :: Changes
   } deriving (Show)
 

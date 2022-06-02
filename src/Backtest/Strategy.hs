@@ -54,8 +54,8 @@ primeBuyStocks start p bal =
 -- Larry Swedroe 5/25 bands
 rebalance525Bands :: Pct Stocks -> Balances -> Balances
 rebalance525Bands ps bal
-    | diffAbsPercent ps bal >= 5 = rebalanceFixed ps bal
-    | diffRelPercent ps bal >= 25 = rebalanceFixed ps bal
+    | diffAbsPercent ps bal >= pct 5 = rebalanceFixed ps bal
+    | diffRelPercent ps bal >= pct 25 = rebalanceFixed ps bal
     | otherwise = bal
 
 diffAbsPercent :: Pct Stocks -> Balances -> Pct Stocks

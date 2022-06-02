@@ -192,6 +192,14 @@ assertWithdrawal = do
     bal'.stocks === mempty
     bal'.bonds === mempty
 
+  expect "withdrawal is zero if nothing is remaining" $ do
+    let bal = Portfolio (usd 0) (usd 0)
+    let wa' = staticWithdrawal swr4 bal
+    let bal' = bondsFirst wa bal
+    let chg = changes bal bal'
+    chg.stocks === usd 0
+    chg.bonds === usd 0
+
 
 
 
@@ -346,11 +354,11 @@ assertSimulation = do
   let r1902 = s1901 * 1.3
   let s1902 = r1902 - 40
 
-
   expect "third year should apply its returns and withdraw also" $ do
     [_, _, y3] <- pure sim.years
     y3.returns    === Portfolio (usd (r1902 - s1901)) mempty
     y3.end.stocks === usd s1902
+
 
 
 assertRebalance :: Test ()
@@ -437,7 +445,7 @@ assertStandard = do
 assertActions :: Test ()
 assertActions = do
   let bal = Portfolio (usd 100) (usd 200)
-  let h = History (Year 1872) (Portfolio (pct 10.0) (pct 1.0)) (CAPE 10)
+  let h = History (Year 1900) (Portfolio (pct 10.0) (pct 1.0)) (CAPE 10)
   let y = Year 1872
 
   let ch = \b -> Portfolio (addToBalance (usd 20) b.stocks) (addToBalance (usd 30) b.bonds)
@@ -448,6 +456,14 @@ assertActions = do
                 rebalance ch
 
     fin.stocks === usd 140
+
+  expect "withdraw everything if balance is insufficient" $ do
+    let bal' = Portfolio (usd 20) (usd 10)
+    let wa = usd 40
+    let ye = runActionState h.year h [h] bal' Nothing (withdraw wa)
+    ye._withdrawal === usd 30
+    ye._balances.stocks === usd 0
+    ye._balances.bonds === usd 0
 
 
 assertPrimeHarvesting :: Test ()

@@ -18,6 +18,7 @@ printYearHeader =
       , "beg.bnds"
       , "ret.stck"
       , "ret.bnds"
+      , "income"
       , "Withdrawal"
       , "act.stck"
       , "act.bnds"
@@ -34,6 +35,7 @@ printYear yr =
       , show yr.start.bonds
       , show yr.returns.stocks
       , show yr.returns.bonds
+      , show yr.netIncome
       , show yr.withdrawal
       , show yr.actions.stocks
       , show yr.actions.bonds
@@ -67,22 +69,17 @@ printAggregateWithdrawals aw = do
 
     printWithdrawalSpreadHeader
 
-    putStrLn "\nTotals:"
-    printWithdrawalSpreadRow aw.totalSpread
-
-    putStrLn "\nWorst Sample:"
-    printWithdrawalSpreadRow aw.worstSpread
-
-    putStrLn "\nNum Samples:"
-    printWithdrawalSpreadRow aw.numSamples
+    printWithdrawalSpreadRow "Total" aw.totalSpread
+    printWithdrawalSpreadRow "Worst" aw.worstSpread
+    printWithdrawalSpreadRow "Num" aw.numSamples
 
 printWithdrawalSpreadHeader :: IO ()
 printWithdrawalSpreadHeader = do
-    printTableRow 9 ["low%", "2.0%", "2.5%", "3.0%", "3.5%", "4.0%", "4.5%", "high%"]
+    printTableRow 9 ["", "low%", "2.0%", "2.5%", "3.0%", "3.5%", "4.0%", "4.5%", "high%"]
 
-printWithdrawalSpreadRow :: Show a => WithdrawalSpread a -> IO ()
-printWithdrawalSpreadRow ws = do
-    printTableRow 9 [show ws.wlow, show ws.w2_0, show ws.w2_5, show ws.w3_0, show ws.w3_5, show ws.w4_0, show ws.w4_5, show ws.whigh]
+printWithdrawalSpreadRow :: Show a => String -> WithdrawalSpread a -> IO ()
+printWithdrawalSpreadRow lbl ws = do
+    printTableRow 9 [lbl, show ws.wlow, show ws.w2_0, show ws.w2_5, show ws.w3_0, show ws.w3_5, show ws.w4_0, show ws.w4_5, show ws.whigh]
 
 printTableRow :: Int -> [String] -> IO ()
 printTableRow p items = do

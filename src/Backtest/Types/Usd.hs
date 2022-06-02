@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE PolyKinds #-}
 module Backtest.Types.Usd where
 
@@ -16,13 +17,14 @@ data Stocks
 data Bonds
 data Total
 data Withdrawal
+data Income
 
 -- | Total in pennies
-data USD a = USD { totalCents :: Int }
-  deriving (Eq, Ord)
+newtype USD a = USD { totalCents :: Int }
+  deriving (Eq, Ord, Num)
 
 instance Semigroup (USD a) where
-  (USD a) <> (USD b) = USD (a + b)
+  a <> b = a + b
 
 instance Monoid (USD a) where
   mempty = USD 0
@@ -30,6 +32,11 @@ instance Monoid (USD a) where
 instance FromField (USD a) where
   parseField f =
     fromFloat <$> parseField f
+
+-- instance Num (USD a) where
+--   (USD a) + (USD b) = USD $ a + b
+
+
 
 -- show it rounded off
 instance Show (USD a) where
@@ -110,9 +117,6 @@ gains (USD s) (USD e) = USD $ abs e - abs s
 -- | the absolute difference between two amounts
 diff :: USD a -> USD a -> USD b
 diff (USD a) (USD b) = USD $ abs (a - b)
-
-add :: USD a -> USD a -> USD a
-add (USD a) (USD b) = USD $ a + b
 
 avg :: USD a -> USD a -> USD a
 avg a b = fromCents $ (totalCents a + totalCents b) `div` 2

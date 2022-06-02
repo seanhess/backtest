@@ -4,13 +4,13 @@ module Backtest.Lib where
 import Backtest.Prelude
 import Backtest.Types hiding (history)
 import Backtest.History
-import Backtest.Simulation (simulation, Actions, rebalance, withdraw, bondsFirst, balances, yearsLeft, now)
+import Backtest.Simulation (simulation, Actions, rebalance, withdraw, bondsFirst, balances, yearsLeft, now, income)
 import Backtest.Strategy
 import Backtest.Strategy.ABW
 import Backtest.Strategy.Steps
 import Backtest.MSWR (rateResults, isFailure)
 import Backtest.Aggregate (aggregateWithdrawals, yearSpread, spreadPoints)
-import Debug.Trace (trace)
+import Debug.Trace (trace, traceM)
 import Backtest.Debug
 import Data.List as List
 
@@ -24,23 +24,114 @@ run = do
 
     -- mapM_ print hs
 
-    -- runSimulation 50 hs
-    runMSWRs 100 hs
-    -- runAggregates 50 hs
+    -- runSimulation 60 (pct 100) hs
+    -- runMSWRs 60 (pct 60) hs
+    -- runAggregates 60 (pct 75) hs
     -- runCrashes 50 hs
+    runActual hs
 
     pure ()
 
 
 
 
+runActual :: [History] -> IO ()
+runActual hs = do
+    let ps = pct 75
+    let ss = samples 20 hs
+    let bnds = usd 411.8 :: USD (Bal Bonds)
+    let stks = usd 1065.5
+    let kids = usd 161.3
+    let start = Portfolio stks (bnds + (fromUSD $ loss kids))
 
-runSimulation :: YearsLeft -> [History] -> IO ()
-runSimulation yrs hs = do
+    let allRaises = map pct [3.0, 3.1 .. 10.0] :: [Pct Withdrawal]
+  
+    mapM_ (runRaise ss ps start) allRaises
+
+    -- 3.5% is the winner for 75/25!
+    -- 3.5 75/25 is 92 95 97 98
+    -- 3.5 80/20 is 92 95 97 98
+    -- 3.5 85/15 is 92 96 93 99
+
+    -- 3.5 100/0 is 90 92 89
+    -- 3.5 60/40 is 95 97 92
+    -- 3.5 90/10 is 90 95 92
+
+    -- 525 75/25 is 92 95 95 98
+
+    -- ignoring rebalancing (prime-like) doesn't work quite as well (90s instead)
+    -- I should have liabilities in bonds + my allocation
+
+    -- that's nice!
+
+    -- * 1966 failure year
+
+    let sim = simulation start $ actions start ps (pct 3.5)
+    let srs = map sim ss :: [SimResult]
+
+    (Just s1966) <- pure $ List.find (isYear 1966) srs
+    print $ s1966.startYear
+    print $ s1966.endBalance
+    printYearHeader
+    mapM_ printYear $ s1966.years
+    print $ isFailure s1966
+    pure ()
+
+  where
+
+    runRaise :: [[History]] -> Pct Stocks -> Balances -> Pct Withdrawal -> IO ()
+    runRaise ss ps start raise = do
+        print raise
+        runAggregate ss start $ actions start ps raise
+
+    -- TODO, deduct something first?
+    actions :: Balances -> Pct Stocks -> Pct Withdrawal -> Actions ()
+    actions start ps raise = do
+
+        bal <- balances
+        yl <- yearsLeft
+
+        -- let ks = kidExpenses yl
+        -- let start' = adjustKids ks start
+
+        let wda = staticWithdrawal raise start
+
+        let ss = socialSecurity yl
+        income ss
+
+
+        -- let bal' = adjustKids ks bal
+        let wf = withdrawalFloor wda raise bal
+        -- traceM $ show ("act", yl, wf, ss, ks)
+        withdraw wf
+        rebalance $ rebalance525Bands ps
+
+    -- kidExpenses yl
+    --   | yl > (60 - 5) = usd $ 9.6 + 13.2
+    --   | yl > (60 - 7) = usd $ 6.4 + 13.2
+    --   | yl > (60 - 10) = usd $ 3.4 + 13.2
+    --   | otherwise = usd 0
+
+    socialSecurity yl
+      | yl < 30 = usd 25
+      | otherwise = usd 0
+
+    -- adjustKids :: USD (Amt Bonds) -> Balances -> Balances
+    -- adjustKids ks bal =
+    --     bal { bonds = bal.bonds - (fromUSD $ gain ks) }
+
+
+
+    
+
+
+
+
+runSimulation :: YearsLeft -> Pct Stocks -> [History] -> IO ()
+runSimulation yrs ps hs = do
 
     let ss = samples yrs hs
-    let ps = pct 60
-    let start = thousand60
+    let start = thousand ps
 
 
     -- (Just h1966) <- pure $ List.find (\h -> h.year == Year 1966) hs
@@ -50,14 +141,17 @@ runSimulation yrs hs = do
     -- print $ sum rets
 
 
-    -- let wda = staticWithdrawal (pct 3.4) start :: USD (Amt Withdrawal)
+    let p = pct 3.3
+    let wda = staticWithdrawal p start :: USD (Amt Withdrawal)
     -- let sim = simulation start $ do
     --             rebalance $ rebalancePrime start.stocks
     --             withdraw wda
 
     let sim = simulation start $ do
-                withdrawSteps $ staticWithdrawal (pct 3.4) start
-                rebalance $ rebalanceFixed ps
+                -- withdrawSteps $ staticWithdrawal (pct 3.4) start
+                withdrawFloor wda p
+                -- rebalance $ rebalanceFixed ps
+                rebalance $ rebalancePrimeNew start.stocks
     let srs = map sim ss :: [SimResult]
 
 
@@ -99,10 +193,11 @@ runSimulation yrs hs = do
     print $ isFailure s1966
     pure ()
 
-runAggregates :: YearsLeft -> [History] -> IO ()
-runAggregates years hs = do
+
+
+runAggregates :: YearsLeft -> Pct Stocks -> [History] -> IO ()
+runAggregates years ps hs = do
     let ss = samples years hs
-    let ps = pct 60
     let bal = thousand ps
 
     putStrLn "Rebalance Fixed"
@@ -138,13 +233,43 @@ runAggregates years hs = do
     --     withdrawABWDips
     --     rebalance (rebalance525Bands ps)
 
-    putStrLn "Prime Harvesting"
+    putStrLn "Prime Harvesting ABW"
     putStrLn "----------------"
     runAggregate ss bal $ do
         withdrawABW
         rebalance $ rebalancePrime bal.stocks
     putStrLn ""
 
+
+    putStrLn "Floor Fixed 3.3"
+    putStrLn "----------------"
+    let swr100 = pct 3.3
+    let wda = staticWithdrawal swr100 bal
+    runAggregate ss bal $ do
+        withdrawFloor wda swr100
+        rebalance $ rebalanceFixed ps
+    putStrLn ""
+
+    putStrLn "Floor 525 3.3"
+    putStrLn "----------------"
+    runAggregate ss bal $ do
+        withdrawFloor wda swr100
+        rebalance $ rebalance525Bands ps
+    putStrLn ""
+
+    putStrLn "Floor No Rebalance"
+    putStrLn "----------------"
+    runAggregate ss bal $ do
+        withdrawFloor (staticWithdrawal (pct 3.3) bal) swr100
+    putStrLn ""
+
+    putStrLn "Floor 525 70/30 3.3"
+    putStrLn "----------------"
+    -- let wda' = staticWithdrawal (pct 3.4) bal
+    runAggregate ss (thousand (pct 70)) $ do
+        withdrawFloor (staticWithdrawal (pct 3.3) bal) (pct 3.3)
+        rebalance $ rebalance525Bands (pct 70)
+    putStrLn ""
 
 
     -- putStrLn "Prime Harvesting New"
@@ -160,18 +285,30 @@ runAggregate ss start acts = do
     let sim = simulation start acts
     let srs = map sim ss :: [SimResult]
     let wds = map (.wdSpread) srs
+    -- let low = filter wds
 
-    let wdBest95Pct = drop 4 $ sortOn spreadPoints wds
+    -- let wdBest95Pct = drop 4 $ sortOn spreadPoints wds
     -- print $ length srs
     -- mapM_ printWithdrawalSpread $ take 5 wdBest95Pct
 
     let aws = aggregateWithdrawals wds
-    printAggregateWithdrawals $ aggregateWithdrawals wdBest95Pct
+    printAggregateWithdrawals $ aggregateWithdrawals wds
+    print $ lowYears $ yearWds srs
 
     -- printWithdrawalSpreadRow aws.totalSpread
     -- printWithdrawalSpreadRow aws.worstSpread
     -- printWithdrawalSpreadRow aws.numSamples
     -- forM_ [aws.totalSpread, aws.worstSpread, aws.numSamples] $ \(ws :: WithdrawalSpread) -> do
+    where
+        yearWds :: [SimResult] -> [(Year, WithdrawalSpread Int)]
+        yearWds srs =
+            map (\sr -> (sr.startYear, sr.wdSpread)) srs
+
+        isLow :: (Year, WithdrawalSpread Int) -> Bool
+        isLow (_, s) = s.wlow > 0
+
+        lowYears :: [(Year, WithdrawalSpread Int)] -> [Year]
+        lowYears ys = map fst $ filter isLow ys
 
 
 
@@ -211,8 +348,8 @@ runAggregate ss start acts = do
 --     pure ()
 
 
-runMSWRs :: YearsLeft -> [History] -> IO ()
-runMSWRs years hs = do
+runMSWRs :: YearsLeft -> Pct Stocks -> [History] -> IO ()
+runMSWRs years ps hs = do
 
    -- COMPARE MSWR
     -----------------
@@ -221,7 +358,6 @@ runMSWRs years hs = do
     --  missing the 60s
 
     let ss = samples years hs
-    let ps = pct 70
     let bal = million ps
 
     putStrLn "Compare MSWRs"

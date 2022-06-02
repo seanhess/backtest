@@ -5,6 +5,7 @@ module Backtest.Simulation
   , averageEndPortfolio, medianEndPortfolio
   , rebalance
   , withdraw
+  , income
   , bondsFirst
   , Actions
   , noActions
@@ -103,6 +104,7 @@ simulation initial actions hs =
           , actions = act
           , end = end
           , withdrawal = st._withdrawal
+          , netIncome = st._income
           }
 
 
@@ -143,6 +145,7 @@ simulation initial actions hs =
           , actions = act
           , end = end
           , withdrawal = st._withdrawal
+          , netIncome = st._income
           }
 
 withdrawalResults :: [USD (Amt Withdrawal)] -> WithdrawalResults
@@ -244,6 +247,7 @@ newtype Actions a = Actions { fromActions :: State ActionState a }
 data ActionState = ActionState
   { _balances :: Balances
   , _withdrawal :: USD (Amt Withdrawal)
+  , _income :: USD (Amt Income)
   , _now :: History
   , _lastYear :: Maybe YearStart
   , _history :: [History]
@@ -263,20 +267,33 @@ runActions y h hs bal mys act =
 
 runActionState :: Year -> History -> [History] -> Balances -> Maybe YearStart -> Actions () -> ActionState
 runActionState ye h hs bal mys (Actions st) = 
-    let as = ActionState bal (usd 0) h mys hs ye :: ActionState
+    let as = ActionState bal (usd 0) (usd 0) h mys hs ye :: ActionState
     -- in trace (show ("runActionState", h.year)) $ execState st as
     in execState st as
 
 
-
-
-
 withdraw :: USD (Amt Withdrawal) -> Actions ()
 withdraw wda = do
-    modify $ \st -> st
-      { _withdrawal = wda
-      , _balances = bondsFirst wda st._balances
+    st <- get
+    let bal = bondsFirst wda st._balances
+    -- actual withdrawal is handled by withdrawal method
+    let wa' = total $ changes st._balances bal
+    put st
+      { _withdrawal = gain $ fromUSD $ wa'
+      , _balances = bal
       }
+
+income :: USD (Amt Income) -> Actions ()
+income inc = do
+    modify $ \st -> st
+      { _balances = addIncome inc st._balances
+      , _income = inc
+      }
+
+addIncome :: USD (Amt Income) -> Balances -> Balances
+addIncome inc b =
+    Portfolio b.stocks (addToBalance (gain inc) b.bonds)
+
 
 bondsFirst :: USD (Amt Withdrawal) -> Balances -> Balances
 bondsFirst wd b =
