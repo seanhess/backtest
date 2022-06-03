@@ -2,7 +2,6 @@
 module Backtest.Simulation
   ( simulation
   , calcReturns
-  , averageEndPortfolio, medianEndPortfolio
   , rebalance
   , withdraw
   , income
@@ -23,6 +22,7 @@ module Backtest.Simulation
 import Backtest.Prelude
 import Backtest.Types hiding (history)
 import Backtest.Types.Pct as Pct
+import Backtest.Aggregate (withdrawalResults, withdrawalSpread)
 import qualified Backtest.Types.Sim as Sim
 
 import Control.Monad.State (State, MonadState, modify, execState, put, get, gets)
@@ -66,16 +66,18 @@ simulation initial actions hs =
 
         ((yr, _), yrs) = List.mapAccumL (eachReturns ye) (firstYear, [firstYear]) hs'
 
+        years = firstYear:yrs
+
         bal' = yr.end
 
-        wds = map (.withdrawal) yrs
+        wds = map (.withdrawal) years
 
     in SimResult
       { startYear = ys
       , startBalance = initial
       , endYear = ye
       , endBalance = bal'
-      , years = firstYear:yrs
+      , years = years
       , wdAmts = withdrawalResults wds
       , wdSpread = withdrawalSpread (total initial) wds
       }
@@ -149,38 +151,6 @@ simulation initial actions hs =
           , netIncome = st._income
           }
 
-withdrawalResults :: [USD (Amt Withdrawal)] -> WithdrawalResults
-withdrawalResults wds =
-    WithdrawalResults
-        { low = minimum wds
-        , med = median wds
-        , init = head wds
-        , p10 = percentile 0.10 wds
-        , p25 = percentile 0.25 wds
-        , p75 = percentile 0.75 wds
-        , p90 = percentile 0.90 wds
-        }
-    where
-
-
-withdrawalSpread :: USD (Bal Total) -> [USD (Amt Withdrawal)] -> WithdrawalSpread Int
-withdrawalSpread start wds =
-    WithdrawalSpread
-        { wlow = lowWithdrawals start (pct 0.0) (pct 2.0) wds
-        , w2_0 = lowWithdrawals start (pct 2.0) (pct 2.5) wds
-        , w2_5 = lowWithdrawals start (pct 2.5) (pct 3.0) wds
-        , w3_0 = lowWithdrawals start (pct 3.0) (pct 3.5) wds
-        , w3_5 = lowWithdrawals start (pct 3.5) (pct 4.0) wds
-        , w4_0 = lowWithdrawals start (pct 4.0) (pct 4.5) wds
-        , w4_5 = lowWithdrawals start (pct 4.5) (pct 5.0) wds
-        , whigh = lowWithdrawals start (pct 5.0) (pct 100) wds
-        }
-
-lowWithdrawals :: USD (Bal Total) -> Pct Withdrawal -> Pct Withdrawal -> [USD (Amt Withdrawal)] -> Int
-lowWithdrawals start low high wds =
-    let l = amount low start
-        h = amount high start
-    in length $ filter (\w -> l <= w && w < h) wds
 
 
 -- drawdowns :: USD (Amt Withdrawal) -> [YearResult] -> [[YearResult]]
@@ -219,18 +189,6 @@ calcReturns h b =
 
 
 
-
-
-averageEndPortfolio :: [SimResult] -> USD (Bal Total)
-averageEndPortfolio srs =
-    let tots = map (total . (.endBalance)) srs
-    in fromCents $ round $ (fromIntegral $ sum $ map (totalCents) tots :: Float) / (fromIntegral $ length tots :: Float) :: USD (Bal Total)
-
--- Median END Balance, not portfolio
-medianEndPortfolio :: [SimResult] -> USD (Bal Total)
-medianEndPortfolio srs =
-    let tots = map (total . (.endBalance)) srs
-    in fromCents $ median $ map totalCents tots
 
 
 
@@ -346,22 +304,6 @@ noChanges _ = Portfolio mempty mempty
 
 
 
-
-
-
-
-
-
-
-median :: (Ord a) => [a] -> a   
-median [] = error "Median of empty list"
-median xs = sort xs !! mid   
- where mid = (length xs) `div` 2 
-
-percentile :: (Ord a) => Float -> [a] -> a   
-percentile _ [] = error "Percentile of empty list"
-percentile p xs = sort xs !! n
- where n = round $ (fromIntegral $ length xs) * p
 
 
 

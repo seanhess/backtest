@@ -5,6 +5,7 @@ import Backtest.Prelude
 import Backtest.Types
 import Backtest.Simulation
 import Backtest.Strategy
+import Backtest.Aggregate
 import Data.List as List
 
 rateResults :: [[History]] -> Balances -> Actions () -> [Pct Withdrawal] -> [RateResult]

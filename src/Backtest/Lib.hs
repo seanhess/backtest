@@ -10,7 +10,7 @@ import Backtest.Strategy.ABW
 import Backtest.Strategy.Steps
 import Backtest.Strategy.Peak
 import Backtest.MSWR (rateResults, isFailure)
-import Backtest.Aggregate (aggregateWithdrawals, yearSpread, spreadPoints)
+import Backtest.Aggregate (aggregateSpread, yearSpread, spreadPoints, aggregateResults)
 import Debug.Trace (trace, traceM)
 import Backtest.Debug
 import Data.List as List
@@ -149,14 +149,19 @@ runSimulation yrs ps hs = do
     let sim = simulation start $ do
                 n <- now
 
-                withdrawPeak (historyPeak n.year hs) p
-                -- withdrawFloor (staticWithdrawal p start) p
+                -- withdrawPeak (historyPeak n.year hs) p
+                withdrawFloor (staticWithdrawal p start) p
 
                 rebalance $ rebalanceFixed ps
                 -- rebalance $ rebalancePrimeNew start.stocks
     let srs = map sim ss :: [SimResult]
 
 
+
+    printWithdrawalResultsHeader
+
+    forM_ srs $ \sr -> do
+        printWithdrawalResultsRow (show sr.startYear) sr.wdAmts
 
     -- print $ head hs
 
@@ -187,7 +192,7 @@ runSimulation yrs ps hs = do
 
 
     -- * 1966 failure year
-    (Just s1966) <- pure $ List.find (isYear 1970) srs
+    (Just s1966) <- pure $ List.find (isYear 1945) srs
     print $ s1966.startYear
     print $ s1966.endBalance
     printYearHeader
@@ -266,11 +271,11 @@ runAggregates years ps hs = do
     --     rebalance $ rebalance525Bands ps
     -- putStrLn ""
 
-    putStrLn "Floor No Rebalance"
-    putStrLn "----------------"
-    runAggregate ss bal $ do
-        withdrawFloor (staticWithdrawal (pct 3.3) bal) swr100
-    putStrLn ""
+    -- putStrLn "Floor No Rebalance"
+    -- putStrLn "----------------"
+    -- runAggregate ss bal $ do
+    --     withdrawFloor (staticWithdrawal (pct 3.3) bal) swr100
+    -- putStrLn ""
 
     -- putStrLn "Floor 525 70/30 3.3"
     -- putStrLn "----------------"
@@ -303,9 +308,15 @@ runAggregate ss start acts = do
     -- print $ length srs
     -- mapM_ printWithdrawalSpread $ take 5 wdBest95Pct
 
-    let aws = aggregateWithdrawals wds
-    printAggregateWithdrawals $ aggregateWithdrawals wds
+    -- let aws = aggregateWithdrawals wds
+    printAggregateSpread $ aggregateSpread wds
+
+    putStrLn "Bad Years"
     print $ lowYears $ yearWds srs
+
+    putStrLn "Median Results"
+    printWithdrawalResultsHeader
+    printWithdrawalResultsRow "" $ aggregateResults $ map (.wdAmts) srs
 
     -- printWithdrawalSpreadRow aws.totalSpread
     -- printWithdrawalSpreadRow aws.worstSpread

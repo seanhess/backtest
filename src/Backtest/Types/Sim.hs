@@ -42,7 +42,7 @@ data RateResult = RateResult
   , medEndPortfolio :: USD (Bal Total)
   }
 
-data AggregateWithdrawals = AggregateWithdrawals
+data AggregateSpread = AggregateSpread
   { totalSpread :: WithdrawalSpread Int -- ^ add them all together
   , worstSpread :: WithdrawalSpread Int -- ^ the worst year
   , numSamples  :: WithdrawalSpread (Pct Success) -- ^ number of samples that have at least one of each
@@ -67,6 +67,8 @@ data WithdrawalSpread a = WithdrawalSpread
   , w3_5 :: a
   , w4_0 :: a
   , w4_5 :: a
+  , w5_0 :: a
+  , w5_5 :: a
   , whigh :: a
   }
 
