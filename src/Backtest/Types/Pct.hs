@@ -29,6 +29,12 @@ instance Eq (Pct a) where
 instance Show (Pct a) where
   show p = showFFloat (Just 3) (toFloat p * 100) "%"
 
+instance Semigroup (Pct a) where
+  a <> b = a + b
+
+instance Monoid (Pct a) where
+  mempty = Pct 0
+
 
 inverse :: Pct a -> Pct a
 inverse (Pct a) = Pct (1 - a)

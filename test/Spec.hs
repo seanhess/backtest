@@ -8,6 +8,7 @@ import Backtest.MSWR
 import Backtest.Simulation
 import Backtest.Strategy
 import Backtest.Strategy.ABW
+import Backtest.Strategy.Peak
 import Backtest.Debug
 import qualified Backtest.Types.Pct as Pct
 
@@ -55,6 +56,7 @@ main = do
   test "testPMT" assertPMT
   test "testABW" assertABW
   test "pmtFluctate" assertFluctate
+  test "peak" assertPeak
 
 
 
@@ -125,7 +127,7 @@ assertAmount = do
 
 assertReturns :: Test ()
 assertReturns = do
-  let h = History (Year 1872) (Portfolio (pct 10.0) (pct 1.0)) (CAPE 10)
+  let h = History (Year 1872) (Portfolio (pct 10.0) (pct 1.0)) mempty (CAPE 10)
   let b = Portfolio (usd 100) (usd 100)
 
   expect "returns to match history" $ do
@@ -317,9 +319,9 @@ assertSimulation = do
   -- State at the beginning of the year
   --   past returns
   --   current cape ratio
-  let h0 = History (Year 1900) (Portfolio (pct 10.0) (pct 1.0)) (CAPE 10)
-  let h1 = History (Year 1901) (Portfolio (pct 20.0) (pct 2.0)) (CAPE 20)
-  let h2 = History (Year 1902) (Portfolio (pct 30.0) (pct 2.0)) (CAPE 30)
+  let h0 = History (Year 1900) (Portfolio (pct 10.0) (pct 1.0)) mempty (CAPE 10)
+  let h1 = History (Year 1901) (Portfolio (pct 20.0) (pct 2.0)) mempty (CAPE 20)
+  let h2 = History (Year 1902) (Portfolio (pct 30.0) (pct 2.0)) mempty (CAPE 30)
 
   let bal = Portfolio (usd 1000) (usd 0)
 
@@ -359,6 +361,8 @@ assertSimulation = do
     y3.returns    === Portfolio (usd (r1902 - s1901)) mempty
     y3.end.stocks === usd s1902
 
+  -- expect "three past years" $ do
+
 
 
 assertRebalance :: Test ()
@@ -387,7 +391,7 @@ assertStandard = do
   let start = Portfolio (usd 600) (usd 400)
   let bal = Portfolio   (usd 800) (usd 400)
   let wda = staticWithdrawal swr4 start
-  let h = History (Year 1872) (Portfolio (pct 10.0) (pct 1.0)) (CAPE 10)
+  let h = History (Year 1872) (Portfolio (pct 10.0) (pct 1.0)) mempty (CAPE 10)
   let y = h.year
 
 
@@ -410,18 +414,18 @@ assertStandard = do
     ch.stocks === usd (-80)
   
   expect "withdrawal " $ do
-    let bal' = runActions y h [] bal Nothing (withdraw4 start)
+    let bal' = runActions y h [] bal [] (withdraw4 start)
     bal'.stocks === usd 800
     bal'.bonds === usd 360
 
   expect "rebalance" $ do
-    let bal' = runActions y h [] bal Nothing $ rebalancePct (pct 60)
+    let bal' = runActions y h [] bal [] $ rebalancePct (pct 60)
     bal'.stocks === usd 720
     bal'.bonds === usd 480
 
 
   -- run full standard
-  let bal' = runActions y h [] bal Nothing (withdraw4 start >> rebalancePct (pct 60))
+  let bal' = runActions y h [] bal [] (withdraw4 start >> rebalancePct (pct 60))
   let chs  = changes bal bal'
 
   expect "withdrawal should result in net -40" $ do
@@ -445,13 +449,13 @@ assertStandard = do
 assertActions :: Test ()
 assertActions = do
   let bal = Portfolio (usd 100) (usd 200)
-  let h = History (Year 1900) (Portfolio (pct 10.0) (pct 1.0)) (CAPE 10)
+  let h = History (Year 1900) (Portfolio (pct 10.0) (pct 1.0)) mempty (CAPE 10)
   let y = Year 1872
 
   let ch = \b -> Portfolio (addToBalance (usd 20) b.stocks) (addToBalance (usd 30) b.bonds)
 
   expect "stocks should be the sum of both changes" $ do
-    let fin = runActions y h [] (bal) Nothing $ do
+    let fin = runActions y h [] (bal) [] $ do
                 rebalance ch
                 rebalance ch
 
@@ -460,7 +464,7 @@ assertActions = do
   expect "withdraw everything if balance is insufficient" $ do
     let bal' = Portfolio (usd 20) (usd 10)
     let wa = usd 40
-    let ye = runActionState h.year h [h] bal' Nothing (withdraw wa)
+    let ye = runActionState h.year h [h] bal' [] (withdraw wa)
     ye._withdrawal === usd 30
     ye._balances.stocks === usd 0
     ye._balances.bonds === usd 0
@@ -599,8 +603,8 @@ assertABW = do
   -- check actual withdrawal
   let y = Year 1900
   let ye = Year 1950 -- the year we are out of money and take no actions
-  let h = History y (Portfolio (pct 0.0) (pct 0.0)) (CAPE 40)
-  let st = runActionState ye h [] p Nothing withdrawABW
+  let h = History y (Portfolio (pct 0.0) (pct 0.0)) mempty (CAPE 40)
+  let st = runActionState ye h [] p [] withdrawABW
 
   expect "withdrawal amount to be the same" $ do
     st._withdrawal === wda
@@ -610,9 +614,9 @@ assertABW = do
     st._balances.stocks === addToBalance (loss wda) p.stocks
 
 
-  let h1 = History (Year 1900) (Portfolio (pct 0.0) (pct 10.0)) (CAPE 10)
-  let h2 = History (Year 1901) (Portfolio (pct 0.0) (pct 20.0)) (CAPE 20)
-  let h3 = History (Year 1902) (Portfolio (pct 0.0) (pct 30.0)) (CAPE 30)
+  let h1 = History (Year 1900) (Portfolio (pct 0.0) (pct 10.0)) mempty (CAPE 10)
+  let h2 = History (Year 1901) (Portfolio (pct 0.0) (pct 20.0)) mempty (CAPE 20)
+  let h3 = History (Year 1902) (Portfolio (pct 0.0) (pct 30.0)) mempty (CAPE 30)
   let hs = [h1, h2, h3]
   let bal = Portfolio (usd 1000) (usd 0)
 
@@ -664,6 +668,32 @@ assertFluctate = do
 
   expect "to withdraw everything with no returns" $ do
     pmtFluctuate [] (usd 100) === usd (100)
+
+
+assertPeak :: Test ()
+assertPeak = do
+  expect "to use current if peak" $ do
+    peakWithdrawal identity swr4 thousand60 === usd 40
+
+  expect "to use peak otherwise" $ do
+    peakWithdrawal (\_ -> Portfolio (usd 10000) mempty) swr4 thousand60 === usd 400
+
+  let hr0 = History (Year 1900) mempty (Portfolio (usd 100) (usd 111)) (CAPE 20)
+  let hr1 = History (Year 1901) mempty (Portfolio (usd 110) (usd 100)) (CAPE 20)
+  let hr2 = History (Year 1902) mempty (Portfolio (usd 95)  (usd 101)) (CAPE 20)
+  let hr3 = History (Year 1903) mempty (Portfolio (usd 100) (usd 100)) (CAPE 20)
+  let hr4 = History (Year 1904) mempty (Portfolio (usd 120) (usd 100)) (CAPE 20)
+
+  let rows = [hr0, hr1, hr2, hr3, hr4] :: [History]
+
+  expect "to find the peak" $ do
+    historyPeak hr3.year rows thousand60 === Portfolio (usd 660) (usd 400)
+
+  expect "to use current as peak" $ do
+    historyPeak hr4.year rows thousand50 === Portfolio (usd 500) (usd 500)
+
+  expect "to find peak via bonds" $ do
+    historyPeak hr3.year rows thousand50 === Portfolio (usd 500) (usd 555)
 
 
 

@@ -16,6 +16,15 @@ type Changes  = Portfolio USD Amt
 instance Semigroup (Portfolio USD f) where
   Portfolio s b <> Portfolio s' b' = Portfolio (s <> s') (b <> b')
 
+instance Monoid (Portfolio USD f) where
+  mempty = Portfolio mempty mempty
+
+instance Semigroup (Portfolio Pct f) where
+  Portfolio s b <> Portfolio s' b' = Portfolio (s <> s') (b <> b')
+
+instance Monoid (Portfolio Pct f) where
+  mempty = Portfolio mempty mempty
+
 instance Show (Portfolio USD f) where
   show (Portfolio s b) = show (s, b)
 
@@ -41,6 +50,23 @@ allocationStocks bal = fromPct $ percentOf bal.stocks (total bal)
 
 pctBonds :: Pct Stocks -> Pct Bonds
 pctBonds (Pct s) = Pct (1 - s)
+
+
+
+data Gains a
+
+-- we want to maximum the GAINS, no?
+gainsPortfolio :: Balances -> Balances -> Portfolio Pct Gains
+gainsPortfolio start end = Portfolio
+  { stocks = gainsPercent start.stocks end.stocks
+  , bonds = gainsPercent start.bonds end.bonds
+  }
+
+applyGains :: Balances -> Portfolio Pct Gains -> Balances
+applyGains bal gs = Portfolio
+  { stocks = addToBalance (amount gs.stocks bal.stocks) bal.stocks
+  , bonds = addToBalance (amount gs.bonds bal.bonds) bal.bonds
+  }
 
 
 

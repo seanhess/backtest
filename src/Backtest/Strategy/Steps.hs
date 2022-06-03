@@ -27,6 +27,10 @@ withdrawalFloor old raise bal =
   in max old raised
 
 
+-- withdrawalPeak :: Portfolio USD Bal -> 
+-- withdrawalPeak peak 
+
+
 -- what was the PREVIOUS withdrawal?
 -- it's not based on the current state of the portfolio
 -- but based on your history

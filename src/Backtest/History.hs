@@ -27,7 +27,7 @@ toHistories hr =
   catMaybes $ zipWith toHistory hr (drop 1 hr)
 
 fakeHistory :: Year -> History
-fakeHistory y = History y (Portfolio (pct 5) (pct 2)) (CAPE 30)
+fakeHistory y = History y (Portfolio (pct 5) (pct 2)) (Portfolio (usd 4582) (usd 46.65)) (CAPE 30)
 
 -- find the history or use a fake one
 simHistory :: [History] -> Year -> History
@@ -50,10 +50,10 @@ toHistory past now = do
           { stocks = gainsPercent past.stocks now.stocks
           , bonds = gainsPercent past.bonds now.bonds
           }
-      -- , values = Portfolio
-      --     { stocks = now.stocks
-      --     , bonds = now.bonds
-      --     }
+      , values = Portfolio
+          { stocks = now.stocks
+          , bonds = now.bonds
+          }
       , cape = c
       }
 

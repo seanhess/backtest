@@ -14,12 +14,12 @@ printYearHeader :: IO ()
 printYearHeader =
     printTableRow 9
       [ "Year"
-      , "beg.stck"
-      , "beg.bnds"
       , "ret.stck"
       , "ret.bnds"
+      , "beg.stck"
+      , "beg.bnds"
       , "income"
-      , "Withdrawal"
+      , "withdraw"
       , "act.stck"
       , "act.bnds"
       , "end.stck"
@@ -31,17 +31,17 @@ printYear :: YearStart -> IO ()
 printYear yr =
     printTableRow 9
       [ fromMaybe "" $ (show . (.year)) <$> yr.history
-      , show yr.start.stocks
-      , show yr.start.bonds
       , show yr.returns.stocks
       , show yr.returns.bonds
+      , show yr.start.stocks
+      , show yr.start.bonds
       , show yr.netIncome
       , show yr.withdrawal
       , show yr.actions.stocks
       , show yr.actions.bonds
       , show yr.end.stocks
       , show yr.end.bonds
-      , fromMaybe "" $ (show . (.cape)) <$> yr.history
+      , fromMaybe "" $ (show . fromCAPE . (.cape)) <$> yr.history
       ]
 
 printWithdrawalResults :: WithdrawalResults -> IO ()

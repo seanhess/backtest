@@ -70,6 +70,7 @@ clean s = do
 data History = History
   { year      :: Year
   , returns   :: Portfolio Pct Return
+  , values    :: Portfolio USD Bal
   , cape      :: CAPE
   } deriving (Show)
 

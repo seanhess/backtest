@@ -8,6 +8,7 @@ import Backtest.Simulation (simulation, Actions, rebalance, withdraw, bondsFirst
 import Backtest.Strategy
 import Backtest.Strategy.ABW
 import Backtest.Strategy.Steps
+import Backtest.Strategy.Peak
 import Backtest.MSWR (rateResults, isFailure)
 import Backtest.Aggregate (aggregateWithdrawals, yearSpread, spreadPoints)
 import Debug.Trace (trace, traceM)
@@ -24,11 +25,11 @@ run = do
 
     -- mapM_ print hs
 
-    -- runSimulation 60 (pct 100) hs
+    -- runSimulation 60 (pct 75) hs
     -- runMSWRs 60 (pct 60) hs
-    -- runAggregates 60 (pct 75) hs
+    runAggregates 60 (pct 75) hs
     -- runCrashes 50 hs
-    runActual hs
+    -- runActual hs
 
     pure ()
 
@@ -48,6 +49,8 @@ runActual hs = do
   
     mapM_ (runRaise ss ps start) allRaises
 
+    -- TODO I need a better instrument for this. A graph?
+    -- no, I need a way to optimize. Median withdrawal? 10th percentile median withdrawal
     -- 3.5% is the winner for 75/25!
     -- 3.5 75/25 is 92 95 97 98
     -- 3.5 80/20 is 92 95 97 98
@@ -142,16 +145,15 @@ runSimulation yrs ps hs = do
 
 
     let p = pct 3.3
-    let wda = staticWithdrawal p start :: USD (Amt Withdrawal)
-    -- let sim = simulation start $ do
-    --             rebalance $ rebalancePrime start.stocks
-    --             withdraw wda
 
     let sim = simulation start $ do
-                -- withdrawSteps $ staticWithdrawal (pct 3.4) start
-                withdrawFloor wda p
-                -- rebalance $ rebalanceFixed ps
-                rebalance $ rebalancePrimeNew start.stocks
+                n <- now
+
+                withdrawPeak (historyPeak n.year hs) p
+                -- withdrawFloor (staticWithdrawal p start) p
+
+                rebalance $ rebalanceFixed ps
+                -- rebalance $ rebalancePrimeNew start.stocks
     let srs = map sim ss :: [SimResult]
 
 
@@ -185,7 +187,7 @@ runSimulation yrs ps hs = do
 
 
     -- * 1966 failure year
-    (Just s1966) <- pure $ List.find (isYear 1966) srs
+    (Just s1966) <- pure $ List.find (isYear 1970) srs
     print $ s1966.startYear
     print $ s1966.endBalance
     printYearHeader
@@ -214,18 +216,18 @@ runAggregates years ps hs = do
     --     rebalance $ rebalanceFixed ps
     -- putStrLn ""
 
-    putStrLn "Fixed Steps"
-    putStrLn "----------------"
-    runAggregate ss bal $ do
-        withdrawSteps $ staticWithdrawal (pct 4) bal
-        rebalance $ rebalanceFixed ps
-    putStrLn ""
+    -- putStrLn "Fixed Steps"
+    -- putStrLn "----------------"
+    -- runAggregate ss bal $ do
+    --     withdrawSteps $ staticWithdrawal (pct 4) bal
+    --     rebalance $ rebalanceFixed ps
+    -- putStrLn ""
 
-    putStrLn "Swedroe 5/25"
-    putStrLn "----------------"
-    runAggregate ss bal $ do
-        withdrawABW
-        rebalance (rebalance525Bands ps)
+    -- putStrLn "Swedroe 5/25"
+    -- putStrLn "----------------"
+    -- runAggregate ss bal $ do
+    --     withdrawABW
+    --     rebalance (rebalance525Bands ps)
 
     -- putStrLn "Swedroe 5/25 Dips"
     -- putStrLn "----------------"
@@ -233,12 +235,19 @@ runAggregates years ps hs = do
     --     withdrawABWDips
     --     rebalance (rebalance525Bands ps)
 
-    putStrLn "Prime Harvesting ABW"
-    putStrLn "----------------"
-    runAggregate ss bal $ do
-        withdrawABW
-        rebalance $ rebalancePrime bal.stocks
-    putStrLn ""
+    -- putStrLn "Prime Harvesting ABW"
+    -- putStrLn "----------------"
+    -- runAggregate ss bal $ do
+    --     withdrawABW
+    --     rebalance $ rebalancePrime bal.stocks
+    -- putStrLn ""
+
+    -- putStrLn "Prime Harvesting New"
+    -- putStrLn "----------------"
+    -- runAggregate ss bal $ do
+    --     withdrawABW
+    --     rebalance $ rebalancePrimeNew bal.stocks
+    -- putStrLn ""
 
 
     putStrLn "Floor Fixed 3.3"
@@ -250,12 +259,12 @@ runAggregates years ps hs = do
         rebalance $ rebalanceFixed ps
     putStrLn ""
 
-    putStrLn "Floor 525 3.3"
-    putStrLn "----------------"
-    runAggregate ss bal $ do
-        withdrawFloor wda swr100
-        rebalance $ rebalance525Bands ps
-    putStrLn ""
+    -- putStrLn "Floor 525 3.3"
+    -- putStrLn "----------------"
+    -- runAggregate ss bal $ do
+    --     withdrawFloor wda swr100
+    --     rebalance $ rebalance525Bands ps
+    -- putStrLn ""
 
     putStrLn "Floor No Rebalance"
     putStrLn "----------------"
@@ -263,21 +272,24 @@ runAggregates years ps hs = do
         withdrawFloor (staticWithdrawal (pct 3.3) bal) swr100
     putStrLn ""
 
-    putStrLn "Floor 525 70/30 3.3"
+    -- putStrLn "Floor 525 70/30 3.3"
+    -- putStrLn "----------------"
+    -- -- let wda' = staticWithdrawal (pct 3.4) bal
+    -- runAggregate ss (thousand (pct 70)) $ do
+    --     withdrawFloor (staticWithdrawal (pct 3.3) bal) (pct 3.3)
+    --     rebalance $ rebalance525Bands (pct 70)
+    -- putStrLn ""
+
+    putStrLn "Peak Fixed 3.3"
     putStrLn "----------------"
-    -- let wda' = staticWithdrawal (pct 3.4) bal
-    runAggregate ss (thousand (pct 70)) $ do
-        withdrawFloor (staticWithdrawal (pct 3.3) bal) (pct 3.3)
-        rebalance $ rebalance525Bands (pct 70)
+    runAggregate ss bal $ do
+        n <- now
+        withdrawPeak (historyPeak n.year hs) (pct 3.3)
+        rebalance $ rebalanceFixed ps
     putStrLn ""
 
 
-    -- putStrLn "Prime Harvesting New"
-    -- putStrLn "----------------"
-    -- runAggregate ss bal $ do
-    --     withdrawABW
-    --     rebalance $ rebalancePrimeNew bal.stocks
-    -- putStrLn ""
+
 
 
 runAggregate :: [[History]] -> Balances -> Actions () -> IO ()
