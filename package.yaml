@@ -26,6 +26,7 @@ dependencies:
 - containers
 - Decimal
 - exceptions
+- hvega
 - record-hasfield
 - record-dot-preprocessor
 - mtl

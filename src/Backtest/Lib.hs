@@ -9,6 +9,7 @@ import Backtest.Strategy
 import Backtest.Strategy.ABW
 import Backtest.Strategy.Steps
 import Backtest.Strategy.Peak
+import Backtest.Graph
 import Backtest.MSWR (rateResults, isFailure)
 import Backtest.Aggregate
 import Debug.Trace (trace, traceM)
@@ -25,11 +26,12 @@ run = do
 
     -- mapM_ print hs
 
-    -- runSimulation 60 (pct 75) hs
+    runSimulation 60 (pct 75) hs
     -- runMSWRs 60 (pct 60) hs
     -- runCrashes 50 hs
-    runActual hs
+    -- runActual hs
     -- runAggregates 60 (pct 75) hs
+    -- runChart 60 hs
 
     pure ()
 
@@ -207,12 +209,19 @@ runSimulation yrs ps hs = do
 
 
     -- * 1966 failure year
-    (Just s1966) <- pure $ List.find (isYear 1945) srs
+    (Just s1966) <- pure $ List.find (isYear 1982) srs
     print $ s1966.startYear
     print $ s1966.endBalance
     printYearHeader
     mapM_ printYear $ s1966.years
     print $ isFailure s1966
+    pure ()
+
+
+    -- toExampleChart $ withdrawalBinChart $ simData srs
+    toChartFile  "graphs/withdrawal-bin.html" $ withdrawalBinChart $ simData srs
+    toChartFile  "graphs/withdrawal-line.html" $ withdrawalLineChart $ simData srs
+
     pure ()
 
 

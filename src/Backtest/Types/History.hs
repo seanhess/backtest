@@ -13,7 +13,7 @@ import Text.Read (readMaybe)
 import Data.Either (fromRight)
 
 newtype Year = Year { fromYear :: Int }
-  deriving (Eq, FromField, Ord, Enum)
+  deriving (Eq, FromField, Ord, Enum, Num)
 
 nextYear :: Year -> Year
 nextYear (Year n) = Year (n+1)

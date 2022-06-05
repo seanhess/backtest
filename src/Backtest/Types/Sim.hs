@@ -13,6 +13,7 @@ import Backtest.Types.Portfolio
 -- Where you are at the end of the given year, before taking any action
 data YearStart = YearStart
   { year       :: Year
+  , yearIndex  :: Int
   , history    :: Maybe History
   , start      :: Balances
   , end        :: Balances

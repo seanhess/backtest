@@ -64,7 +64,7 @@ simulation initial actions hs =
 
         firstYear = firstYearResult ye h initial
 
-        ((yr, _), yrs) = List.mapAccumL (eachReturns ye) (firstYear, [firstYear]) hs'
+        ((yr, _), yrs) = List.mapAccumL (eachReturns ys ye) (firstYear, [firstYear]) hs'
 
         years = firstYear:yrs
 
@@ -84,9 +84,9 @@ simulation initial actions hs =
     
   where
 
-    eachReturns :: Year -> (YearStart, [YearStart]) -> History -> ((YearStart, [YearStart]), YearStart)
-    eachReturns ye (lastYear, pastYears) h =
-        let yr = nextYearResult ye h pastYears lastYear.end
+    eachReturns :: Year -> Year -> (YearStart, [YearStart]) -> History -> ((YearStart, [YearStart]), YearStart)
+    eachReturns ys ye (lastYear, pastYears) h =
+        let yr = nextYearResult ys ye h pastYears lastYear.end
         in ((yr, yr:pastYears), yr)
 
 
@@ -102,6 +102,7 @@ simulation initial actions hs =
         in YearStart
           { history = Just h
           , year = h.year
+          , yearIndex = 0
           , start = start
           , returns = ret
           , actions = act
@@ -116,8 +117,8 @@ simulation initial actions hs =
     -- YearResult 1901 (10% ret) (Withdrawal) Rebalance
 
     -- ye = the simulation ends in which year?
-    nextYearResult :: Year -> History -> [YearStart] -> Balances -> YearStart
-    nextYearResult ye h pastYears balOld = 
+    nextYearResult :: Year -> Year -> History -> [YearStart] -> Balances -> YearStart
+    nextYearResult ys ye h pastYears balOld = 
 
         -- Its the beginning of simulation
         --   a. withdraw
@@ -143,6 +144,7 @@ simulation initial actions hs =
         in YearStart
           { history = Just h
           , year = h.year
+          , yearIndex = fromYear $ h.year - ys
           , start = balRet
           , returns = ret
           , actions = act

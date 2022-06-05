@@ -27,6 +27,7 @@ library
   exposed-modules:
       Backtest.Aggregate
       Backtest.Debug
+      Backtest.Graph
       Backtest.History
       Backtest.Lib
       Backtest.MSWR
@@ -80,6 +81,7 @@ library
     , cassava
     , containers
     , exceptions
+    , hvega
     , mtl
     , record-dot-preprocessor
     , record-hasfield
@@ -128,6 +130,7 @@ executable backtest-exe
     , cassava
     , containers
     , exceptions
+    , hvega
     , mtl
     , record-dot-preprocessor
     , record-hasfield
@@ -143,6 +146,7 @@ test-suite backtest-test
   other-modules:
       Backtest.Aggregate
       Backtest.Debug
+      Backtest.Graph
       Backtest.History
       Backtest.Lib
       Backtest.MSWR
@@ -197,6 +201,7 @@ test-suite backtest-test
     , cassava
     , containers
     , exceptions
+    , hvega
     , mtl
     , record-dot-preprocessor
     , record-hasfield
