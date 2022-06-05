@@ -10,7 +10,7 @@ import Backtest.Strategy.ABW
 import Backtest.Strategy.Steps
 import Backtest.Strategy.Peak
 import Backtest.MSWR (rateResults, isFailure)
-import Backtest.Aggregate (aggregateSpread, yearSpread, spreadPoints, aggregateResults)
+import Backtest.Aggregate
 import Debug.Trace (trace, traceM)
 import Backtest.Debug
 import Data.List as List
@@ -27,27 +27,36 @@ run = do
 
     -- runSimulation 60 (pct 75) hs
     -- runMSWRs 60 (pct 60) hs
-    runAggregates 60 (pct 75) hs
     -- runCrashes 50 hs
-    -- runActual hs
+    runActual hs
+    -- runAggregates 60 (pct 75) hs
 
     pure ()
 
 
 
+-- 3.53% of peak!
 
 runActual :: [History] -> IO ()
 runActual hs = do
-    let ps = pct 75
-    let ss = samples 20 hs
+    let ps = pct 90
+    let ss = samples 60 hs
     let bnds = usd 411.8 :: USD (Bal Bonds)
     let stks = usd 1065.5
     let kids = usd 161.3
     let start = Portfolio stks (bnds + (fromUSD $ loss kids))
 
-    let allRaises = map pct [3.0, 3.1 .. 10.0] :: [Pct Withdrawal]
+    let allRaises = map pct [3.50, 3.51 .. 3.60] :: [Pct Withdrawal]
+    let allAllocs = map pct [60, 65 .. 100] :: [Pct Stocks]
   
-    mapM_ (runRaise ss ps start) allRaises
+    -- forM_ allRaises $ \x -> do
+    --     runRaise ss (pct 100) start x -- (pct 3.53)
+
+    forM_ allAllocs $ \x -> do
+        runRaise ss x start (pct 3.53)
+
+    forM_ allAllocs $ \x -> do
+        runRaise ss x start (pct 3.57)
 
     -- TODO I need a better instrument for this. A graph?
     -- no, I need a way to optimize. Median withdrawal? 10th percentile median withdrawal
@@ -69,22 +78,22 @@ runActual hs = do
 
     -- * 1966 failure year
 
-    let sim = simulation start $ actions start ps (pct 3.5)
-    let srs = map sim ss :: [SimResult]
+    -- let sim = simulation start $ actions start ps (pct 3.5)
+    -- let srs = map sim ss :: [SimResult]
 
-    (Just s1966) <- pure $ List.find (isYear 1966) srs
-    print $ s1966.startYear
-    print $ s1966.endBalance
-    printYearHeader
-    mapM_ printYear $ s1966.years
-    print $ isFailure s1966
-    pure ()
+    -- (Just s1966) <- pure $ List.find (isYear 1966) srs
+    -- print $ s1966.startYear
+    -- print $ s1966.endBalance
+    -- printYearHeader
+    -- mapM_ printYear $ s1966.years
+    -- print $ isFailure s1966
+    -- pure ()
 
   where
 
     runRaise :: [[History]] -> Pct Stocks -> Balances -> Pct Withdrawal -> IO ()
     runRaise ss ps start raise = do
-        print raise
+        print ("stocks:", ps, "raise:", raise)
         runAggregate ss start $ actions start ps raise
 
     -- TODO, deduct something first?
@@ -104,10 +113,16 @@ runActual hs = do
 
 
         -- let bal' = adjustKids ks bal
-        let wf = withdrawalFloor wda raise bal
+
+        -- let wf = withdrawalFloor wda raise bal
+        -- withdraw wf
+
+        n <- now
+        withdrawPeak (historyPeak n.year hs) raise
+
         -- traceM $ show ("act", yl, wf, ss, ks)
-        withdraw wf
-        rebalance $ rebalance525Bands ps
+        -- rebalance $ rebalance525Bands ps
+        rebalance $ rebalanceFixed ps
 
     -- kidExpenses yl
     --   | yl > (60 - 5) = usd $ 9.6 + 13.2
@@ -255,14 +270,32 @@ runAggregates years ps hs = do
     -- putStrLn ""
 
 
-    putStrLn "Floor Fixed 3.3"
+    putStrLn "Floor Fixed 3.31"
     putStrLn "----------------"
-    let swr100 = pct 3.3
+    let swr100 = pct 3.31
     let wda = staticWithdrawal swr100 bal
     runAggregate ss bal $ do
         withdrawFloor wda swr100
         rebalance $ rebalanceFixed ps
     putStrLn ""
+
+    -- putStrLn "Floor Fixed 3.3 60/40"
+    -- putStrLn "----------------"
+    -- -- let swr100 = pct 3.3
+    -- -- let wda = staticWithdrawal swr100 bal
+    -- runAggregate ss bal $ do
+    --     withdrawFloor wda swr100
+    --     rebalance $ rebalanceFixed (pct 60)
+    -- putStrLn ""
+
+    -- putStrLn "Floor Fixed 3.3 90/10"
+    -- putStrLn "----------------"
+    -- -- let swr100 = pct 3.3
+    -- -- let wda = staticWithdrawal swr100 bal
+    -- runAggregate ss bal $ do
+    --     withdrawFloor wda swr100
+    --     rebalance $ rebalanceFixed (pct 90)
+    -- putStrLn ""
 
     -- putStrLn "Floor 525 3.3"
     -- putStrLn "----------------"
@@ -285,11 +318,11 @@ runAggregates years ps hs = do
     --     rebalance $ rebalance525Bands (pct 70)
     -- putStrLn ""
 
-    putStrLn "Peak Fixed 3.3"
+    putStrLn "Peak Fixed 3.31"
     putStrLn "----------------"
     runAggregate ss bal $ do
         n <- now
-        withdrawPeak (historyPeak n.year hs) (pct 3.3)
+        withdrawPeak (historyPeak n.year hs) (pct 3.31)
         rebalance $ rebalanceFixed ps
     putStrLn ""
 
@@ -302,26 +335,21 @@ runAggregate ss start acts = do
     let sim = simulation start acts
     let srs = map sim ss :: [SimResult]
     let wds = map (.wdSpread) srs
-    -- let low = filter wds
 
-    -- let wdBest95Pct = drop 4 $ sortOn spreadPoints wds
-    -- print $ length srs
-    -- mapM_ printWithdrawalSpread $ take 5 wdBest95Pct
-
-    -- let aws = aggregateWithdrawals wds
     printAggregateSpread $ aggregateSpread wds
+
+
+    putStrLn "Median Results"
+    printWithdrawalResultsHeader
+    printWithdrawalResultsRow "10%" $ aggregatePercentile 0.10 $ map (.wdAmts) srs
+    printWithdrawalResultsRow "25%" $ aggregatePercentile 0.25 $ map (.wdAmts) srs
+    printWithdrawalResultsRow "med" $ aggregateMedian $ map (.wdAmts) srs
+    printWithdrawalResultsRow "75%" $ aggregatePercentile 0.75 $ map (.wdAmts) srs
+    printWithdrawalResultsRow "90%" $ aggregatePercentile 0.90 $ map (.wdAmts) srs
 
     putStrLn "Bad Years"
     print $ lowYears $ yearWds srs
 
-    putStrLn "Median Results"
-    printWithdrawalResultsHeader
-    printWithdrawalResultsRow "" $ aggregateResults $ map (.wdAmts) srs
-
-    -- printWithdrawalSpreadRow aws.totalSpread
-    -- printWithdrawalSpreadRow aws.worstSpread
-    -- printWithdrawalSpreadRow aws.numSamples
-    -- forM_ [aws.totalSpread, aws.worstSpread, aws.numSamples] $ \(ws :: WithdrawalSpread) -> do
     where
         yearWds :: [SimResult] -> [(Year, WithdrawalSpread Int)]
         yearWds srs =

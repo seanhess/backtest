@@ -10,7 +10,7 @@ import qualified Data.List as List
 
 withdrawalResults :: [USD (Amt Withdrawal)] -> WithdrawalResults
 withdrawalResults wds =
-    WithdrawalResults
+    Histogram
         { low = minimum wds
         , med = median wds
         , init = head wds
@@ -45,17 +45,25 @@ lowWithdrawals start low high wds =
 
 
 
-aggregateResults :: [WithdrawalResults] -> WithdrawalResults
-aggregateResults wrs =
-  WithdrawalResults
-    { init = median $ map (.init) wrs
-    , low = median $ map (.low) wrs
-    , p10 = median $ map (.p10) wrs
-    , p25 = median $ map (.p25) wrs
-    , med = median $ map (.med) wrs
-    , p75 = median $ map (.p75) wrs
-    , p90 = median $ map (.p90) wrs
+-- do I want the median of the low percentiles, or the low percentiles of the median?
+aggregateResults :: ([USD (Amt Withdrawal)] -> USD (Amt Withdrawal)) -> [WithdrawalResults] -> WithdrawalResults
+aggregateResults fld wrs =
+  Histogram
+    { init = fld $ map (.init) wrs
+    , low = fld $ map (.low) wrs
+    , p10 = fld $ map (.p10) wrs
+    , p25 = fld $ map (.p25) wrs
+    , med = fld $ map (.med) wrs
+    , p75 = fld $ map (.p75) wrs
+    , p90 = fld $ map (.p90) wrs
     }
+
+aggregateMedian :: [WithdrawalResults] -> WithdrawalResults
+aggregateMedian wrs = aggregateResults median wrs
+
+aggregatePercentile :: Float -> [WithdrawalResults] -> WithdrawalResults
+aggregatePercentile p wrs = aggregateResults (percentile p) wrs
+
 
 aggregateSpread :: [WithdrawalSpread Int] -> AggregateSpread
 aggregateSpread ws' =

@@ -83,11 +83,11 @@ printWithdrawalSpreadRow lbl ws = do
 
 printWithdrawalResultsHeader :: IO ()
 printWithdrawalResultsHeader = do
-    printTableRow 6 ["", "init", "low", "p10", "p25", "med", "p75", "p90"]
+    printTableRow 8 ["", "init", "low", "p10", "p25", "med", "p75", "p90"]
 
 printWithdrawalResultsRow :: String -> WithdrawalResults -> IO ()
 printWithdrawalResultsRow lbl wr = do
-    printTableRow 6 [lbl, show wr.init, show wr.low, show wr.p10, show wr.p25, show wr.med, show wr.p75, show wr.p90]
+    printTableRow 8 [lbl, show wr.init, show wr.low, show wr.p10, show wr.p25, show wr.med, show wr.p75, show wr.p90]
 
 printTableRow :: Int -> [String] -> IO ()
 printTableRow p items = do

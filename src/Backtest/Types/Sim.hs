@@ -48,16 +48,21 @@ data AggregateSpread = AggregateSpread
   , numSamples  :: WithdrawalSpread (Pct Success) -- ^ number of samples that have at least one of each
   }
 
+
+
+type WithdrawalResults = Histogram (USD (Amt Withdrawal))
+
 -- how do you decide? Oh, below median
-data WithdrawalResults = WithdrawalResults
-  { init :: USD (Amt Withdrawal)
-  , low :: USD (Amt Withdrawal)
-  , p10 :: USD (Amt Withdrawal)
-  , p25 :: USD (Amt Withdrawal)
-  , med :: USD (Amt Withdrawal)
-  , p75 :: USD (Amt Withdrawal)
-  , p90 :: USD (Amt Withdrawal)
-  } deriving (Show)
+data Histogram a = Histogram
+  { init :: a
+  , low :: a
+  , p10 :: a
+  , p25 :: a
+  , med :: a
+  , p75 :: a
+  , p90 :: a
+  }
+
 
 data WithdrawalSpread a = WithdrawalSpread
   { wlow :: a
