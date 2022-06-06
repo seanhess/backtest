@@ -9,23 +9,23 @@ toExampleChart :: VegaLite -> IO ()
 toExampleChart chart = do
   toHtmlFile "graphs/example.html" chart
 
-toChartFile :: FilePath -> VegaLite -> IO ()
-toChartFile fp chart = toHtmlFile fp chart
+toChartFile :: FilePath -> [VLSpec] -> IO ()
+toChartFile fp chart = toHtmlFile fp $ toVegaLite [vConcat chart]
 
 
-withdrawalBinChart :: Data -> VegaLite
+withdrawalBinChart :: Data -> VLSpec
 withdrawalBinChart dt =
     let enc = encoding
-                . position X [ PName "Year", PmType Quantitative, PBin [ MaxBins 50 ] ]
+                . position X [ PName "Year", PmType Quantitative, PBin [ MaxBins 100 ] ]
                 . position Y [ PName "Withdrawal", PmType Quantitative, PBin [ MaxBins 60 ], PScale [SDomain (DNumbers [0, 200])] ]
                 . color [ MAggregate Count, MScale [SType ScSqrt]  ]
 
         bkg = background "rgba(255, 255, 255, 1.00)"
 
-    in toVegaLite [ bkg, dt, width 300, height 200, mark Rect [MTooltip TTEncoding], enc [] ]
+    in asSpec [ bkg, dt, width 300, height 200, mark Rect [MTooltip TTEncoding], enc [] ]
 
 
-withdrawalLineChart :: Data -> VegaLite
+withdrawalLineChart :: Data -> VLSpec
 withdrawalLineChart dt =
     let enc = encoding
                 . position X [ PName "Year", PmType Quantitative ]
@@ -36,7 +36,7 @@ withdrawalLineChart dt =
 
         bkg = background "rgba(255, 255, 255, 1.00)"
 
-    in toVegaLite [ bkg, dt, width 300, height 200, mark Rect [MTooltip TTEncoding], mrk, enc []]
+    in asSpec [ bkg, dt, width 300, height 200, mark Rect [MTooltip TTEncoding], mrk, enc []]
 
 
 

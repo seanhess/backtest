@@ -174,11 +174,12 @@ runSimulation yrs ps hs = do
     let srs = map sim ss :: [SimResult]
 
 
+    printWithdrawalResultsByYear $ aggregateResults srs
 
-    printWithdrawalResultsHeader
+    -- printWithdrawalResultsHeader
 
-    forM_ srs $ \sr -> do
-        printWithdrawalResultsRow (show sr.startYear) sr.wdAmts
+    -- forM_ srs $ \sr -> do
+    --     printWithdrawalResultsRow (show sr.startYear) sr.wdAmts
 
     -- print $ head hs
 
@@ -219,8 +220,7 @@ runSimulation yrs ps hs = do
 
 
     -- toExampleChart $ withdrawalBinChart $ simData srs
-    toChartFile  "graphs/withdrawal-bin.html" $ withdrawalBinChart $ simData srs
-    toChartFile  "graphs/withdrawal-line.html" $ withdrawalLineChart $ simData srs
+    toChartFile  "graphs/withdrawals.html" [withdrawalBinChart (simData srs), withdrawalLineChart $ simData srs]
 
     pure ()
 
@@ -348,13 +348,13 @@ runAggregate ss start acts = do
     printAggregateSpread $ aggregateSpread wds
 
 
-    putStrLn "Median Results"
-    printWithdrawalResultsHeader
-    printWithdrawalResultsRow "10%" $ aggregatePercentile 0.10 $ map (.wdAmts) srs
-    printWithdrawalResultsRow "25%" $ aggregatePercentile 0.25 $ map (.wdAmts) srs
-    printWithdrawalResultsRow "med" $ aggregateMedian $ map (.wdAmts) srs
-    printWithdrawalResultsRow "75%" $ aggregatePercentile 0.75 $ map (.wdAmts) srs
-    printWithdrawalResultsRow "90%" $ aggregatePercentile 0.90 $ map (.wdAmts) srs
+    -- putStrLn "Median Results"
+    -- printWithdrawalResultsHeader
+    -- printWithdrawalResultsRow "10%" $ aggregatePercentile 0.10 $ map (.wdAmts) srs
+    -- printWithdrawalResultsRow "25%" $ aggregatePercentile 0.25 $ map (.wdAmts) srs
+    -- printWithdrawalResultsRow "med" $ aggregateMedian $ map (.wdAmts) srs
+    -- printWithdrawalResultsRow "75%" $ aggregatePercentile 0.75 $ map (.wdAmts) srs
+    -- printWithdrawalResultsRow "90%" $ aggregatePercentile 0.90 $ map (.wdAmts) srs
 
     putStrLn "Bad Years"
     print $ lowYears $ yearWds srs

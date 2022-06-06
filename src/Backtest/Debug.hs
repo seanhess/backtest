@@ -89,6 +89,12 @@ printWithdrawalResultsRow :: String -> WithdrawalResults -> IO ()
 printWithdrawalResultsRow lbl wr = do
     printTableRow 8 [lbl, show wr.init, show wr.low, show wr.p10, show wr.p25, show wr.med, show wr.p75, show wr.p90]
 
+printWithdrawalResultsByYear :: [WithdrawalResults] -> IO ()
+printWithdrawalResultsByYear wrs = do
+    printWithdrawalResultsHeader
+    forM_ (zip [1..] wrs) $ \(y, wr) -> do
+        printWithdrawalResultsRow (show y) wr
+
 printTableRow :: Int -> [String] -> IO ()
 printTableRow p items = do
     putStrLn $ "|" <> (List.intercalate " |" $ map (padLeft p) items) <> " |"

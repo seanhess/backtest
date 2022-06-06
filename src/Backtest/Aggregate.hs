@@ -45,24 +45,19 @@ lowWithdrawals start low high wds =
 
 
 
--- do I want the median of the low percentiles, or the low percentiles of the median?
-aggregateResults :: ([USD (Amt Withdrawal)] -> USD (Amt Withdrawal)) -> [WithdrawalResults] -> WithdrawalResults
-aggregateResults fld wrs =
-  Histogram
-    { init = fld $ map (.init) wrs
-    , low = fld $ map (.low) wrs
-    , p10 = fld $ map (.p10) wrs
-    , p25 = fld $ map (.p25) wrs
-    , med = fld $ map (.med) wrs
-    , p75 = fld $ map (.p75) wrs
-    , p90 = fld $ map (.p90) wrs
-    }
+aggregateResults :: [SimResult] -> [WithdrawalResults]
+aggregateResults srs = srs
+  & map (.years)
+  & List.transpose
+  & map (map (.withdrawal))
+  & map withdrawalResults
 
-aggregateMedian :: [WithdrawalResults] -> WithdrawalResults
-aggregateMedian wrs = aggregateResults median wrs
 
-aggregatePercentile :: Float -> [WithdrawalResults] -> WithdrawalResults
-aggregatePercentile p wrs = aggregateResults (percentile p) wrs
+-- aggregateMedian :: [WithdrawalResults] -> WithdrawalResults
+-- aggregateMedian wrs = aggregateResults median wrs
+
+-- aggregatePercentile :: Float -> [WithdrawalResults] -> WithdrawalResults
+-- aggregatePercentile p wrs = aggregateResults (percentile p) wrs
 
 
 aggregateSpread :: [WithdrawalSpread Int] -> AggregateSpread
