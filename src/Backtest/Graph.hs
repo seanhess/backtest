@@ -13,10 +13,10 @@ toChartFile :: FilePath -> [VLSpec] -> IO ()
 toChartFile fp chart = toHtmlFile fp $ toVegaLite [vConcat chart]
 
 
-withdrawalBinChart :: Data -> VLSpec
-withdrawalBinChart dt =
+withdrawalBinChart :: Int -> Data -> VLSpec
+withdrawalBinChart yrs dt =
     let enc = encoding
-                . position X [ PName "Year", PmType Quantitative, PBin [ MaxBins 100 ] ]
+                . position X [ PName "Year",       PmType Quantitative, PBin [ MaxBins yrs ] ]
                 . position Y [ PName "Withdrawal", PmType Quantitative, PBin [ MaxBins 60 ], PScale [SDomain (DNumbers [0, 200])] ]
                 . color [ MAggregate Count, MScale [SType ScSqrt]  ]
 

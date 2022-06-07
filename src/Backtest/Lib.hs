@@ -4,7 +4,7 @@ module Backtest.Lib where
 import Backtest.Prelude
 import Backtest.Types hiding (history)
 import Backtest.History
-import Backtest.Simulation (simulation, Actions, rebalance, withdraw, bondsFirst, balances, yearsLeft, now, income)
+import Backtest.Simulation (simulation, Actions, rebalance, withdraw, bondsFirst, balances, yearsLeft, now, income, expense, yearsElapsed, onYears)
 import Backtest.Strategy
 import Backtest.Strategy.ABW
 import Backtest.Strategy.Steps
@@ -15,6 +15,7 @@ import Backtest.Aggregate
 import Debug.Trace (trace, traceM)
 import Backtest.Debug
 import Data.List as List
+import Control.Monad
 
 -- |     1999 |  $720.00 |  $167.45 |  $211.35 |   $17.35 |   $71.72 | $-212.35 |  $139.63 |  $720.00 |  $324.43 |CAPE 40.58 |
 
@@ -26,10 +27,10 @@ run = do
 
     -- mapM_ print hs
 
-    runSimulation 60 (pct 75) hs
+    -- runSimulation 60 (pct 75) hs
     -- runMSWRs 60 (pct 60) hs
     -- runCrashes 50 hs
-    -- runActual hs
+    runActual hs
     -- runAggregates 60 (pct 75) hs
     -- runChart 60 hs
 
@@ -41,24 +42,30 @@ run = do
 
 runActual :: [History] -> IO ()
 runActual hs = do
-    let ps = pct 90
+    -- let ps = pct 90
     let ss = samples 60 hs
     let bnds = usd 411.8 :: USD (Bal Bonds)
     let stks = usd 1065.5
     let kids = usd 161.3
-    let start = Portfolio stks (bnds + (fromUSD $ loss kids))
+    -- let start = Portfolio stks (bnds + (fromUSD $ loss kids))
+    let start = Portfolio stks bnds
 
-    let allRaises = map pct [3.50, 3.51 .. 3.60] :: [Pct Withdrawal]
-    let allAllocs = map pct [60, 65 .. 100] :: [Pct Stocks]
+    let allRaises = map pct [3.50, 3.51 .. 3.55] :: [Pct Withdrawal]
+    let allAllocs = map pct [70, 75 .. 100] :: [Pct Stocks]
+
+    -- 3.51 actual, 100% stocks, $51.85
+
+    -- runRaise ss (pct 100) start (pct 3.53)
+    -- runRaise ss (pct 100) start (pct 3.53)
   
     -- forM_ allRaises $ \x -> do
     --     runRaise ss (pct 100) start x -- (pct 3.53)
 
-    forM_ allAllocs $ \x -> do
-        runRaise ss x start (pct 3.53)
+    -- forM_ allAllocs $ \x -> do
+    --     runRaise ss x start (pct 3.50)
 
-    forM_ allAllocs $ \x -> do
-        runRaise ss x start (pct 3.57)
+    -- forM_ allAllocs $ \x -> do
+    --     runRaise ss x start (pct 3.57)
 
     -- TODO I need a better instrument for this. A graph?
     -- no, I need a way to optimize. Median withdrawal? 10th percentile median withdrawal
@@ -80,16 +87,20 @@ runActual hs = do
 
     -- * 1966 failure year
 
-    -- let sim = simulation start $ actions start ps (pct 3.5)
-    -- let srs = map sim ss :: [SimResult]
+    let sim = simulation start $ actions start (pct 100) (pct 3.50)
+    let srs = map sim ss :: [SimResult]
 
-    -- (Just s1966) <- pure $ List.find (isYear 1966) srs
-    -- print $ s1966.startYear
-    -- print $ s1966.endBalance
-    -- printYearHeader
-    -- mapM_ printYear $ s1966.years
-    -- print $ isFailure s1966
-    -- pure ()
+    (Just s1966) <- pure $ List.find (isYear 1949) srs
+    print $ s1966.startYear
+    print $ s1966.endBalance
+    printYearHeader
+    mapM_ printYear $ s1966.years
+    print $ isFailure s1966
+
+    toChartFile  "graphs/withdrawals.html" [withdrawalBinChart 60 (simData srs), withdrawalLineChart $ simData srs]
+
+
+    pure ()
 
   where
 
@@ -102,44 +113,23 @@ runActual hs = do
     actions :: Balances -> Pct Stocks -> Pct Withdrawal -> Actions ()
     actions start ps raise = do
 
-        bal <- balances
-        yl <- yearsLeft
+        -- TODO this isn't adjusted for inflation
+        onYears [0..3] $ do
+            expense $ usd $ 9.6 + 13.2
 
-        -- let ks = kidExpenses yl
-        -- let start' = adjustKids ks start
+        onYears [4..5] $ do
+            expense $ usd $ 6.4 + 13.2
 
-        let wda = staticWithdrawal raise start
+        onYears [6..8] $ do
+            expense $ usd $ 3.4 + 13.2
 
-        let ss = socialSecurity yl
-        income ss
-
-
-        -- let bal' = adjustKids ks bal
-
-        -- let wf = withdrawalFloor wda raise bal
-        -- withdraw wf
+        onYears [30..60] $ do
+            income $ usd 25
 
         n <- now
         withdrawPeak (historyPeak n.year hs) raise
 
-        -- traceM $ show ("act", yl, wf, ss, ks)
-        -- rebalance $ rebalance525Bands ps
         rebalance $ rebalanceFixed ps
-
-    -- kidExpenses yl
-    --   | yl > (60 - 5) = usd $ 9.6 + 13.2
-    --   | yl > (60 - 7) = usd $ 6.4 + 13.2
-    --   | yl > (60 - 10) = usd $ 3.4 + 13.2
-    --   | otherwise = usd 0
-
-    socialSecurity yl
-      | yl < 30 = usd 25
-      | otherwise = usd 0
-
-    -- adjustKids :: USD (Amt Bonds) -> Balances -> Balances
-    -- adjustKids ks bal =
-    --     bal { bonds = bal.bonds - (fromUSD $ gain ks) }
-
 
 
     
@@ -148,8 +138,10 @@ runActual hs = do
 
 
 runSimulation :: YearsLeft -> Pct Stocks -> [History] -> IO ()
-runSimulation yrs ps hs = do
+runSimulation _ _ hs = do
 
+    let yrs = 30
+    let ps = pct 75
     let ss = samples yrs hs
     let start = thousand ps
 
@@ -161,11 +153,25 @@ runSimulation yrs ps hs = do
     -- print $ sum rets
 
 
-    let p = pct 3.3
+    let p = pct 4.0
 
     let sim = simulation start $ do
-                n <- now
+                -- n <- now
+                
+                -- withdraw $ staticWithdrawal p start
 
+                -- yl <- yearsLeft
+                -- ye <- yearsElapsed
+                -- expense $ usd $ fromIntegral ye
+                onYears [0..9] $ do
+                    expense $ usd 10
+
+                onYears [20..30] $ do
+                    income $ usd 10
+
+                -- income $ usd 10
+                -- expense $ usd 5
+                -- expense $ usd 5
                 -- withdrawPeak (historyPeak n.year hs) p
                 withdrawFloor (staticWithdrawal p start) p
 
@@ -220,7 +226,7 @@ runSimulation yrs ps hs = do
 
 
     -- toExampleChart $ withdrawalBinChart $ simData srs
-    toChartFile  "graphs/withdrawals.html" [withdrawalBinChart (simData srs), withdrawalLineChart $ simData srs]
+    toChartFile  "graphs/withdrawals.html" [withdrawalBinChart yrs (simData srs), withdrawalLineChart $ simData srs]
 
     pure ()
 
@@ -345,7 +351,8 @@ runAggregate ss start acts = do
     let srs = map sim ss :: [SimResult]
     let wds = map (.wdSpread) srs
 
-    printAggregateSpread $ aggregateSpread wds
+    -- printAggregateSpread $ aggregateSpread wds
+    printWithdrawalResultsByYear $ aggregateResults srs
 
 
     -- putStrLn "Median Results"

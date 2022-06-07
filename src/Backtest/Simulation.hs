@@ -5,6 +5,7 @@ module Backtest.Simulation
   , rebalance
   , withdraw
   , income
+  , expense
   , bondsFirst
   , Actions
   , noActions
@@ -15,8 +16,10 @@ module Backtest.Simulation
   , history
   , balances
   , yearsLeft
+  , yearsElapsed
   , lastWithdrawal
   , pastStartBalances
+  , onYears
   ) where
 
 import Backtest.Prelude
@@ -26,6 +29,7 @@ import Backtest.Aggregate (withdrawalResults, withdrawalSpread)
 import qualified Backtest.Types.Sim as Sim
 
 import Control.Monad.State (State, MonadState, modify, execState, put, get, gets)
+import Control.Monad (when)
 import Data.List as List
 import Debug.Trace
 
@@ -48,6 +52,8 @@ import Debug.Trace
 
 -- TODO START withdraw, rebalance
 -- TODO NEXT apply returns, withdraw, rebalance
+
+
 
 simulation :: Balances -> Actions () -> [History] -> SimResult
 simulation _ _ [] = error "Simulation: [History] is empty"
@@ -85,8 +91,8 @@ simulation initial actions hs =
   where
 
     eachReturns :: Year -> Year -> (YearStart, [YearStart]) -> History -> ((YearStart, [YearStart]), YearStart)
-    eachReturns ys ye (lastYear, pastYears) h =
-        let yr = nextYearResult ys ye h pastYears lastYear.end
+    eachReturns ys ye (lastYear', pastYears) h =
+        let yr = nextYearResult ys ye h pastYears lastYear'.end
         in ((yr, yr:pastYears), yr)
 
 
@@ -109,6 +115,7 @@ simulation initial actions hs =
           , end = end
           , withdrawal = st._withdrawal
           , netIncome = st._income
+          , netExpenses = st._expenses
           }
 
 
@@ -151,6 +158,7 @@ simulation initial actions hs =
           , end = end
           , withdrawal = st._withdrawal
           , netIncome = st._income
+          , netExpenses = st._expenses
           }
 
 
@@ -209,6 +217,7 @@ data ActionState = ActionState
   { _balances :: Balances
   , _withdrawal :: USD (Amt Withdrawal)
   , _income :: USD (Amt Income)
+  , _expenses :: USD (Amt Expense)
   , _now :: History
   , _pastYears :: [YearStart]
   , _history :: [History]
@@ -228,7 +237,7 @@ runActions y h hs bal ys act =
 
 runActionState :: Year -> History -> [History] -> Balances -> [YearStart] -> Actions () -> ActionState
 runActionState ye h hs bal ys (Actions st) = 
-    let as = ActionState bal (usd 0) (usd 0) h ys hs ye :: ActionState
+    let as = ActionState bal (usd 0) (usd 0) (usd 0) h ys hs ye :: ActionState
     -- in trace (show ("runActionState", h.year)) $ execState st as
     in execState st as
 
@@ -248,12 +257,24 @@ income :: USD (Amt Income) -> Actions ()
 income inc = do
     modify $ \st -> st
       { _balances = addIncome inc st._balances
-      , _income = inc
+      , _income = st._income + inc
+      }
+
+expense :: USD (Amt Expense) -> Actions ()
+expense ex = do
+    modify $ \st -> st
+      { _balances = addExpense ex st._balances
+      , _expenses = st._expenses + ex 
       }
 
 addIncome :: USD (Amt Income) -> Balances -> Balances
 addIncome inc b =
     Portfolio b.stocks (addToBalance (gain inc) b.bonds)
+
+addExpense :: USD (Amt Expense) -> Balances -> Balances
+addExpense ex b = do
+    Portfolio b.stocks (addToBalance (loss ex) b.bonds)
+
 
 
 bondsFirst :: USD (Amt Withdrawal) -> Balances -> Balances
@@ -281,16 +302,32 @@ history = do
     gets _history
 
 
+onYears :: [Int] -> Actions () -> Actions ()
+onYears yrs action = do
+    ye <- yearsElapsed
+    when (ye `elem` yrs) action
+
+
+yearsElapsed :: Actions Int
+yearsElapsed = do
+    yrs <- gets _pastYears
+    yc <- (.year) <$> now
+    let ys = minimum $ map (.year) yrs <> [yc]
+    pure $ fromYear yc - fromYear ys
+
 yearsLeft :: Actions Int
 yearsLeft = do
     Year ye <- gets _end
-    Year yc <- (.year) <$> gets _now
+    Year yc <- (.year) <$> now
     pure $ ye - yc
+
+lastYear :: Actions (Maybe YearStart)
+lastYear = do
+    headMay <$> gets _pastYears
 
 lastWithdrawal :: Actions (Maybe (USD (Amt Withdrawal)))
 lastWithdrawal = do
-    ys <- gets _pastYears
-    pure $ headMay $ map (.withdrawal) ys
+    fmap (.withdrawal) <$> lastYear
 
 pastStartBalances :: Actions [Balances]
 pastStartBalances = do

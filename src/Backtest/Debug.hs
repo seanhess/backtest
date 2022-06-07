@@ -19,6 +19,7 @@ printYearHeader =
       , "beg.stck"
       , "beg.bnds"
       , "income"
+      , "expenses"
       , "withdraw"
       , "act.stck"
       , "act.bnds"
@@ -36,6 +37,7 @@ printYear yr =
       , show yr.start.stocks
       , show yr.start.bonds
       , show yr.netIncome
+      , show yr.netExpenses
       , show yr.withdrawal
       , show yr.actions.stocks
       , show yr.actions.bonds

@@ -20,6 +20,7 @@ data YearStart = YearStart
   , returns    :: Changes
   , withdrawal :: USD (Amt Withdrawal)
   , netIncome  :: USD (Amt Income)
+  , netExpenses :: USD (Amt Expense)
   , actions    :: Changes
   } deriving (Show)
 
