@@ -4,7 +4,7 @@ module Backtest.Lib where
 import Backtest.Prelude
 import Backtest.Types hiding (history)
 import Backtest.History
-import Backtest.Simulation (simulation, Actions, rebalance, withdraw, bondsFirst, balances, yearsLeft, now, income, expense, yearsElapsed, onYears)
+import Backtest.Simulation (simulation, simulation', Actions, rebalance, withdraw, bondsFirst, balances, yearsLeft, now, income, expense, yearsElapsed, onYears)
 import Backtest.Strategy
 import Backtest.Strategy.ABW
 import Backtest.Strategy.Steps
@@ -87,7 +87,7 @@ runActual hs = do
     let swr = pct 3.17 :: Pct Withdrawal
     let sw = amount swr (total start)
     let raise = pct 110 :: Pct Raise
-    let sim = simulation start $ actions sw start ps swr raise
+    let sim = simulation' start $ actions sw start ps swr raise
     let srs = fmap sim ss :: NonEmpty SimResult
 
     printWithdrawalResultsByYear $ aggregateResults srs
@@ -115,7 +115,7 @@ runActual hs = do
         -- print ("stocks:", ps, "init:", sw, "swr:", swr, "raise:", raise, "start:")
 
         let acts = actions sw start ps swr raise
-        let sim = simulation start acts
+        let sim = simulation' start acts
         let srs = fmap sim ss :: NonEmpty SimResult
 
 
@@ -131,13 +131,15 @@ runActual hs = do
         ] <> withdrawalResultsCols
 
 
-    actions :: USD (Amt Withdrawal) -> Balances -> Pct Stocks -> Pct Withdrawal -> Pct Raise -> Actions ()
-    actions sw start ps swr raise = do
+    actions :: USD (Amt Withdrawal) -> Balances -> Pct Stocks -> Pct Withdrawal -> Pct Raise -> History -> Actions ()
+    actions sw start ps swr raise startH =
+        let wd = peakWithdrawal (reverseTimeline startH.year hs) swr start
+        in do
 
         n <- now
         -- withdrawPeak (historyPeak n.year hs) swr
         -- withdrawRaised sw swr raise
-        withdrawFloor sw swr
+        withdrawFloor wd swr
         -- withdraw sw
 
         -- TODO this isn't adjusted for inflation
@@ -266,7 +268,7 @@ runAggregates years ps hs = do
 
     putStrLn "Rebalance Fixed"
     putStrLn "----------------"
-    runAggregate ss bal $ do
+    runAggregate ss bal $ const $ do
         withdrawABW
         rebalance $ rebalanceFixed ps
     putStrLn ""
@@ -316,7 +318,7 @@ runAggregates years ps hs = do
     putStrLn "----------------"
     let swr100 = pct 3.31
     let wda = staticWithdrawal swr100 bal
-    runAggregate ss bal $ do
+    runAggregate ss bal $ const $ do
         withdrawFloor wda swr100
         rebalance $ rebalanceFixed ps
     putStrLn ""
@@ -362,22 +364,21 @@ runAggregates years ps hs = do
 
     putStrLn "Peak Fixed 3.31"
     putStrLn "----------------"
-    runAggregate ss bal $ do
-        -- the withdrawal amount needs to be in-scope here
-        -- let wd = peakWithdrawal (reverseTimeline n.year hs) (pct 3.31) bal
-        n <- now
-        -- this still does it every time, but it's the fault of my runAggregate function
-        withdrawFloor (usd 10) (pct 3.31)
-        rebalance $ rebalanceFixed ps
+    runAggregate ss bal $ \h ->
+        let swr = pct 3.31
+            wd = peakWithdrawal (reverseTimeline h.year hs) swr bal
+        in do n <- now
+              withdrawFloor (usd 10) (pct 3.31)
+              rebalance $ rebalanceFixed ps
     putStrLn ""
 
 
 
 
 
-runAggregate :: NonEmpty (NonEmpty History) -> Balances -> Actions () -> IO ()
-runAggregate ss start acts = do 
-    let sim = simulation start acts
+runAggregate :: NonEmpty (NonEmpty History) -> Balances -> (History -> Actions ()) -> IO ()
+runAggregate ss start getActions = do 
+    let sim = simulation' start getActions
     let srs = fmap sim ss :: NonEmpty SimResult
     let wds = fmap (.wdSpread) srs
 

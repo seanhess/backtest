@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Backtest.Simulation
-  ( simulation
+  ( simulation, simulation'
   , calcReturns
   , rebalance
   , withdraw
@@ -56,6 +56,11 @@ import Data.List.NonEmpty (NonEmpty, head, fromList)
 -- TODO START withdraw, rebalance
 -- TODO NEXT apply returns, withdraw, rebalance
 
+
+simulation' :: Balances -> (History -> Actions ()) -> NonEmpty History -> SimResult
+simulation' start getActions hs =
+    let acts = getActions (head hs)
+    in simulation start acts hs
 
 simulation :: Balances -> Actions () -> NonEmpty History -> SimResult
 simulation initial actions hs =
