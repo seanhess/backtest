@@ -18,12 +18,11 @@ module Backtest.Simulation
   , yearsLeft
   , yearsElapsed
   , lastWithdrawal
-  , pastStartBalances
   , onYears
   ) where
 
 import Backtest.Prelude
-import Backtest.Types hiding (history)
+import Backtest.Types hiding (history, startYear)
 import Backtest.Types.Pct as Pct
 import Backtest.Aggregate (withdrawalResults, withdrawalSpread)
 import qualified Backtest.Types.Sim as Sim
@@ -313,12 +312,15 @@ onYears yrs action = do
     ye <- yearsElapsed
     when (ye `elem` yrs) action
 
+startYear :: Actions Year
+startYear = do
+    hs <- gets _history
+    pure $ (.year) $ head hs
 
 yearsElapsed :: Actions Int
 yearsElapsed = do
-    yrs <- gets _pastYears
+    ys <- startYear
     yc <- (.year) <$> now
-    let ys = minimum $ map (.year) yrs <> [yc]
     pure $ fromYear yc - fromYear ys
 
 yearsLeft :: Actions Int
@@ -335,10 +337,6 @@ lastWithdrawal :: Actions (Maybe (USD (Amt Withdrawal)))
 lastWithdrawal = do
     fmap (.withdrawal) <$> lastYear
 
-pastStartBalances :: Actions [Balances]
-pastStartBalances = do
-    ys <- gets _pastYears
-    pure $ map (.start) ys
 
 noActions :: Actions ()
 noActions = pure ()

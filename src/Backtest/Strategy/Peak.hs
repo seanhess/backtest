@@ -5,7 +5,7 @@ import Backtest.Prelude
 import Backtest.Types
 import Data.List (maximumBy)
 import Backtest.Strategy (staticWithdrawal)
-import Backtest.Simulation (Actions, withdraw, pastStartBalances, balances)
+import Backtest.Simulation (Actions, withdraw, balances)
 import qualified Data.List.NonEmpty as NE
 
 -- This isn't a withdrawal strategy. This is a searching strategy
