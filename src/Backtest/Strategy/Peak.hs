@@ -6,6 +6,7 @@ import Backtest.Types
 import Data.List (maximumBy)
 import Backtest.Strategy (staticWithdrawal)
 import Backtest.Simulation (Actions, withdraw, pastStartBalances, balances)
+import qualified Data.List.NonEmpty as NE
 
 -- This isn't a withdrawal strategy. This is a searching strategy
 -- it uses a flat withdrawal
@@ -28,42 +29,47 @@ import Backtest.Simulation (Actions, withdraw, pastStartBalances, balances)
 
 -- we need to start with a withdrawal amount, given by historyPeak
 
-withdrawPeak :: (Balances -> Balances) -> Pct Withdrawal -> Actions ()
-withdrawPeak findPeakHistory pw = do
-  bals <- pastStartBalances
-  bal <- balances
-  let peak = fromMaybe (findPeakHistory bal) $ pastPeak bals
-  let wda = staticWithdrawal pw peak
-  withdraw wda
+
+-- wait. this should just calculate the portfolio FROM the recent peak
+-- withdrawPeak :: (Balances -> Balances) -> Pct Withdrawal -> Actions ()
+-- withdrawPeak findPeakHistory pw = do
+--   bals <- pastStartBalances
+--   bal <- balances
+--   let peak = fromMaybe (findPeakHistory bal) $ pastPeak bals
+--   let wda = staticWithdrawal pw peak
+--   withdraw wda
 
 
 -- this is the withdrawal percentage compared to CURRENT portfolio
-peakWithdrawal :: (Balances -> Balances) -> Pct Withdrawal -> Balances -> USD (Amt Withdrawal)
-peakWithdrawal findPeak wp bal =
-  staticWithdrawal wp (findPeak bal)
+-- peakWithdrawal :: (Balances -> Balances) -> Pct Withdrawal -> Balances -> USD (Amt Withdrawal)
+-- peakWithdrawal findPeak wp bal =
+--   staticWithdrawal wp (findPeak bal)
 
 
 -- your highest balance ever
-pastPeak :: [Balances] -> Maybe Balances
-pastPeak bals = headMay $ reverse $ sortOn total bals
+-- pastPeak :: [Balances] -> Maybe Balances
+-- pastPeak bals = headMay $ reverse $ sortOn total bals
 
+peakWithdrawal :: NonEmpty History -> Pct Withdrawal -> Balances -> USD (Amt Withdrawal)
+peakWithdrawal time swr start = amount swr $ total $ peakBalance time start
 
--- what is the maximum value of my portfolio in the past?
-historyPeak :: Year -> [History] -> Balances -> Balances
-historyPeak cur hrs bal = fromMaybe mempty $ do
-  let past = reverse $ filter isPast hrs :: [History]
-  now <- headMay past
-
-  pure $ head $ reverse $ sortOn total $ map (pastPortfolio . pastGains now) past
+-- | all years starting now into the past
+reverseTimeline :: Year -> NonEmpty History -> NonEmpty History
+reverseTimeline y hs = reverse $ fromMaybe [head hs] $ nonEmpty $ NE.filter isPast hs
   where
     isPast :: History -> Bool
-    isPast h = h.year <= cur
+    isPast h = h.year <= y
 
+-- | what is the maximum value of my portfolio in the past?
+peakBalance :: NonEmpty History -> Balances -> Balances
+peakBalance past bal =
+  maximumBy (comparing total) $ fmap (pastPortfolio . pastGains (head past)) past
+  where
     pastPortfolio :: Portfolio Pct Gains -> Balances
     pastPortfolio gs = applyGains bal gs
 
     pastGains :: History -> History -> Portfolio Pct Gains
-    pastGains now past =
-      gainsPortfolio now.values past.values
+    pastGains now old =
+      gainsPortfolio now.values old.values
 
 

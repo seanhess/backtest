@@ -14,6 +14,8 @@ module Backtest.Prelude
 
   -- * List functions
   , module Data.List
+  , module Data.List.NonEmpty
+  , module Data.Ord
 
   -- * Monadic functions
   , unless, guard, zipWithM_, forM_
@@ -30,7 +32,7 @@ module Backtest.Prelude
   , Identity
   ) where
 
-import Prelude hiding (id, head, print, putStrLn, readFile, writeFile, Real, putStr)
+import Prelude hiding (id, head, print, putStrLn, readFile, writeFile, Real, putStr, (!!), last, reverse)
 import qualified Prelude
 import Data.Text (Text)
 import Data.Map (Map)
@@ -42,7 +44,9 @@ import Control.Monad (unless, guard, zipWithM_, mapM_, forM_)
 import Control.Monad.Catch (MonadCatch, try, throwM, Exception, MonadThrow)
 import Data.Function ((&))
 import Data.Functor.Identity (Identity)
-import Data.List (group, sort, sortOn, find, groupBy, tails, head)
+import Data.List (group, sortOn, find, groupBy, tails)
+import Data.List.NonEmpty (NonEmpty((:|)), head, sort, sortBy, (!!), last, nonEmpty, reverse)
+import Data.Ord (comparing)
 import Control.Applicative ((<|>))
 import Data.Maybe (fromMaybe, listToMaybe, mapMaybe, catMaybes, isJust, isNothing)
 import GHC.Generics (Generic)

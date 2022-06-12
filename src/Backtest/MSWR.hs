@@ -7,8 +7,9 @@ import Backtest.Simulation
 import Backtest.Strategy
 import Backtest.Aggregate
 import Data.List as List
+import Data.List.NonEmpty as NE (filter)
 
-rateResults :: [[History]] -> Balances -> Actions () -> [Pct Withdrawal] -> [RateResult]
+rateResults :: NonEmpty (NonEmpty History) -> Balances -> Actions () -> [Pct Withdrawal] -> [RateResult]
 rateResults ss start reb rates =
     map runRate rates
 
@@ -17,16 +18,16 @@ rateResults ss start reb rates =
     runRate :: Pct Withdrawal -> RateResult
     runRate wdp =
         let wda = loss $ staticWithdrawal wdp start :: USD (Amt Withdrawal)
-            srs = map (runSim wda) ss
+            srs = fmap (runSim wda) ss
         in RateResult
             { rate = wdp
             , success = successRate srs
             , results = srs
             , avgEndPortfolio = averageEndPortfolio srs
-            , medEndPortfolio = medianEndPortfolio srs
+        , medEndPortfolio = medianEndPortfolio srs
             }
 
-    runSim :: USD (Amt Withdrawal) -> [History] -> SimResult
+    runSim :: USD (Amt Withdrawal) -> NonEmpty History -> SimResult
     runSim wda =
         simulation start $ do
             withdraw (loss wda)
@@ -43,9 +44,9 @@ rateResults ss start reb rates =
 
 
 
-successRate :: [SimResult] -> Pct Success
+successRate :: NonEmpty SimResult -> Pct Success
 successRate srs =
-    let n = length $ filter isFailure srs
+    let n = length $ NE.filter isFailure srs
         p = pctFromFloat $ 1 - (fromIntegral n / fromIntegral (length srs))
     in p
 

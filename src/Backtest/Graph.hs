@@ -3,6 +3,7 @@ module Backtest.Graph where
 import Graphics.Vega.VegaLite
 import Backtest.Prelude
 import Backtest.Types
+import qualified Data.List.NonEmpty as NE
 
 
 toExampleChart :: VegaLite -> IO ()
@@ -13,7 +14,7 @@ toChartFile :: FilePath -> [VLSpec] -> IO ()
 toChartFile fp chart = toHtmlFile fp $ toVegaLite [vConcat chart]
 
 
-withdrawalStackChart :: [MedianWithdrawal] -> VLSpec
+withdrawalStackChart :: NonEmpty MedianWithdrawal -> VLSpec
 withdrawalStackChart mws = 
     let enc = encoding
                 . position X [ PName "Year",   PmType Quantitative, PTitle "Year" ]
@@ -66,8 +67,8 @@ withdrawalLineChart dt =
     in asSpec [ bkg, dt, width 500, mark Line [MTooltip TTEncoding], enc []]
 
 
-simData :: [SimResult] -> Data
-simData srs = dataFromRows [] $ mconcat $ map simDataRows $ srs
+simData :: NonEmpty SimResult -> Data
+simData srs = dataFromRows [] $ mconcat $ map simDataRows $ NE.toList srs
 
 simDataRows :: SimResult -> [DataRow]
 simDataRows sr = foldr (yearDataRow sr.startYear) [] sr.years

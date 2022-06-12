@@ -16,6 +16,7 @@ import Control.Monad.Catch (try, throwM)
 import Control.Monad.Reader (MonadReader, ReaderT, runReaderT, ask)
 import Control.Monad.State (runState)
 import Data.List (intercalate)
+import qualified Data.List.NonEmpty as NE
 
 
 data Failure
@@ -238,14 +239,14 @@ assertHistory = do
     length hs === 1
 
   expect "history entry is for second year" $ do
-    map (.year) hs === [Year 1872]
+    fmap (.year) hs === [Year 1872]
 
   expect "history gains are diff between two years" $ do
-    map ((.stocks) . (.returns)) hs === [pct 10.0]
-    map ((.bonds) . (.returns)) hs === [pct 10.0]
+    fmap ((.stocks) . (.returns)) hs === [pct 10.0]
+    fmap ((.bonds) . (.returns)) hs === [pct 10.0]
 
   expect "CAPE ratio is for the start of the current year (from second row)" $ do
-    map (.cape) hs === [CAPE 20]
+    fmap (.cape) hs === [CAPE 20]
 
 
 assertInflation :: Test ()
@@ -262,10 +263,10 @@ assertInflation = do
     length sim.years === 2
 
   expect "withdraw from bonds first" $
-    map (\r -> r.actions.stocks) sim.years === [usd 0, usd 0]
+    fmap (\r -> r.actions.stocks) sim.years === [usd 0, usd 0]
 
   expect "keep withdrawals constant from year to year in real dollars" $
-    map (\r -> r.actions.bonds)  sim.years === [usd (-40), usd (-40)]
+    fmap (\r -> r.actions.bonds)  sim.years === [usd (-40), usd (-40)]
 
 
 assertSimEndBalance :: Test ()
@@ -293,7 +294,7 @@ assertSimEndBalance = do
   let sim' = simulation thousand60 noActions hs'
 
   expect "two years of history" $ do
-    (map (.year) hs') === [Year 1872, Year 1873]
+    fmap (.year) hs' === [Year 1872, Year 1873]
 
   [_, h1873] <- pure hs'
 
@@ -304,7 +305,7 @@ assertSimEndBalance = do
     h1873.returns.bonds === pct 100
 
   expect "two years of simulation. One at the beginning of 1872, and one at the beginning of 1873" $ do
-    (map (.year) sim'.years) === [Year 1872, Year 1873]
+    fmap (.year) sim'.years === [Year 1872, Year 1873]
 
   expect "stock end balance to be only 1873 returns" $ do
     dollars (sim'.endBalance.stocks) === 1200
@@ -327,22 +328,20 @@ assertSimulation = do
 
   -- withdraw, but don't rebalance
   let sim = simulation bal (withdraw4 bal) [h0, h1, h2]
+  let y = head sim.years
 
   expect "should give results for all years of history" $ do
-    map (.year) sim.years === [Year 1900, Year 1901, Year 1902]
+    fmap (.year) sim.years === [Year 1900, Year 1901, Year 1902]
 
   expect "start year should not have returns" $ do
-    (y:_) <- pure sim.years
     y.year === Year 1900
     y.returns === Portfolio mempty mempty
 
   expect "start year should use first CAPE ratio" $ do
-    (y:_) <- pure sim.years
     ((.cape) <$> y.history) === (Just $ CAPE 10)
 
   let s1900 = 1000-40
   expect "start year should withdraw immediately with no returns" $ do
-    (y:_) <- pure sim.years
     y.returns === Portfolio mempty mempty
     y.end.stocks === usd s1900
 
@@ -624,16 +623,16 @@ assertABW = do
   let sim = simulation bal withdrawABW [h1, h2, h3]
 
   expect "years to cover 1900-1902" $ do
-    map (.year) sim.years === map (.year) hs
+    fmap (.year) sim.years === fmap (.year) hs
 
   expect "first year withdrawal to be based on CAPE 10" $ do
-    (y1:_) <- pure sim.years
+    let y1 = head sim.years
     y1.year === Year 1900
     let wdp1 = calcWithdrawal 3 (pctFromFloat (1/10))
     y1.withdrawal === amount wdp1 (total bal)
 
   expect "second year withdrawal to be based on CAPE 20" $ do
-    (y1:y2:_) <- pure sim.years
+    (y1 : y2 :_) <- pure $ NE.toList sim.years
     y2.year === Year 1901
     let wpd2 = calcWithdrawal 2 (pctFromFloat (1/20))
     y2.withdrawal === amount wpd2 (total y1.end)
@@ -672,11 +671,6 @@ assertFluctate = do
 
 assertPeak :: Test ()
 assertPeak = do
-  expect "to use current if peak" $ do
-    peakWithdrawal identity swr4 thousand60 === usd 40
-
-  expect "to use peak otherwise" $ do
-    peakWithdrawal (\_ -> Portfolio (usd 10000) mempty) swr4 thousand60 === usd 400
 
   let hr0 = History (Year 1900) mempty (Portfolio (usd 100) (usd 111)) (CAPE 20)
   let hr1 = History (Year 1901) mempty (Portfolio (usd 110) (usd 100)) (CAPE 20)
@@ -684,16 +678,16 @@ assertPeak = do
   let hr3 = History (Year 1903) mempty (Portfolio (usd 100) (usd 100)) (CAPE 20)
   let hr4 = History (Year 1904) mempty (Portfolio (usd 120) (usd 100)) (CAPE 20)
 
-  let rows = [hr0, hr1, hr2, hr3, hr4] :: [History]
+  let rows = [hr0, hr1, hr2, hr3, hr4] :: NonEmpty History
 
   expect "to find the peak" $ do
-    historyPeak hr3.year rows thousand60 === Portfolio (usd 660) (usd 400)
+    peakBalance (reverseTimeline hr3.year rows) thousand60 === Portfolio (usd 660) (usd 400)
 
   expect "to use current as peak" $ do
-    historyPeak hr4.year rows thousand50 === Portfolio (usd 500) (usd 500)
+    peakBalance (reverseTimeline hr4.year rows) thousand50 === Portfolio (usd 500) (usd 500)
 
   expect "to find peak via bonds" $ do
-    historyPeak hr3.year rows thousand50 === Portfolio (usd 500) (usd 555)
+    peakBalance (reverseTimeline hr3.year rows) thousand50 === Portfolio (usd 500) (usd 555)
 
 
 

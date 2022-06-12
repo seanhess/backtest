@@ -15,6 +15,7 @@ import Backtest.Aggregate
 import Debug.Trace (trace, traceM)
 import Backtest.Debug
 import Data.List as List
+import qualified Data.List.NonEmpty as NE
 import Control.Monad
 
 -- |     1999 |  $720.00 |  $167.45 |  $211.35 |   $17.35 |   $71.72 | $-212.35 |  $139.63 |  $720.00 |  $324.43 |CAPE 40.58 |
@@ -40,7 +41,7 @@ run = do
 
 -- 3.53% of peak!
 
-runActual :: [History] -> IO ()
+runActual :: NonEmpty History -> IO ()
 runActual hs = do
     let ss = samples 60 hs
     let bnds = usd 411.8 :: USD (Bal Bonds)
@@ -87,7 +88,7 @@ runActual hs = do
     let sw = amount swr (total start)
     let raise = pct 110 :: Pct Raise
     let sim = simulation start $ actions sw start ps swr raise
-    let srs = map sim ss :: [SimResult]
+    let srs = fmap sim ss :: NonEmpty SimResult
 
     printWithdrawalResultsByYear $ aggregateResults srs
 
@@ -109,13 +110,13 @@ runActual hs = do
 
   where
 
-    runRaise :: [[History]] -> Pct Stocks -> Balances -> USD (Amt Withdrawal) -> Pct Withdrawal -> Pct Raise -> IO ()
+    runRaise :: NonEmpty (NonEmpty History) -> Pct Stocks -> Balances -> USD (Amt Withdrawal) -> Pct Withdrawal -> Pct Raise -> IO ()
     runRaise ss ps start sw swr raise = do
         -- print ("stocks:", ps, "init:", sw, "swr:", swr, "raise:", raise, "start:")
 
         let acts = actions sw start ps swr raise
         let sim = simulation start acts
-        let srs = map sim ss :: [SimResult]
+        let srs = fmap sim ss :: NonEmpty SimResult
 
 
         -- let cols = 
@@ -159,7 +160,7 @@ runActual hs = do
 
 
 
-runSimulation :: YearsLeft -> Pct Stocks -> [History] -> IO ()
+runSimulation :: YearsLeft -> Pct Stocks -> NonEmpty History -> IO ()
 runSimulation _ _ hs = do
 
     let yrs = 30
@@ -199,7 +200,7 @@ runSimulation _ _ hs = do
 
                 rebalance $ rebalanceFixed ps
                 -- rebalance $ rebalancePrimeNew start.stocks
-    let srs = map sim ss :: [SimResult]
+    let srs = fmap sim ss :: NonEmpty SimResult
 
 
     printWithdrawalResultsByYear $ aggregateResults srs
@@ -258,7 +259,7 @@ runSimulation _ _ hs = do
 
 
 
-runAggregates :: YearsLeft -> Pct Stocks -> [History] -> IO ()
+runAggregates :: YearsLeft -> Pct Stocks -> NonEmpty History -> IO ()
 runAggregates years ps hs = do
     let ss = samples years hs
     let bal = thousand ps
@@ -362,8 +363,11 @@ runAggregates years ps hs = do
     putStrLn "Peak Fixed 3.31"
     putStrLn "----------------"
     runAggregate ss bal $ do
+        -- the withdrawal amount needs to be in-scope here
+        -- let wd = peakWithdrawal (reverseTimeline n.year hs) (pct 3.31) bal
         n <- now
-        withdrawPeak (historyPeak n.year hs) (pct 3.31)
+        -- this still does it every time, but it's the fault of my runAggregate function
+        withdrawFloor (usd 10) (pct 3.31)
         rebalance $ rebalanceFixed ps
     putStrLn ""
 
@@ -371,11 +375,11 @@ runAggregates years ps hs = do
 
 
 
-runAggregate :: [[History]] -> Balances -> Actions () -> IO ()
+runAggregate :: NonEmpty (NonEmpty History) -> Balances -> Actions () -> IO ()
 runAggregate ss start acts = do 
     let sim = simulation start acts
-    let srs = map sim ss :: [SimResult]
-    let wds = map (.wdSpread) srs
+    let srs = fmap sim ss :: NonEmpty SimResult
+    let wds = fmap (.wdSpread) srs
 
     -- printAggregateSpread $ aggregateSpread wds
     printWithdrawalResultsByYear $ aggregateResults srs
@@ -393,15 +397,15 @@ runAggregate ss start acts = do
     print $ lowYears $ yearWds srs
 
     where
-        yearWds :: [SimResult] -> [(Year, WithdrawalSpread Int)]
+        yearWds :: NonEmpty SimResult -> NonEmpty (Year, WithdrawalSpread Int)
         yearWds srs =
-            map (\sr -> (sr.startYear, sr.wdSpread)) srs
+            fmap (\sr -> (sr.startYear, sr.wdSpread)) srs
 
         isLow :: (Year, WithdrawalSpread Int) -> Bool
         isLow (_, s) = s.wlow > 0
 
-        lowYears :: [(Year, WithdrawalSpread Int)] -> [Year]
-        lowYears ys = map fst $ filter isLow ys
+        lowYears :: NonEmpty (Year, WithdrawalSpread Int) -> [Year]
+        lowYears ys = map fst $ NE.filter isLow ys
 
 
 
@@ -441,7 +445,7 @@ runAggregate ss start acts = do
 --     pure ()
 
 
-runMSWRs :: YearsLeft -> Pct Stocks -> [History] -> IO ()
+runMSWRs :: YearsLeft -> Pct Stocks -> NonEmpty History -> IO ()
 runMSWRs years ps hs = do
 
    -- COMPARE MSWR
@@ -480,7 +484,7 @@ runMSWRs years ps hs = do
 
 
 
-runMSWR :: [[History]] -> Balances -> Actions () -> IO ()
+runMSWR :: NonEmpty (NonEmpty History) -> Balances -> Actions () -> IO ()
 runMSWR ss start reb = do
     let rrs = rateResults ss start reb allRates
 

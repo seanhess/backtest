@@ -30,8 +30,11 @@ import qualified Backtest.Types.Sim as Sim
 
 import Control.Monad.State (State, MonadState, modify, execState, put, get, gets)
 import Control.Monad (when)
-import Data.List as List
+import qualified Data.List as List
 import Debug.Trace
+
+import qualified Data.List.NonEmpty as NE
+import Data.List.NonEmpty (NonEmpty, head, fromList)
 
 
 -- Year 0 = 1900 = START at the beginning of 1900
@@ -54,9 +57,7 @@ import Debug.Trace
 -- TODO NEXT apply returns, withdraw, rebalance
 
 
-
-simulation :: Balances -> Actions () -> [History] -> SimResult
-simulation _ _ [] = error "Simulation: [History] is empty"
+simulation :: Balances -> Actions () -> NonEmpty History -> SimResult
 simulation initial actions hs =
     let ys  = (head hs).year
 
@@ -66,17 +67,17 @@ simulation initial actions hs =
         -- the year the money should run out
         ye  = nextYear yl
 
-        (h:hs') = hs
+        (h :| hs') = hs
 
         firstYear = firstYearResult ye h initial
 
         ((yr, _), yrs) = List.mapAccumL (eachReturns ys ye) (firstYear, [firstYear]) hs'
 
-        years = firstYear:yrs
+        years = NE.fromList $ firstYear : yrs
 
         bal' = yr.end
 
-        wds = map (.withdrawal) years
+        wds = fmap (.withdrawal) years
 
     in SimResult
       { startYear = ys
@@ -220,7 +221,7 @@ data ActionState = ActionState
   , _expenses :: USD (Amt Expense)
   , _now :: History
   , _pastYears :: [YearStart]
-  , _history :: [History]
+  , _history :: NonEmpty History
 
   -- the year you are out of money and take no actions
   -- 1900 - 1950
@@ -230,12 +231,12 @@ data ActionState = ActionState
   , _end :: Year
   }
 
-runActions :: Year -> History -> [History] -> Balances -> [YearStart] -> Actions () -> Balances
+runActions :: Year -> History -> NonEmpty History -> Balances -> [YearStart] -> Actions () -> Balances
 runActions y h hs bal ys act = 
     let as = runActionState y h hs bal ys act
     in as._balances
 
-runActionState :: Year -> History -> [History] -> Balances -> [YearStart] -> Actions () -> ActionState
+runActionState :: Year -> History -> NonEmpty History -> Balances -> [YearStart] -> Actions () -> ActionState
 runActionState ye h hs bal ys (Actions st) = 
     let as = ActionState bal (usd 0) (usd 0) (usd 0) h ys hs ye :: ActionState
     -- in trace (show ("runActionState", h.year)) $ execState st as
@@ -297,7 +298,7 @@ now :: Actions History
 now = do
     gets _now
 
-history :: Actions [History]
+history :: Actions (NonEmpty History)
 history = do
     gets _history
 

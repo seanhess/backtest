@@ -10,6 +10,7 @@ import Backtest.Types.Pct as Pct
 import Backtest.Strategy (staticWithdrawal, thousand60, withdraw4, rebalancePct)
 import Backtest.Simulation
 import Backtest.History (compoundStockReturn, priorYears, priorYears, priorYears, priorYears, priorYears, priorYears, priorYears, priorYears, YearsLeft)
+import qualified Data.List.NonEmpty as NE
 
 import Debug.Trace (traceM, trace)
 
@@ -53,7 +54,7 @@ withdrawABWDips = do
     withdraw wda
 
 
-returnsWithRecentHistory :: YearsLeft -> Balances -> History -> [History] -> [Pct (Return Total)]
+returnsWithRecentHistory :: YearsLeft -> Balances -> History -> NonEmpty History -> [Pct (Return Total)]
 returnsWithRecentHistory yl bal cur hs =
     let retStk = estimatedReturnStocks cur.cape :: Pct (Return Stocks)
         bonds  = replicate yl estimatedReturnBonds
@@ -201,11 +202,10 @@ pmtFluctuate rets bal =
 
 
 pmtFluctuate' :: [Pct (Return Total)] -> USD (Bal Total) -> USD (Amt Withdrawal) -> USD (Amt Withdrawal)
-pmtFluctuate' []   bal _ = fromUSD $ bal
 pmtFluctuate' rets bal wstart = 
   let periods = length rets + 1
-      ws = take 15 $ drop 1 $ iterate (findWithdrawal periods) $ FlucWD Nothing 0 (usd 0) wstart wstart 0
-  in last $ mapMaybe (.withdrawal) ws
+      ws = take 15 $ drop 1 $ iterate (findWithdrawal periods) $ FlucWD (usd 0) 0 (usd 0) wstart wstart 0
+  in fromMaybe wstart $ lastMay $ fmap (.withdrawal) ws
 
   where
 
@@ -230,7 +230,7 @@ pmtFluctuate' rets bal wstart =
     findWithdrawal periods f =
       let w = f.next
           count = f.count + 1
-          withdrawal = Just w
+          withdrawal = w
           left = runReturns rets w (totalCents bal) :: Int
 
           low  = lowWithdrawal f left w
@@ -244,7 +244,7 @@ pmtFluctuate' rets bal wstart =
 
 
 data FlucWD = FlucWD
-  { withdrawal :: Maybe (USD (Amt Withdrawal))
+  { withdrawal :: USD (Amt Withdrawal)
   , left :: Int
   , low  :: USD (Amt Withdrawal)
   , high :: USD (Amt Withdrawal)

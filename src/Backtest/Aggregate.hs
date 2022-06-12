@@ -4,24 +4,24 @@ module Backtest.Aggregate where
 
 import Backtest.Prelude
 import Backtest.Types
-import qualified Data.List as List
+import Data.List.NonEmpty as NE (transpose, NonEmpty, filter)
 
 
 
-medianWithdrawals :: [SimResult] -> [MedianWithdrawal]
+medianWithdrawals :: NonEmpty SimResult -> NonEmpty MedianWithdrawal
 medianWithdrawals srs = 
-  map toMed $ List.transpose $ map (.years) srs
+  fmap toMed $ transpose $ fmap (.years) srs
   where
     toMed yrs = MedianWithdrawal
       { yearIndex = (head yrs).yearIndex
-      , withdrawal = median $ map (.withdrawal) yrs
-      , netExpenses = median $ map (.netExpenses) yrs
+      , withdrawal = median $ fmap (.withdrawal) yrs
+      , netExpenses = median $ fmap (.netExpenses) yrs
       }
 
 
 
 
-withdrawalResults :: [USD (Amt Withdrawal)] -> WithdrawalResults
+withdrawalResults :: NonEmpty (USD (Amt Withdrawal)) -> WithdrawalResults
 withdrawalResults wds =
     Histogram
         { low = minimum wds
@@ -35,7 +35,7 @@ withdrawalResults wds =
     where
 
 
-withdrawalSpread :: USD (Bal Total) -> [USD (Amt Withdrawal)] -> WithdrawalSpread Int
+withdrawalSpread :: USD (Bal Total) -> NonEmpty (USD (Amt Withdrawal)) -> WithdrawalSpread Int
 withdrawalSpread start wds =
     WithdrawalSpread
         { wlow = lowWithdrawals start (pct 0.0) (pct 2.0) wds
@@ -50,31 +50,31 @@ withdrawalSpread start wds =
         , whigh = lowWithdrawals start (pct 6.0) (pct 100) wds
         }
 
-lowWithdrawals :: USD (Bal Total) -> Pct Withdrawal -> Pct Withdrawal -> [USD (Amt Withdrawal)] -> Int
+lowWithdrawals :: USD (Bal Total) -> Pct Withdrawal -> Pct Withdrawal -> NonEmpty (USD (Amt Withdrawal)) -> Int
 lowWithdrawals start low high wds =
     let l = amount low start
         h = amount high start
-    in length $ filter (\w -> l <= w && w < h) wds
+    in length $ NE.filter (\w -> l <= w && w < h) wds
 
 
 
-aggregateResults :: [SimResult] -> [WithdrawalResults]
+aggregateResults :: NonEmpty SimResult -> NonEmpty WithdrawalResults
 aggregateResults srs = srs
-  & map (.years)
-  & List.transpose
-  & map (map (.withdrawal))
-  & map withdrawalResults
+  & fmap (.years)
+  & transpose
+  & fmap (fmap (.withdrawal))
+  & fmap withdrawalResults
 
 
-aggregateResultsAll :: [WithdrawalResults] -> WithdrawalResults
+aggregateResultsAll :: NonEmpty WithdrawalResults -> WithdrawalResults
 aggregateResultsAll wrs = Histogram
-  { low = minimum $ map (.low) wrs
-  , init = minimum $ map (.init) wrs
-  , med = median $ map (.med) wrs
-  , p10 = median $ map (.p10) wrs
-  , p25 = median $ map (.p10) wrs
-  , p75 = median $ map (.p75) wrs
-  , p90 = median $ map (.p90) wrs
+  { low = minimum $ fmap (.low) wrs
+  , init = minimum $ fmap (.init) wrs
+  , med = median $ fmap (.med) wrs
+  , p10 = median $ fmap (.p10) wrs
+  , p25 = median $ fmap (.p10) wrs
+  , p75 = median $ fmap (.p75) wrs
+  , p90 = median $ fmap (.p90) wrs
   }
 
 -- aggregateMedian :: [WithdrawalResults] -> WithdrawalResults
@@ -84,7 +84,7 @@ aggregateResultsAll wrs = Histogram
 -- aggregatePercentile p wrs = aggregateResults (percentile p) wrs
 
 
-aggregateSpread :: [WithdrawalSpread Int] -> AggregateSpread
+aggregateSpread :: NonEmpty (WithdrawalSpread Int) -> AggregateSpread
 aggregateSpread ws' =
   AggregateSpread
     { totalSpread = totalSpread' ws'
@@ -94,24 +94,24 @@ aggregateSpread ws' =
   where
     totalSpread' ws =
       WithdrawalSpread
-        { wlow = sum $ map (.wlow) ws
-        , w2_0 = sum $ map (.w2_0) ws
-        , w2_5 = sum $ map (.w2_5) ws
-        , w3_0 = sum $ map (.w3_0) ws
-        , w3_5 = sum $ map (.w3_5) ws
-        , w4_0 = sum $ map (.w4_0) ws
-        , w4_5 = sum $ map (.w4_5) ws
-        , w5_0 = sum $ map (.w5_0) ws
-        , w5_5 = sum $ map (.w5_5) ws
-        , whigh = sum $ map (.whigh) ws
+        { wlow = sum $ fmap (.wlow) ws
+        , w2_0 = sum $ fmap (.w2_0) ws
+        , w2_5 = sum $ fmap (.w2_5) ws
+        , w3_0 = sum $ fmap (.w3_0) ws
+        , w3_5 = sum $ fmap (.w3_5) ws
+        , w4_0 = sum $ fmap (.w4_0) ws
+        , w4_5 = sum $ fmap (.w4_5) ws
+        , w5_0 = sum $ fmap (.w5_0) ws
+        , w5_5 = sum $ fmap (.w5_5) ws
+        , whigh = sum $ fmap (.whigh) ws
         }
 
-    worstSpread' :: [WithdrawalSpread Int] -> WithdrawalSpread Int
+    worstSpread' :: NonEmpty (WithdrawalSpread Int) -> WithdrawalSpread Int
     worstSpread' ws =
-      List.head $ List.sortOn spreadPoints ws
+      head $ sortBy (comparing spreadPoints) ws
 
 
-    numSamples' :: [WithdrawalSpread Int] -> WithdrawalSpread (Pct Success)
+    numSamples' :: NonEmpty (WithdrawalSpread Int) -> WithdrawalSpread (Pct Success)
     numSamples' ws =
       let tot = length ws
       in WithdrawalSpread
@@ -128,9 +128,9 @@ aggregateSpread ws' =
         }
 
 
-    pctSamples :: Int -> (WithdrawalSpread Int -> Int) -> [WithdrawalSpread Int] -> Pct Success
+    pctSamples :: Int -> (WithdrawalSpread Int -> Int) -> NonEmpty (WithdrawalSpread Int) -> Pct Success
     pctSamples tot toSpread ws =
-      pctFromFloat $ (fromIntegral (length (filter (hasSpread toSpread) ws)) / fromIntegral tot)
+      pctFromFloat $ (fromIntegral (length (NE.filter (hasSpread toSpread) ws)) / fromIntegral tot)
 
 -- count 15s highest, then 20s etc
 spreadPoints :: WithdrawalSpread Int -> Int
@@ -139,7 +139,7 @@ spreadPoints ws = negate $ ws.wlow * 10000 + ws.w2_0 * 1000 + ws.w2_5 * 100 + ws
 hasSpread :: (WithdrawalSpread Int -> Int) -> WithdrawalSpread Int -> Bool
 hasSpread toSpread wd = (toSpread wd) /= 0
 
-yearSpread :: [SimResult] -> WithdrawalSpread [Year]
+yearSpread :: NonEmpty SimResult -> WithdrawalSpread [Year]
 yearSpread srs =
   WithdrawalSpread
     { wlow = years (.wlow)
@@ -154,31 +154,29 @@ yearSpread srs =
     , whigh = years (.whigh)
     }
   where
-    years f = map (.startYear) $ filter (hasSpread f . (.wdSpread)) srs
+    years f = map (.startYear) $ NE.filter (hasSpread f . (.wdSpread)) srs
 
 
 
 
-averageEndPortfolio :: [SimResult] -> USD (Bal Total)
+averageEndPortfolio :: NonEmpty SimResult -> USD (Bal Total)
 averageEndPortfolio srs =
-    let tots = map (total . (.endBalance)) srs
-    in fromCents $ round $ (fromIntegral $ sum $ map (totalCents) tots :: Float) / (fromIntegral $ length tots :: Float) :: USD (Bal Total)
+    let tots = fmap (total . (.endBalance)) srs
+    in fromCents $ round $ (fromIntegral $ sum $ fmap (totalCents) tots :: Float) / (fromIntegral $ length tots :: Float) :: USD (Bal Total)
 
 -- Median END Balance, not portfolio
-medianEndPortfolio :: [SimResult] -> USD (Bal Total)
+medianEndPortfolio :: NonEmpty SimResult -> USD (Bal Total)
 medianEndPortfolio srs =
-    let tots = map (total . (.endBalance)) srs
-    in fromCents $ median $ map totalCents tots
+    let tots = fmap (total . (.endBalance)) srs
+    in fromCents $ median $ fmap totalCents tots
 
 
 
-median :: (Ord a) => [a] -> a   
-median [] = error "Median of empty list"
+median :: (Ord a) => NonEmpty a -> a   
 median xs = sort xs !! mid   
  where mid = (length xs) `div` 2 
 
-percentile :: (Ord a) => Float -> [a] -> a   
-percentile _ [] = error "Percentile of empty list"
+percentile :: (Ord a) => Float -> NonEmpty a -> a   
 percentile p xs = sort xs !! n
  where n = round $ (fromIntegral $ length xs) * p
 

@@ -29,7 +29,7 @@ data SimResult = SimResult
   , startBalance :: Balances
   , endYear :: Year
   , endBalance :: Balances
-  , years :: [YearStart]
+  , years :: NonEmpty YearStart
   , wdAmts :: WithdrawalResults
   , wdSpread :: WithdrawalSpread Int
   }
@@ -39,7 +39,7 @@ data Success
 data RateResult = RateResult
   { rate :: Pct Withdrawal
   , success :: Pct Success
-  , results :: [SimResult]
+  , results :: NonEmpty SimResult
   , avgEndPortfolio :: USD (Bal Total)
   , medEndPortfolio :: USD (Bal Total)
   }

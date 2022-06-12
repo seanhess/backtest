@@ -5,26 +5,34 @@ import Backtest.Types
 import Backtest.Types.Pct as Pct
 import Data.ByteString.Lazy (readFile)
 import Data.Csv as Csv (decodeByName, Header)
-import Data.List as List
+import qualified Data.List as List
+import qualified Data.List.NonEmpty as NE
 import Data.Vector as Vector (Vector, toList)
 
 type YearsLeft = Int
 
-loadReturns :: IO [HistoryRow]
+loadReturns :: IO (NonEmpty HistoryRow)
 loadReturns = do
     putStrLn "Loading"
     f <- readFile "data/data.csv"
     case Csv.decodeByName f of
         Left e -> fail $ "Decoding CSV Failed: " <> e
         Right (_, rs) -> do
-            pure $ filter firstMonth $ Vector.toList rs
+            case nonEmpty $ filter firstMonth $ Vector.toList rs of
+              Just ne -> pure ne
+              Nothing -> fail "loadReturns, no data rows found"
+              
+
     where
         firstMonth rets = rets.month == 1
 
 
-toHistories :: [HistoryRow] -> [History]
+toHistories :: NonEmpty HistoryRow -> NonEmpty History
 toHistories hr =
-  catMaybes $ zipWith toHistory hr (drop 1 hr)
+  let hs = catMaybes $ zipWith toHistory (NE.toList hr) (drop 1 (NE.toList hr))
+  in case nonEmpty hs of
+    Nothing -> error "toHistories: no histories found from rows"
+    Just x -> x
 
 fakeHistory :: Year -> History
 fakeHistory y = History y (Portfolio (pct 0) (pct 0)) (Portfolio (usd 4582) (usd 46.65)) (CAPE 30)
@@ -60,11 +68,13 @@ toHistory past now = do
 
 -- now it can extend them!
 -- but by how much?
-samples :: YearsLeft -> [History] -> [[History]]
-samples years hs = List.tails hs
+samples :: YearsLeft -> NonEmpty History -> NonEmpty (NonEmpty History)
+samples years hs = NE.tails hs
   & fmap (take years)
-  & filter (\hs' -> length hs' >= years-10 )
+  & NE.filter (\hs' -> length hs' >= years-10 )
   & fmap (simHistories years)
+  & map (NE.fromList)
+  & NE.fromList
 
 
 
@@ -118,9 +128,8 @@ compoundStockReturn :: [History] -> Pct (Return Stocks)
 compoundStockReturn hs = foldl Pct.compound (pct 0) $ map (\h -> h.returns.stocks) hs
 
 
-priorYears :: Year -> [History] -> [History]
-priorYears y hs = reverse $ takeWhile (\h -> h.year < y) hs
-
+priorYears :: Year -> NonEmpty History -> [History]
+priorYears y hs = List.reverse $ takeWhile (\h -> h.year < y) $ NE.toList hs
 
 
 historicalReturns :: Balances -> [History] -> [Pct (Return Total)]

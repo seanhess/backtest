@@ -3,6 +3,7 @@ module Backtest.Debug where
 import Backtest.Types
 import Backtest.Prelude
 import Data.List as List
+import qualified Data.List.NonEmpty as NE
 
 
 printYears :: [YearStart] -> IO ()
@@ -91,10 +92,10 @@ printWithdrawalResultsRow :: String -> WithdrawalResults -> IO ()
 printWithdrawalResultsRow lbl wr = do
     printTableRow 8 [lbl, show wr.init, show wr.low, show wr.p10, show wr.p25, show wr.med, show wr.p75, show wr.p90]
 
-printWithdrawalResultsByYear :: [WithdrawalResults] -> IO ()
+printWithdrawalResultsByYear :: NonEmpty (WithdrawalResults) -> IO ()
 printWithdrawalResultsByYear wrs = do
     printWithdrawalResultsHeader
-    forM_ (zip [1..] wrs) $ \(y, wr) -> do
+    forM_ (zip [1..] (NE.toList wrs)) $ \(y, wr) -> do
         printWithdrawalResultsRow (show y) wr
 
 printTableRow :: Int -> [String] -> IO ()

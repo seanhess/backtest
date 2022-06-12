@@ -40,6 +40,7 @@ inverse :: Pct a -> Pct a
 inverse (Pct a) = Pct (1 - a)
 
 average :: [Pct a] -> Pct a
+average [] = 0
 average ps =
   Pct $ (toFloat $ sum ps) / fromIntegral (length ps)
 
