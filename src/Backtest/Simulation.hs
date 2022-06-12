@@ -62,10 +62,7 @@ simulation' start getActions hs =
 
 simulation :: Balances -> Actions () -> NonEmpty History -> SimResult
 simulation initial actions hs =
-    let ys  = (head hs).year
-
-        -- the last year the simulation is run
-        yl  = (last hs).year
+    let yl  = (last hs).year -- the last year the simulation is run
 
         -- the year the money should run out
         ye  = nextYear yl
@@ -77,7 +74,7 @@ simulation initial actions hs =
         firstYear = flip runReader context $ firstYearResult h initial
 
         -- a function of 
-        ((yr, _), yrs) = List.mapAccumL (\a h' -> runReader (eachReturns ys a h') context) (firstYear, [firstYear]) hs'
+        ((yr, _), yrs) = List.mapAccumL (\a h' -> runReader (eachReturns a h') context) (firstYear, [firstYear]) hs'
 
         years = NE.fromList $ firstYear : yrs
 
@@ -86,7 +83,7 @@ simulation initial actions hs =
         wds = fmap (.withdrawal) years
 
     in SimResult
-        { startYear = ys
+        { startYear = (head hs).year
         , startBalance = initial
         , endYear = ye
         , endBalance = bal'
@@ -97,9 +94,9 @@ simulation initial actions hs =
     
   where
 
-    eachReturns :: Year -> (YearStart, [YearStart]) -> History -> Reader SimContext ((YearStart, [YearStart]), YearStart)
-    eachReturns ys (lastYear', pastYears) h = do
-        yr <- nextYearResult ys h pastYears lastYear'.end
+    eachReturns :: (YearStart, [YearStart]) -> History -> Reader SimContext ((YearStart, [YearStart]), YearStart)
+    eachReturns (lastYear', pastYears) h = do
+        yr <- nextYearResult h pastYears lastYear'.end
         pure ((yr, yr:pastYears), yr)
 
 
@@ -131,8 +128,9 @@ simulation initial actions hs =
     -- YearResult 1901 (10% ret) (Withdrawal) Rebalance
 
     -- ye = the simulation ends in which year?
-    nextYearResult :: Year -> History -> [YearStart] -> Balances -> Reader SimContext YearStart
-    nextYearResult ys h pastYears balOld = do
+    nextYearResult :: History -> [YearStart] -> Balances -> Reader SimContext YearStart
+    nextYearResult h pastYears balOld = do
+        h0 <- head <$> asks _history
 
         -- Its the beginning of simulation
         --   a. withdraw
@@ -158,7 +156,7 @@ simulation initial actions hs =
         pure YearStart
           { history = Just h
           , year = h.year
-          , yearIndex = fromYear $ h.year - ys
+          , yearIndex = fromYear $ h.year - h0.year
           , start = balRet
           , returns = ret
           , actions = act
