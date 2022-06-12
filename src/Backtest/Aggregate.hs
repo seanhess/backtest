@@ -8,6 +8,19 @@ import qualified Data.List as List
 
 
 
+medianWithdrawals :: [SimResult] -> [MedianWithdrawal]
+medianWithdrawals srs = 
+  map toMed $ List.transpose $ map (.years) srs
+  where
+    toMed yrs = MedianWithdrawal
+      { yearIndex = (head yrs).yearIndex
+      , withdrawal = median $ map (.withdrawal) yrs
+      , netExpenses = median $ map (.netExpenses) yrs
+      }
+
+
+
+
 withdrawalResults :: [USD (Amt Withdrawal)] -> WithdrawalResults
 withdrawalResults wds =
     Histogram
@@ -52,6 +65,17 @@ aggregateResults srs = srs
   & map (map (.withdrawal))
   & map withdrawalResults
 
+
+aggregateResultsAll :: [WithdrawalResults] -> WithdrawalResults
+aggregateResultsAll wrs = Histogram
+  { low = minimum $ map (.low) wrs
+  , init = minimum $ map (.init) wrs
+  , med = median $ map (.med) wrs
+  , p10 = median $ map (.p10) wrs
+  , p25 = median $ map (.p10) wrs
+  , p75 = median $ map (.p75) wrs
+  , p90 = median $ map (.p90) wrs
+  }
 
 -- aggregateMedian :: [WithdrawalResults] -> WithdrawalResults
 -- aggregateMedian wrs = aggregateResults median wrs

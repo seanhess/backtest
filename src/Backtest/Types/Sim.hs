@@ -51,6 +51,12 @@ data AggregateSpread = AggregateSpread
   }
 
 
+data MedianWithdrawal = MedianWithdrawal
+  { yearIndex :: Int
+  , withdrawal :: USD (Amt Withdrawal)
+  , netExpenses :: USD (Amt Expense)
+  }
+
 
 type WithdrawalResults = Histogram (USD (Amt Withdrawal))
 

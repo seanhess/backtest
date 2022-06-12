@@ -17,29 +17,30 @@ withdrawFloor start raise = do
   withdraw $ withdrawalFloor old raise bal
 
 
--- hmm... maybe I should also use a minimum of the percentage
--- no, because that will go way too far down
--- hmm... some maximum percent
--- or just get the start right.
 withdrawalFloor :: USD (Amt Withdrawal) -> Pct Withdrawal -> Balances -> USD (Amt Withdrawal)
 withdrawalFloor old raise bal = 
   let raised = amount raise (total bal)
   in max old raised
 
 
--- withdrawalPeak :: Portfolio USD Bal -> 
--- withdrawalPeak peak 
+withdrawRaised :: USD (Amt Withdrawal) -> Pct Withdrawal -> Pct Raise -> Actions ()
+withdrawRaised start swr raise = do
+  old <- fromMaybe start <$> lastWithdrawal
+  bal <- balances
+  withdraw $ raisedWithdrawal old swr raise bal
+
+-- how do we know when we can raise?
+data Raise
+raisedWithdrawal :: USD (Amt Withdrawal) -> Pct Withdrawal -> Pct Raise -> Balances -> USD (Amt Withdrawal)
+raisedWithdrawal old swr raise bal =
+  let maxw = amount swr (total bal) :: USD (Amt Withdrawal)
+      raised = toWithdrawal $ amount raise (toBalance old) :: USD (Amt Withdrawal)
+  in if maxw > old
+    then min maxw raised
+    else old
 
 
--- what was the PREVIOUS withdrawal?
--- it's not based on the current state of the portfolio
--- but based on your history
 
--- hmm..... 
--- really, not based on anything?
--- it's intuitive though
--- but that's not what I want to go for
--- I want 
 
 -- TODO I need the last withdrawal, or the history of withdrawals
 withdrawSteps :: USD (Amt Withdrawal) -> Actions ()

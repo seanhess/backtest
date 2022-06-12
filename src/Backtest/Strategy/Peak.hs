@@ -43,7 +43,7 @@ peakWithdrawal findPeak wp bal =
   staticWithdrawal wp (findPeak bal)
 
 
-
+-- your highest balance ever
 pastPeak :: [Balances] -> Maybe Balances
 pastPeak bals = headMay $ reverse $ sortOn total bals
 

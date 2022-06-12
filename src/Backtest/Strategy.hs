@@ -39,6 +39,11 @@ rebalancePrimeNew start bal
   | bal.stocks < (toBalance $ amount (pct 80) start) = primeBuyStocks start (pct 80) bal
   | otherwise = bal
 
+rebalancePrimeLow :: USD (Bal Stocks) -> Balances -> Balances
+rebalancePrimeLow start bal
+  | bal.stocks < (toBalance $ amount (pct 80) start) = primeBuyStocks start (pct 80) bal
+  | otherwise = bal
+
 primeBuyStocks :: USD (Bal Stocks) -> Pct Stocks -> Balances -> Balances
 primeBuyStocks start p bal =
     let target = toBalance $ amount p start

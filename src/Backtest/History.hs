@@ -27,7 +27,7 @@ toHistories hr =
   catMaybes $ zipWith toHistory hr (drop 1 hr)
 
 fakeHistory :: Year -> History
-fakeHistory y = History y (Portfolio (pct 5) (pct 2)) (Portfolio (usd 4582) (usd 46.65)) (CAPE 30)
+fakeHistory y = History y (Portfolio (pct 0) (pct 0)) (Portfolio (usd 4582) (usd 46.65)) (CAPE 30)
 
 -- find the history or use a fake one
 simHistory :: [History] -> Year -> History
@@ -63,8 +63,8 @@ toHistory past now = do
 samples :: YearsLeft -> [History] -> [[History]]
 samples years hs = List.tails hs
   & fmap (take years)
+  & filter (\hs' -> length hs' >= years-10 )
   & fmap (simHistories years)
-  & filter (\hs' -> length hs' >= years)
 
 
 

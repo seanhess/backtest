@@ -271,9 +271,9 @@ addIncome :: USD (Amt Income) -> Balances -> Balances
 addIncome inc b =
     Portfolio b.stocks (addToBalance (gain inc) b.bonds)
 
+-- shoot this doesn't work if stocks are 100%
 addExpense :: USD (Amt Expense) -> Balances -> Balances
-addExpense ex b = do
-    Portfolio b.stocks (addToBalance (loss ex) b.bonds)
+addExpense ex b = bondsFirst (toWithdrawal ex) b
 
 
 

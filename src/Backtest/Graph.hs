@@ -13,16 +13,45 @@ toChartFile :: FilePath -> [VLSpec] -> IO ()
 toChartFile fp chart = toHtmlFile fp $ toVegaLite [vConcat chart]
 
 
+withdrawalStackChart :: [MedianWithdrawal] -> VLSpec
+withdrawalStackChart mws = 
+    let enc = encoding
+                . position X [ PName "Year",   PmType Quantitative, PTitle "Year" ]
+                . position Y [ PName "Amount", PmType Quantitative, PTitle "Median Amount", PAggregate Sum ]
+                . color [ MName "Type", MmType Nominal ]
+
+        bkg = background "rgba(255, 255, 255, 1.00)"
+
+    in asSpec [ bkg, toData mws, width 500, mark Bar [MTooltip TTEncoding], enc [] ]
+
+  where
+    toData ms = dataFromRows [] $ (foldr toRows [] ms)
+
+    toRows :: MedianWithdrawal -> [DataRow] -> [DataRow]
+    toRows m =
+        dataRow
+          [ ("Year", Number (fromIntegral m.yearIndex))
+          , ("Amount", Number (fromIntegral $ dollars m.withdrawal))
+          , ("Type", Str "withdrawal")
+          ]
+        . dataRow
+          [ ("Year", Number (fromIntegral $ m.yearIndex))
+          , ("Amount", Number (fromIntegral $ dollars m.netExpenses))
+          , ("Type", Str "expense")
+          ]
+
+
+
 withdrawalBinChart :: Int -> Data -> VLSpec
 withdrawalBinChart yrs dt =
     let enc = encoding
                 . position X [ PName "Year",       PmType Quantitative, PBin [ MaxBins yrs ] ]
-                . position Y [ PName "Withdrawal", PmType Quantitative, PBin [ MaxBins 60 ], PScale [SDomain (DNumbers [0, 200])] ]
+                . position Y [ PName "Withdrawal", PmType Quantitative, PBin [ MaxBins 60 ] ] -- , PScale [SDomain (DNumbers [0, 200])] ]
                 . color [ MAggregate Count, MScale [SType ScSqrt]  ]
 
         bkg = background "rgba(255, 255, 255, 1.00)"
 
-    in asSpec [ bkg, dt, width 300, height 200, mark Rect [MTooltip TTEncoding], enc [] ]
+    in asSpec [ bkg, dt, width 500, mark Rect [MTooltip TTEncoding], enc [] ]
 
 
 withdrawalLineChart :: Data -> VLSpec
@@ -30,15 +59,11 @@ withdrawalLineChart dt =
     let enc = encoding
                 . position X [ PName "Year", PmType Quantitative ]
                 . position Y [ PName "Withdrawal", PmType Quantitative]
-                . color [ MName "Start", MmType Nominal ]
-
-        mrk = mark Line []
+                . color [ MName "Start", MmType Nominal, MScale [SType ScLinear] ]
 
         bkg = background "rgba(255, 255, 255, 1.00)"
 
-    in asSpec [ bkg, dt, width 300, height 200, mark Rect [MTooltip TTEncoding], mrk, enc []]
-
-
+    in asSpec [ bkg, dt, width 500, mark Line [MTooltip TTEncoding], enc []]
 
 
 simData :: [SimResult] -> Data
@@ -54,6 +79,7 @@ yearDataRow sy ys =
     , ("Start", Str (cs $ show $ fromYear sy))
     , ("Withdrawal", Number (fromIntegral $ dollars ys.withdrawal))
     ]
+
 
 
 

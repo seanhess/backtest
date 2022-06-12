@@ -42,30 +42,45 @@ run = do
 
 runActual :: [History] -> IO ()
 runActual hs = do
-    -- let ps = pct 90
     let ss = samples 60 hs
     let bnds = usd 411.8 :: USD (Bal Bonds)
     let stks = usd 1065.5
     let kids = usd 161.3
     -- let start = Portfolio stks (bnds + (fromUSD $ loss kids))
-    let start = Portfolio stks bnds
+    -- let start = Portfolio stks bnds
+    -- let start = Portfolio (usd 1275) (usd 0)
+    let start = Portfolio (usd 1275) (usd 0)
 
-    let allRaises = map pct [3.50, 3.51 .. 3.55] :: [Pct Withdrawal]
-    let allAllocs = map pct [70, 75 .. 100] :: [Pct Stocks]
+    let allRaises = map pct [3.0, 3.1 .. 3.2] :: [Pct Withdrawal]
+    let allAllocs = map pct [85, 90 .. 100] :: [Pct Stocks]
+    let allStarts = map usd [38, 38.5 .. 41] :: [USD (Amt Withdrawal)]
+
+    -- at 95% stocks I can support 40k/1275k withdrawals and 3.1% raise
+    -- mapped to the peak that's 3.1% of 1500 = $46.5k
+    -- but I have to rebalance to 95%!
+    -- plus I have international which should help a lot!
+
+
+    -- |  3.100% |  $40.00 |  $40.00 |  $46.00 |  $46.00 |  $79.16 | $119.96 | $166.56 |
+
+    -- let allRaises = map pct [3.5] :: [Pct Withdrawal]
+    -- let allAllocs = map pct [100] :: [Pct Stocks]
 
     -- 3.51 actual, 100% stocks, $51.85
 
-    -- runRaise ss (pct 100) start (pct 3.53)
-    -- runRaise ss (pct 100) start (pct 3.53)
-  
-    -- forM_ allRaises $ \x -> do
-    --     runRaise ss (pct 100) start x -- (pct 3.53)
+    -- 3.17 actual, 90% stocks, $40.42
+    -- |  3.170% |  $40.42 |  $40.42 |  $45.93 |  $45.93 |  $75.40 | $114.77 | $155.96 |
+    -- of peak: 1477 - 51.5 = 1425 * 3.17% = $45.17 - YIKES!
+    -- 10% stocks = 127.5k
 
-    -- forM_ allAllocs $ \x -> do
-    --     runRaise ss x start (pct 3.50)
+    forM_ allAllocs $ \ps -> do
+        putStrLn $ "Alloc: " <> show ps
+        printWithdrawalResultsHeader
+        forM_ allRaises $ \r -> do
+            forM_ allStarts $ \sw -> do
+                runRaise ss ps start sw r (pct 110) -- (pct 3.53)
+        putStrLn ""
 
-    -- forM_ allAllocs $ \x -> do
-    --     runRaise ss x start (pct 3.57)
 
     -- TODO I need a better instrument for this. A graph?
     -- no, I need a way to optimize. Median withdrawal? 10th percentile median withdrawal
@@ -87,50 +102,69 @@ runActual hs = do
 
     -- * 1966 failure year
 
-    let sim = simulation start $ actions start (pct 100) (pct 3.50)
+    let ps = pct 90 :: Pct Stocks
+    let swr = pct 3.17 :: Pct Withdrawal
+    let sw = amount swr (total start)
+    let raise = pct 110 :: Pct Raise
+    let sim = simulation start $ actions sw start ps swr raise
     let srs = map sim ss :: [SimResult]
 
-    (Just s1966) <- pure $ List.find (isYear 1949) srs
+    printWithdrawalResultsByYear $ aggregateResults srs
+
+    (Just s1966) <- pure $ List.find (isYear 1966) srs
     print $ s1966.startYear
     print $ s1966.endBalance
     printYearHeader
     mapM_ printYear $ s1966.years
     print $ isFailure s1966
 
-    toChartFile  "graphs/withdrawals.html" [withdrawalBinChart 60 (simData srs), withdrawalLineChart $ simData srs]
+    toChartFile  "graphs/withdrawals.html"
+      [ withdrawalBinChart 60 (simData srs)
+      , withdrawalLineChart $ simData srs
+      , withdrawalStackChart $ medianWithdrawals srs 
+      ]
 
 
     pure ()
 
   where
 
-    runRaise :: [[History]] -> Pct Stocks -> Balances -> Pct Withdrawal -> IO ()
-    runRaise ss ps start raise = do
-        print ("stocks:", ps, "raise:", raise)
-        runAggregate ss start $ actions start ps raise
+    runRaise :: [[History]] -> Pct Stocks -> Balances -> USD (Amt Withdrawal) -> Pct Withdrawal -> Pct Raise -> IO ()
+    runRaise ss ps start sw swr raise = do
+        -- print ("stocks:", ps, "init:", sw, "swr:", swr, "raise:", raise, "start:")
 
-    -- TODO, deduct something first?
-    actions :: Balances -> Pct Stocks -> Pct Withdrawal -> Actions ()
-    actions start ps raise = do
+        let acts = actions sw start ps swr raise
+        let sim = simulation start acts
+        let srs = map sim ss :: [SimResult]
+
+
+        -- printWithdrawalResultsByYear $ aggregateResults srs
+        printWithdrawalResultsRow (show swr) $ aggregateResultsAll $ aggregateResults srs
+
+
+    actions :: USD (Amt Withdrawal) -> Balances -> Pct Stocks -> Pct Withdrawal -> Pct Raise -> Actions ()
+    actions sw start ps swr raise = do
+
+        n <- now
+        -- withdrawPeak (historyPeak n.year hs) swr
+        -- withdrawRaised sw swr raise
+        withdrawFloor sw swr
+        -- withdraw sw
 
         -- TODO this isn't adjusted for inflation
-        onYears [0..3] $ do
+        onYears [0..2] $ do
             expense $ usd $ 9.6 + 13.2
 
-        onYears [4..5] $ do
+        onYears [3..4] $ do
             expense $ usd $ 6.4 + 13.2
 
-        onYears [6..8] $ do
+        onYears [5..7] $ do
             expense $ usd $ 3.4 + 13.2
 
         onYears [30..60] $ do
             income $ usd 25
 
-        n <- now
-        withdrawPeak (historyPeak n.year hs) raise
-
         rebalance $ rebalanceFixed ps
-
 
     
 
@@ -226,7 +260,11 @@ runSimulation _ _ hs = do
 
 
     -- toExampleChart $ withdrawalBinChart $ simData srs
-    toChartFile  "graphs/withdrawals.html" [withdrawalBinChart yrs (simData srs), withdrawalLineChart $ simData srs]
+    toChartFile  "graphs/withdrawals.html"
+      [ withdrawalBinChart yrs (simData srs)
+      , withdrawalLineChart $ simData srs
+      , withdrawalStackChart $ medianWithdrawals srs
+      ]
 
     pure ()
 
