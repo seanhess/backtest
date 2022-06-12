@@ -102,8 +102,52 @@ printTableRow p items = do
     putStrLn $ "|" <> (List.intercalate " |" $ map (padLeft p) items) <> " |"
 
 
+withdrawalResultsCols :: [Column WithdrawalResults]
+withdrawalResultsCols =
+    [ Column "init" 8 $ show . (.init)
+    , Column "low" 8  $ show . (.low)
+    , Column "p10" 8  $ show . (.p10)
+    , Column "p25" 8 $ show . (.p25)
+    , Column "med" 8 $ show . (.med)
+    , Column "p75" 8 $ show . (.p75)
+    , Column "p90" 8 $ show . (.p90)
+    ]
+
 padLeft :: Int -> String -> String
 padLeft n s
     | length s < n = padLeft n (' ':s)
     | otherwise = s
 
+
+
+data Column a = Column
+  { label :: String
+  , size :: Int
+  , value :: (a -> String)
+  }
+
+
+printTable :: [Column a] -> [a] -> IO ()
+printTable cols as = mapM_ putStrLn $ tableRows cols as
+
+tableRows :: [Column a] -> [a] -> [String]
+tableRows cols as = headerRow cols : map (tableRow cols) as
+
+tableCell :: a -> Column a -> String
+tableCell a col = do
+    padLeft (col.size) $ col.value a
+
+tableRow :: [Column a] -> a -> String
+tableRow cols a = do
+    stringRow $ map (tableCell a) cols
+
+
+headerRow :: [Column a] -> String
+headerRow cols =
+    stringRow $ map (\c -> padLeft c.size c.label) cols
+
+stringRow :: [String] -> String
+stringRow cells =
+    "|" <> (List.intercalate " |" cells) <> " |"
+
+    

@@ -60,45 +60,25 @@ runActual hs = do
     -- but I have to rebalance to 95%!
     -- plus I have international which should help a lot!
 
-
+    --           |    init |     low |     p10 |     p25 |     med |     p75 |     p90 |
     -- |  3.100% |  $40.00 |  $40.00 |  $46.00 |  $46.00 |  $79.16 | $119.96 | $166.56 |
 
-    -- let allRaises = map pct [3.5] :: [Pct Withdrawal]
-    -- let allAllocs = map pct [100] :: [Pct Stocks]
-
-    -- 3.51 actual, 100% stocks, $51.85
-
-    -- 3.17 actual, 90% stocks, $40.42
     -- |  3.170% |  $40.42 |  $40.42 |  $45.93 |  $45.93 |  $75.40 | $114.77 | $155.96 |
+
+    -- 95% |  3.100% |  $40.00 |  $40.00 |  $44.59 |  $44.59 |  $69.47 | $113.64 | $160.45 |
     -- of peak: 1477 - 51.5 = 1425 * 3.17% = $45.17 - YIKES!
     -- 10% stocks = 127.5k
+    
 
     forM_ allAllocs $ \ps -> do
-        putStrLn $ "Alloc: " <> show ps
-        printWithdrawalResultsHeader
+        putStrLn $ headerRow $ columns ps (pct 0)
         forM_ allRaises $ \r -> do
             forM_ allStarts $ \sw -> do
                 runRaise ss ps start sw r (pct 110) -- (pct 3.53)
         putStrLn ""
 
 
-    -- TODO I need a better instrument for this. A graph?
-    -- no, I need a way to optimize. Median withdrawal? 10th percentile median withdrawal
-    -- 3.5% is the winner for 75/25!
-    -- 3.5 75/25 is 92 95 97 98
-    -- 3.5 80/20 is 92 95 97 98
-    -- 3.5 85/15 is 92 96 93 99
-
-    -- 3.5 100/0 is 90 92 89
-    -- 3.5 60/40 is 95 97 92
-    -- 3.5 90/10 is 90 95 92
-
-    -- 525 75/25 is 92 95 95 98
-
-    -- ignoring rebalancing (prime-like) doesn't work quite as well (90s instead)
-    -- I should have liabilities in bonds + my allocation
-
-    -- that's nice!
+  
 
     -- * 1966 failure year
 
@@ -138,8 +118,16 @@ runActual hs = do
         let srs = map sim ss :: [SimResult]
 
 
+        -- let cols = 
         -- printWithdrawalResultsByYear $ aggregateResults srs
-        printWithdrawalResultsRow (show swr) $ aggregateResultsAll $ aggregateResults srs
+        -- printWithdrawalResultsRow (show swr) 
+        putStrLn $ tableRow (columns ps swr) $ aggregateResultsAll $ aggregateResults srs
+
+
+    columns ps swr =
+        [ Column "stocks%" 8 (\_ -> show ps)
+        , Column "swr" 7 (\_ -> show swr)
+        ] <> withdrawalResultsCols
 
 
     actions :: USD (Amt Withdrawal) -> Balances -> Pct Stocks -> Pct Withdrawal -> Pct Raise -> Actions ()
