@@ -13,7 +13,7 @@ import Backtest.Debug
 import qualified Backtest.Types.Pct as Pct
 
 import Control.Monad.Catch (try, throwM)
-import Control.Monad.Reader (MonadReader, ReaderT, runReaderT, ask)
+import Control.Monad.Reader (MonadReader, ReaderT, runReaderT, runReader, ask)
 import Control.Monad.State (runState)
 import Data.List (intercalate)
 import qualified Data.List.NonEmpty as NE
@@ -392,6 +392,7 @@ assertStandard = do
   let wda = staticWithdrawal swr4 start
   let h = History (Year 1872) (Portfolio (pct 10.0) (pct 1.0)) mempty (CAPE 10)
   let y = h.year
+  let ctx = SimContext [] y
 
 
   -- ok, so what should happen?
@@ -413,18 +414,18 @@ assertStandard = do
     ch.stocks === usd (-80)
   
   expect "withdrawal " $ do
-    let bal' = runActions y h [] bal [] (withdraw4 start)
+    let bal' = runSimActions ctx h bal [] (withdraw4 start)
     bal'.stocks === usd 800
     bal'.bonds === usd 360
 
   expect "rebalance" $ do
-    let bal' = runActions y h [] bal [] $ rebalancePct (pct 60)
+    let bal' = runSimActions ctx h bal [] $ rebalancePct (pct 60)
     bal'.stocks === usd 720
     bal'.bonds === usd 480
 
 
   -- run full standard
-  let bal' = runActions y h [] bal [] (withdraw4 start >> rebalancePct (pct 60))
+  let bal' = runSimActions ctx h bal [] (withdraw4 start >> rebalancePct (pct 60))
   let chs  = changes bal bal'
 
   expect "withdrawal should result in net -40" $ do
@@ -450,11 +451,12 @@ assertActions = do
   let bal = Portfolio (usd 100) (usd 200)
   let h = History (Year 1900) (Portfolio (pct 10.0) (pct 1.0)) mempty (CAPE 10)
   let y = Year 1872
+  let ctx = SimContext [h] y
 
   let ch = \b -> Portfolio (addToBalance (usd 20) b.stocks) (addToBalance (usd 30) b.bonds)
 
   expect "stocks should be the sum of both changes" $ do
-    let fin = runActions y h [] (bal) [] $ do
+    let fin = runSimActions ctx h (bal) [] $ do
                 rebalance ch
                 rebalance ch
 
@@ -463,7 +465,7 @@ assertActions = do
   expect "withdraw everything if balance is insufficient" $ do
     let bal' = Portfolio (usd 20) (usd 10)
     let wa = usd 40
-    let ye = runActionState h.year h [h] bal' [] (withdraw wa)
+    let ye = flip runReader ctx $ runActionState h bal' [] (withdraw wa)
     ye._withdrawal === usd 30
     ye._balances.stocks === usd 0
     ye._balances.bonds === usd 0
@@ -603,7 +605,8 @@ assertABW = do
   let y = Year 1900
   let ye = Year 1950 -- the year we are out of money and take no actions
   let h = History y (Portfolio (pct 0.0) (pct 0.0)) mempty (CAPE 40)
-  let st = runActionState ye h [] p [] withdrawABW
+  let ctx = SimContext [h] ye
+  let st = flip runReader ctx $ runActionState h p [] withdrawABW
 
   expect "withdrawal amount to be the same" $ do
     st._withdrawal === wda

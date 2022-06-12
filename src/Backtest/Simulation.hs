@@ -12,6 +12,8 @@ module Backtest.Simulation
   , noChanges
   , runActions
   , runActionState
+  , runSimActions
+  , SimContext(..)
   , now
   , history
   , balances
@@ -27,7 +29,8 @@ import Backtest.Types.Pct as Pct
 import Backtest.Aggregate (withdrawalResults, withdrawalSpread)
 import qualified Backtest.Types.Sim as Sim
 
-import Control.Monad.State (State, MonadState, modify, execState, put, get, gets)
+import Control.Monad.State (State, StateT, MonadState, modify, execStateT, put, get, gets)
+import Control.Monad.Reader (ReaderT, Reader, MonadReader, runReaderT, runReader, asks)
 import Control.Monad (when)
 import qualified Data.List as List
 import Debug.Trace
@@ -52,10 +55,6 @@ import Data.List.NonEmpty (NonEmpty, head, fromList)
 
 
 
--- TODO START withdraw, rebalance
--- TODO NEXT apply returns, withdraw, rebalance
-
-
 simulation' :: Balances -> (History -> Actions ()) -> NonEmpty History -> SimResult
 simulation' start getActions hs =
     let acts = getActions (head hs)
@@ -73,9 +72,12 @@ simulation initial actions hs =
 
         (h :| hs') = hs
 
-        firstYear = firstYearResult ye h initial
+        context = SimContext hs ye
 
-        ((yr, _), yrs) = List.mapAccumL (eachReturns ys ye) (firstYear, [firstYear]) hs'
+        firstYear = flip runReader context $ firstYearResult h initial
+
+        -- a function of 
+        ((yr, _), yrs) = List.mapAccumL (\a h' -> runReader (eachReturns ys a h') context) (firstYear, [firstYear]) hs'
 
         years = NE.fromList $ firstYear : yrs
 
@@ -84,33 +86,33 @@ simulation initial actions hs =
         wds = fmap (.withdrawal) years
 
     in SimResult
-      { startYear = ys
-      , startBalance = initial
-      , endYear = ye
-      , endBalance = bal'
-      , years = years
-      , wdAmts = withdrawalResults wds
-      , wdSpread = withdrawalSpread (total initial) wds
-      }
+        { startYear = ys
+        , startBalance = initial
+        , endYear = ye
+        , endBalance = bal'
+        , years = years
+        , wdAmts = withdrawalResults wds
+        , wdSpread = withdrawalSpread (total initial) wds
+        }
     
   where
 
-    eachReturns :: Year -> Year -> (YearStart, [YearStart]) -> History -> ((YearStart, [YearStart]), YearStart)
-    eachReturns ys ye (lastYear', pastYears) h =
-        let yr = nextYearResult ys ye h pastYears lastYear'.end
-        in ((yr, yr:pastYears), yr)
+    eachReturns :: Year -> (YearStart, [YearStart]) -> History -> Reader SimContext ((YearStart, [YearStart]), YearStart)
+    eachReturns ys (lastYear', pastYears) h = do
+        yr <- nextYearResult ys h pastYears lastYear'.end
+        pure ((yr, yr:pastYears), yr)
 
 
-    firstYearResult :: Year -> History -> Balances -> YearStart
-    firstYearResult ye h start = 
+    firstYearResult :: History -> Balances -> Reader SimContext YearStart
+    firstYearResult h start = do
 
-        let st = runActionState ye h hs start [] actions
-            end = st._balances
+        st <- runActionState h start [] actions
+        let end = st._balances
             act = changes start end
             ret = Portfolio mempty mempty
 
         -- in trace (show ("firstYearResult", h.year)) $ YearStart
-        in YearStart
+        pure $ YearStart
           { history = Just h
           , year = h.year
           , yearIndex = 0
@@ -129,8 +131,8 @@ simulation initial actions hs =
     -- YearResult 1901 (10% ret) (Withdrawal) Rebalance
 
     -- ye = the simulation ends in which year?
-    nextYearResult :: Year -> Year -> History -> [YearStart] -> Balances -> YearStart
-    nextYearResult ys ye h pastYears balOld = 
+    nextYearResult :: Year -> History -> [YearStart] -> Balances -> Reader SimContext YearStart
+    nextYearResult ys h pastYears balOld = do
 
         -- Its the beginning of simulation
         --   a. withdraw
@@ -149,11 +151,11 @@ simulation initial actions hs =
         let balRet = calcReturns h balOld
             ret = changes balOld balRet
             
-            st = runActionState ye h hs balRet pastYears actions
-            end = st._balances
+        st <- runActionState h balRet pastYears actions
+        let end = st._balances
             act = changes balRet end
 
-        in YearStart
+        pure YearStart
           { history = Just h
           , year = h.year
           , yearIndex = fromYear $ h.year - ys
@@ -214,9 +216,16 @@ calcReturns h b =
 -----------------------------------
 
 
+-- actions can only do the little actions
+newtype Actions a = Actions { fromActions :: StateT ActionState (Reader SimContext) a }
+  deriving (Monad, Applicative, Functor, MonadState ActionState, MonadReader SimContext)
 
-newtype Actions a = Actions { fromActions :: State ActionState a }
-  deriving (Monad, Applicative, Functor, MonadState ActionState)
+
+-- could it be different from the history itself?
+data SimContext = SimContext
+  { _history :: NonEmpty History
+  , _end :: Year
+  }
 
 data ActionState = ActionState
   { _balances :: Balances
@@ -225,26 +234,32 @@ data ActionState = ActionState
   , _expenses :: USD (Amt Expense)
   , _now :: History
   , _pastYears :: [YearStart]
-  , _history :: NonEmpty History
+--   , _history :: NonEmpty History
 
   -- the year you are out of money and take no actions
   -- 1900 - 1950
   -- 1900 = start
   -- 1950 = end
   -- 1949 = last year you take action
-  , _end :: Year
+--   , _end :: Year
   }
 
-runActions :: Year -> History -> NonEmpty History -> Balances -> [YearStart] -> Actions () -> Balances
-runActions y h hs bal ys act = 
-    let as = runActionState y h hs bal ys act
-    in as._balances
+runSim :: Reader SimContext a -> SimContext -> a
+runSim r c = runReader r c
 
-runActionState :: Year -> History -> NonEmpty History -> Balances -> [YearStart] -> Actions () -> ActionState
-runActionState ye h hs bal ys (Actions st) = 
-    let as = ActionState bal (usd 0) (usd 0) (usd 0) h ys hs ye :: ActionState
+runSimActions :: SimContext -> History -> Balances -> [YearStart] -> Actions () -> Balances
+runSimActions c h bal ys acts = runReader (runActions h bal ys acts) c
+
+runActions :: History -> Balances -> [YearStart] -> Actions () -> Reader SimContext Balances
+runActions h bal ys act = do
+    as <- runActionState h bal ys act
+    pure as._balances
+
+runActionState :: History -> Balances -> [YearStart] -> Actions () -> Reader SimContext ActionState
+runActionState h bal ys (Actions st) = 
+    let as = ActionState bal (usd 0) (usd 0) (usd 0) h ys :: ActionState
     -- in trace (show ("runActionState", h.year)) $ execState st as
-    in execState st as
+    in execStateT st as
 
 
 withdraw :: USD (Amt Withdrawal) -> Actions ()
@@ -304,7 +319,7 @@ now = do
 
 history :: Actions (NonEmpty History)
 history = do
-    gets _history
+    asks _history
 
 
 onYears :: [Int] -> Actions () -> Actions ()
@@ -314,7 +329,7 @@ onYears yrs action = do
 
 startYear :: Actions Year
 startYear = do
-    hs <- gets _history
+    hs <- asks _history
     pure $ (.year) $ head hs
 
 yearsElapsed :: Actions Int
@@ -325,7 +340,7 @@ yearsElapsed = do
 
 yearsLeft :: Actions Int
 yearsLeft = do
-    Year ye <- gets _end
+    Year ye <- asks _end
     Year yc <- (.year) <$> now
     pure $ ye - yc
 
