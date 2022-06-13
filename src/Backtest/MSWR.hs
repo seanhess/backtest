@@ -18,17 +18,17 @@ rateResults ss start reb rates =
     runRate :: Pct Withdrawal -> RateResult
     runRate wdp =
         let wda = loss $ staticWithdrawal wdp start :: USD (Amt Withdrawal)
-            srs = fmap (runSim wda) ss
+            srs = fmap (runSimulation wda) ss
         in RateResult
             { rate = wdp
             , success = successRate srs
             , results = srs
             , avgEndPortfolio = averageEndPortfolio srs
-        , medEndPortfolio = medianEndPortfolio srs
+            , medEndPortfolio = medianEndPortfolio srs
             }
 
-    runSim :: USD (Amt Withdrawal) -> NonEmpty History -> SimResult
-    runSim wda =
+    runSimulation :: USD (Amt Withdrawal) -> NonEmpty History -> SimResult
+    runSimulation wda =
         simulation start $ do
             withdraw (loss wda)
             reb

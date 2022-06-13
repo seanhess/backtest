@@ -3,6 +3,7 @@ module Backtest.Strategy where
 import Backtest.Prelude
 import Backtest.Types
 import Backtest.Simulation (Actions, withdraw, rebalance)
+import Backtest.Types.Portfolio (changes)
 
 
 
@@ -61,7 +62,7 @@ rebalance525Bands :: Pct Stocks -> Balances -> Balances
 rebalance525Bands ps bal
     | diffAbsPercent ps bal >= pct 5 = rebalanceFixed ps bal
     | diffRelPercent ps bal >= pct 25 = rebalanceFixed ps bal
-    | otherwise = bal
+    | otherwise = mempty
 
 diffAbsPercent :: Pct Stocks -> Balances -> Pct Stocks
 diffAbsPercent ps bal =
@@ -108,5 +109,7 @@ thousand90 = Portfolio (usd 900) (usd 100)
 swr4 :: Pct Withdrawal
 swr4 = pct 4
 
+-- wait... shoot! 
+-- rebalancing has to be based on the END of the calculation
 rebalancePct :: Pct Stocks -> Actions ()
 rebalancePct ps = rebalance $ rebalanceFixed ps

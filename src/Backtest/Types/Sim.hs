@@ -14,7 +14,7 @@ import Backtest.Types.Portfolio
 data YearStart = YearStart
   { year       :: Year
   , yearIndex  :: Int
-  , history    :: Maybe History
+  , history    :: History
   , start      :: Balances
   , end        :: Balances
   , returns    :: Changes

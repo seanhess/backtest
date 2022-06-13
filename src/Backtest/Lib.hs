@@ -137,7 +137,6 @@ runActual hs = do
         in do
 
         n <- now
-        -- withdrawPeak (historyPeak n.year hs) swr
         -- withdrawRaised sw swr raise
         withdrawFloor wd swr
         -- withdraw sw

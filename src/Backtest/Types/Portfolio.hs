@@ -44,13 +44,16 @@ changes :: Balances -> Balances -> Changes
 changes start end =
     Portfolio (gains start.stocks end.stocks) (gains start.bonds end.bonds)
 
+addChanges :: Changes -> Balances -> Balances
+addChanges ch bal =
+    Portfolio (addToBalance ch.stocks bal.stocks) (addToBalance ch.bonds bal.bonds)
+
 
 allocationStocks :: Balances -> Pct Stocks
 allocationStocks bal = fromPct $ percentOf bal.stocks (total bal)
 
 pctBonds :: Pct Stocks -> Pct Bonds
 pctBonds (Pct s) = Pct (1 - s)
-
 
 
 data Gains a

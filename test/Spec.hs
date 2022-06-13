@@ -40,24 +40,24 @@ type Assertion = IO
 main :: IO ()
 main = do
   putStrLn "Running Tests"
-  test "Percent" assertPercent
-  test "Amount" assertAmount
-  test "Returns" assertReturns
-  test "History" assertHistory
-  test "Actions" assertActions
-  test "withdrawal" assertWithdrawal
-  test "rebalance" assertRebalance
-  test "inflation" assertInflation
-  test "simEndBalance" assertSimEndBalance
-  test "simulation" assertSimulation
-  test "standard" assertStandard
-  test "primeHarvesting" assertPrimeHarvesting
-  test "primeNew" assertPrimeNew
-  test "testBands" assertBands
-  test "testPMT" assertPMT
-  test "testABW" assertABW
-  test "pmtFluctate" assertFluctate
-  test "peak" assertPeak
+  test "testPercent" testPercent
+  test "testAmount" testAmount
+  test "testReturns" testReturns
+  test "testHistory" testHistory
+  test "testActions" testActions
+  test "testWithdrawal" testWithdrawal
+  test "testRebalance" testRebalance
+  test "testInflation" testInflation
+  test "testSimEndBalance" testSimEndBalance
+  test "testSimulation" testSimulation
+  test "testStandard" testStandard
+  test "testPrimaeHarvesting" testPrimeHarvesting
+  test "testPrimeNew" testPrimeNew
+  test "testBands" testBands
+  test "testPMT" testPMT
+  test "testABW" testABW
+  test "testPmtFluctate" testFluctate
+  test "testPeak" testPeak
 
 
 
@@ -110,8 +110,8 @@ a /== b = do
     else throwM $ Failure NotEqual $ Vals (show a) (show b)
 
 
-assertAmount :: Test ()
-assertAmount = do
+testAmount :: Test ()
+testAmount = do
   expect "usd to be equal" $ do
     usd 100 === usd 100
 
@@ -126,25 +126,25 @@ assertAmount = do
     dollars (usd 15999.98) === 16000
 
 
-assertReturns :: Test ()
-assertReturns = do
-  let h = History (Year 1872) (Portfolio (pct 10.0) (pct 1.0)) mempty (CAPE 10)
+testReturns :: Test ()
+testReturns = do
+  let h = History (Year 1900) (Portfolio (pct 10.0) (pct 1.0)) mempty (CAPE 10)
   let b = Portfolio (usd 100) (usd 100)
 
   expect "returns to match history" $ do
-    calcReturns h b === Portfolio (usd 110) (usd 101)
+    calcReturns h b === Portfolio (usd 10) (usd 1)
 
   expect "apply returns should add up" $ do
     let ret = calcReturns h thousand60
-    dollars ret.stocks === 660
-    dollars ret.bonds === 404
+    dollars ret.stocks === 60
+    dollars ret.bonds === 4
 
 
     
 
 
-assertWithdrawal :: Test ()
-assertWithdrawal = do
+testWithdrawal :: Test ()
+testWithdrawal = do
   let b = Portfolio (usd 600) (usd 400)
   let wa = staticWithdrawal swr4 b
   expect "withdrawal amount to be 4%" $ do
@@ -214,8 +214,8 @@ assertWithdrawal = do
 
 
 
-assertPercent :: Test ()
-assertPercent = do
+testPercent :: Test ()
+testPercent = do
 
   expect "to use 3 decimal places" $ do
     Pct.toFloat (pct 25.0140) === 0.25014
@@ -227,8 +227,8 @@ assertPercent = do
 
 
 
-assertHistory :: Test ()
-assertHistory = do
+testHistory :: Test ()
+testHistory = do
   -- HistoryRow is a snapshot of the market at the START of the year
   -- TODO should I be using month 12? Are they end of month values or beginning?
   let hr1 = HistoryRow (Year 1871) 1 (usd 1.00) (usd 1.00) (pct 10.0) (Just $ CAPE 10)
@@ -249,11 +249,11 @@ assertHistory = do
     fmap (.cape) hs === [CAPE 20]
 
 
-assertInflation :: Test ()
-assertInflation = do
-  let hr1 = HistoryRow (Year 1871) 1 (usd 100) (usd 100) (pct 10) (Just $ CAPE 10)
-  let hr2 = HistoryRow (Year 1872) 1 (usd 110) (usd 101) (pct 20) (Just $ CAPE 10)
-  let hr3 = HistoryRow (Year 1873) 1 (usd 95)  (usd 101) (pct 20) (Just $ CAPE 10)
+testInflation :: Test ()
+testInflation = do
+  let hr1 = HistoryRow (Year 1900) 1 (usd 100) (usd 100) (pct 10) (Just $ CAPE 10)
+  let hr2 = HistoryRow (Year 1901) 1 (usd 110) (usd 101) (pct 20) (Just $ CAPE 10)
+  let hr3 = HistoryRow (Year 1902) 1 (usd 95)  (usd 101) (pct 20) (Just $ CAPE 10)
   let hs = toHistories [hr1, hr2, hr3]
 
   -- we want to only withdraw
@@ -262,19 +262,19 @@ assertInflation = do
   expect "3 histroy rows to 2 histories" $ do
     length sim.years === 2
 
-  expect "withdraw from bonds first" $
+  expect "withdraw from bonds first" $ do
     fmap (\r -> r.actions.stocks) sim.years === [usd 0, usd 0]
 
-  expect "keep withdrawals constant from year to year in real dollars" $
+  expect "keep withdrawals constant from year to year in real dollars" $ do
     fmap (\r -> r.actions.bonds)  sim.years === [usd (-40), usd (-40)]
 
 
-assertSimEndBalance :: Test ()
-assertSimEndBalance = do
+testSimEndBalance :: Test ()
+testSimEndBalance = do
 
   -- This results in only 1872, with returns over 1871 and the current cape raito (20)
-  let hr1 = HistoryRow (Year 1871) 1 (usd 1.00) (usd 1.00) (pct 10.0) (Just $ CAPE 10)
-  let hr2 = HistoryRow (Year 1872) 1 (usd 1.10) (usd 1.01) (pct 20.0) (Just $ CAPE 20)
+  let hr1 = HistoryRow (Year 1900) 1 (usd 1.00) (usd 1.00) (pct 10.0) (Just $ CAPE 10)
+  let hr2 = HistoryRow (Year 1901) 1 (usd 1.10) (usd 1.01) (pct 20.0) (Just $ CAPE 20)
   let hs = toHistories [hr1, hr2]
 
   -- there are no withdrawals or rebalancing, so it is only returns
@@ -282,38 +282,38 @@ assertSimEndBalance = do
   
   [y] <- pure sim.years
 
-  expect "first year is 1872" $ do
-    y.year === Year 1872
-    ((.cape) <$> y.history) === Just (CAPE 20)
+  expect "first year is 1901" $ do
+    y.year === Year 1901
+    y.history.cape === CAPE 20
 
   expect "no first year returns" $ do
     y.returns === Portfolio mempty mempty
 
-  let hr3 = HistoryRow (Year 1873) 1 (usd 2.20) (usd 2.02) (pct 30.0) (Just $ CAPE 30)
+  let hr3 = HistoryRow (Year 1902) 1 (usd 2.20) (usd 2.02) (pct 30.0) (Just $ CAPE 30)
   let hs' = toHistories [hr1, hr2, hr3]
   let sim' = simulation thousand60 noActions hs'
 
   expect "two years of history" $ do
-    fmap (.year) hs' === [Year 1872, Year 1873]
+    fmap (.year) hs' === [Year 1901, Year 1902]
 
-  [_, h1873] <- pure hs'
+  [_, h1903] <- pure hs'
 
-  expect "1873 stock returns are 100%" $ do
-    h1873.returns.stocks === pct 100
+  expect "1903 stock returns are 100%" $ do
+    h1903.returns.stocks === pct 100
 
-  expect "1873 bond returns are 100%" $ do
-    h1873.returns.bonds === pct 100
+  expect "1903 bond returns are 100%" $ do
+    h1903.returns.bonds === pct 100
 
-  expect "two years of simulation. One at the beginning of 1872, and one at the beginning of 1873" $ do
-    fmap (.year) sim'.years === [Year 1872, Year 1873]
+  expect "two years of simulation. One at the beginning of 1901, and one at the beginning of 1903" $ do
+    fmap (.year) sim'.years === [Year 1901, Year 1902]
 
-  expect "stock end balance to be only 1873 returns" $ do
+  expect "stock end balance to be only 1903 returns" $ do
     dollars (sim'.endBalance.stocks) === 1200
 
 
 
-assertSimulation :: Test ()
-assertSimulation = do
+testSimulation :: Test ()
+testSimulation = do
 
   -- These are PREVIOUS YEARS gains
   -- CURRENT cape ratio 
@@ -338,7 +338,7 @@ assertSimulation = do
     y.returns === Portfolio mempty mempty
 
   expect "start year should use first CAPE ratio" $ do
-    ((.cape) <$> y.history) === (Just $ CAPE 10)
+    y.history.cape === CAPE 10
 
   let s1900 = 1000-40
   expect "start year should withdraw immediately with no returns" $ do
@@ -364,8 +364,8 @@ assertSimulation = do
 
 
 
-assertRebalance :: Test ()
-assertRebalance = do
+testRebalance :: Test ()
+testRebalance = do
   let bs = Portfolio (usd 100) (usd 0)
   let bb = Portfolio (usd 0) (usd 100)
   let be = Portfolio (usd 60) (usd 40)
@@ -385,8 +385,8 @@ assertRebalance = do
     changes be rb === Portfolio mempty mempty
 
 
-assertStandard :: Test ()
-assertStandard = do
+testStandard :: Test ()
+testStandard = do
   let start = Portfolio (usd 600) (usd 400)
   let bal = Portfolio   (usd 800) (usd 400)
   let wda = staticWithdrawal swr4 start
@@ -414,18 +414,20 @@ assertStandard = do
     ch.stocks === usd (-80)
   
   expect "withdrawal " $ do
-    let bal' = runSimActions ctx h bal [] (withdraw4 start)
+
+    -- just check running actions, no sim!
+    let bal' = runTestActionsBal h bal (withdraw4 start)
     bal'.stocks === usd 800
     bal'.bonds === usd 360
 
   expect "rebalance" $ do
-    let bal' = runSimActions ctx h bal [] $ rebalancePct (pct 60)
+    let bal' = runTestActionsBal h bal $ rebalancePct (pct 60)
     bal'.stocks === usd 720
     bal'.bonds === usd 480
 
 
   -- run full standard
-  let bal' = runSimActions ctx h bal [] (withdraw4 start >> rebalancePct (pct 60))
+  let bal' = runTestActionsBal h bal (withdraw4 start >> rebalancePct (pct 60))
   let chs  = changes bal bal'
 
   expect "withdrawal should result in net -40" $ do
@@ -446,33 +448,31 @@ assertStandard = do
   --   changes.bonds === usd (64)
 
     
-assertActions :: Test ()
-assertActions = do
+testActions :: Test ()
+testActions = do
   let bal = Portfolio (usd 100) (usd 200)
   let h = History (Year 1900) (Portfolio (pct 10.0) (pct 1.0)) mempty (CAPE 10)
-  let y = Year 1872
-  let ctx = SimContext [h] y
 
-  let ch = \b -> Portfolio (addToBalance (usd 20) b.stocks) (addToBalance (usd 30) b.bonds)
-
+  let ch = \b -> Portfolio (addToBalance (usd 20) b.stocks) (addToBalance (usd (-20)) b.bonds)
   expect "stocks should be the sum of both changes" $ do
-    let fin = runSimActions ctx h (bal) [] $ do
+    let fin = runTestActionsBal h bal $ do
                 rebalance ch
-                rebalance ch
+                withdraw $ usd 30
 
-    fin.stocks === usd 140
+    fin.stocks === usd 120
+    fin.bonds === usd 150
 
   expect "withdraw everything if balance is insufficient" $ do
     let bal' = Portfolio (usd 20) (usd 10)
     let wa = usd 40
-    let ye = flip runReader ctx $ runActionState h bal' [] (withdraw wa)
-    ye._withdrawal === usd 30
-    ye._balances.stocks === usd 0
-    ye._balances.bonds === usd 0
+    let ye = runTestActions h bal' (withdraw wa)
+    ye.withdrawal === usd 30
+    ye.end.stocks === usd 0
+    ye.end.bonds === usd 0
 
 
-assertPrimeHarvesting :: Test ()
-assertPrimeHarvesting = do
+testPrimeHarvesting :: Test ()
+testPrimeHarvesting = do
   let start = Portfolio (usd 500) (usd 500)
   let bal = \n -> Portfolio (usd n) (usd 500)
 
@@ -493,8 +493,8 @@ assertPrimeHarvesting = do
     total (rebalancePrime start.stocks b) === total b
 
 
-assertPrimeNew :: Test ()
-assertPrimeNew = do
+testPrimeNew :: Test ()
+testPrimeNew = do
   let start = Portfolio (usd 500) (usd 500)
   let bal = \n -> Portfolio (usd n) (usd 500)
 
@@ -534,8 +534,8 @@ assertPrimeNew = do
     rebalancePrimeNew start.stocks b === Portfolio (usd 300) (usd 0)
 
 
-assertBands :: Test ()
-assertBands = do
+testBands :: Test ()
+testBands = do
   expect "diffAbsPercent normal" $ do
     diffAbsPercent (pct 60) (Portfolio (usd 62) (usd 38)) === pct 2
 
@@ -555,8 +555,8 @@ assertBands = do
     diffRelPercent (pct 50) (Portfolio (usd 30) (usd 70))  === pct 40
 
 
-assertPMT :: Test ()
-assertPMT = do
+testPMT :: Test ()
+testPMT = do
   expect "same results as retirement spreadsheet" $ do
     (round $ pmt' 0.0237 61 (-1) * 10000) === (-304)
 
@@ -567,8 +567,8 @@ assertPMT = do
     calcWithdrawal 61 (pct 2.37) === pct 3.045
 
 
-assertABW :: Test ()
-assertABW = do
+testABW :: Test ()
+testABW = do
   expect "total return to match calculation" $ do
     let ps = pct 50
     let rs = pct 10
@@ -605,15 +605,16 @@ assertABW = do
   let y = Year 1900
   let ye = Year 1950 -- the year we are out of money and take no actions
   let h = History y (Portfolio (pct 0.0) (pct 0.0)) mempty (CAPE 40)
-  let ctx = SimContext [h] ye
-  let st = flip runReader ctx $ runActionState h p [] withdrawABW
-
+  let ctx = SimContext [h] ye p
+  let st = runSim ctx $ runYear h mempty $ do
+              withdrawABW
+              
   expect "withdrawal amount to be the same" $ do
-    st._withdrawal === wda
+    st.withdrawal === wda
 
   expect "changes to equal withdrawal amount" $ do
-    st._balances.bonds === usd 0
-    st._balances.stocks === addToBalance (loss wda) p.stocks
+    st.end.bonds === usd 0
+    st.end.stocks === addToBalance (loss wda) p.stocks
 
 
   let h1 = History (Year 1900) (Portfolio (pct 0.0) (pct 10.0)) mempty (CAPE 10)
@@ -648,8 +649,8 @@ assertABW = do
     dollars (y3.withdrawal) === dollars (total y2.end)
 
 
-assertFluctate :: Test ()
-assertFluctate = do
+testFluctate :: Test ()
+testFluctate = do
   expect "to run known example" $ do
     runReturns [pct 0, pct 3, pct 3, pct 3] (usd 20) 10000 === 374
 
@@ -672,8 +673,8 @@ assertFluctate = do
     pmtFluctuate [] (usd 100) === usd (100)
 
 
-assertPeak :: Test ()
-assertPeak = do
+testPeak :: Test ()
+testPeak = do
 
   let hr0 = History (Year 1900) mempty (Portfolio (usd 100) (usd 111)) (CAPE 20)
   let hr1 = History (Year 1901) mempty (Portfolio (usd 110) (usd 100)) (CAPE 20)
@@ -693,4 +694,16 @@ assertPeak = do
     peakBalance (reverseTimeline hr3.year rows) thousand50 === Portfolio (usd 500) (usd 555)
 
 
+
+
+
+runTestActions :: History -> Balances -> Actions () -> YearStart
+runTestActions h bal acts =
+  runSim (SimContext [h] (nextYear h.year) bal) $ do
+    runYear h mempty acts
+
+runTestActionsBal :: History -> Balances -> Actions () -> Balances
+runTestActionsBal h bal acts = (.end) <$>
+  runSim (SimContext [h] (nextYear h.year) bal) $ do
+    runYear h mempty acts
 

@@ -32,7 +32,7 @@ printYearHeader =
 printYear :: YearStart -> IO ()
 printYear yr =
     printTableRow 9
-      [ fromMaybe "" $ (show . (.year)) <$> yr.history
+      [ show yr.history.year
       , show yr.returns.stocks
       , show yr.returns.bonds
       , show yr.start.stocks
@@ -44,7 +44,7 @@ printYear yr =
       , show yr.actions.bonds
       , show yr.end.stocks
       , show yr.end.bonds
-      , fromMaybe "" $ (show . fromCAPE . (.cape)) <$> yr.history
+      , show yr.history.cape.fromCAPE
       ]
 
 printWithdrawalResults :: WithdrawalResults -> IO ()
