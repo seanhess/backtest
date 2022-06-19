@@ -12,6 +12,7 @@ import Backtest.Strategy.Peak
 import Backtest.Graph
 import Backtest.MSWR (rateResults, isFailure)
 import Backtest.Aggregate
+import Backtest.Optimize
 import Debug.Trace (trace, traceM)
 import Backtest.Debug
 import Data.List as List
@@ -43,18 +44,8 @@ run = do
 
 runActual :: NonEmpty History -> IO ()
 runActual hs = do
-    let ss = samples 60 hs
-    let bnds = usd 411.8 :: USD (Bal Bonds)
-    let stks = usd 1065.5
-    let kids = usd 161.3
-    -- let start = Portfolio stks (bnds + (fromUSD $ loss kids))
-    -- let start = Portfolio stks bnds
-    -- let start = Portfolio (usd 1275) (usd 0)
-    let start = Portfolio (usd 1275) (usd 0)
+    findBest
 
-    let allRaises = map pct [3.0, 3.1 .. 3.2] :: [Pct Withdrawal]
-    let allAllocs = map pct [85, 90 .. 100] :: [Pct Stocks]
-    let allStarts = map usd [38, 38.5 .. 41] :: [USD (Amt Withdrawal)]
 
     -- at 95% stocks I can support 40k/1275k withdrawals and 3.1% raise
     -- mapped to the peak that's 3.1% of 1500 = $46.5k
@@ -71,58 +62,83 @@ runActual hs = do
     -- 10% stocks = 127.5k
     
 
-    forM_ allAllocs $ \ps -> do
-        putStrLn $ headerRow $ columns ps (pct 0)
-        forM_ allRaises $ \r -> do
-            forM_ allStarts $ \sw -> do
-                runRaise ss ps start sw r (pct 110) -- (pct 3.53)
-        putStrLn ""
-
+    -- oh, generate all the input permutations first
+    -- let inputs = permutations3 allRaises allAllocs allStarts
 
   
 
     -- * 1966 failure year
 
-    let ps = pct 90 :: Pct Stocks
-    let swr = pct 3.17 :: Pct Withdrawal
-    let sw = amount swr (total start)
-    let raise = pct 110 :: Pct Raise
-    let sim = simulation' start $ actions sw start ps swr raise
-    let srs = fmap sim ss :: NonEmpty SimResult
+    -- let ps = pct 90 :: Pct Stocks
+    -- let swr = pct 3.17 :: Pct Withdrawal
+    -- let sw = amount swr (total start)
+    -- let raise = pct 110 :: Pct Raise
+    -- let sim = simulation' start $ actions sw start ps swr raise
+    -- let srs = fmap sim ss :: NonEmpty SimResult
 
-    printWithdrawalResultsByYear $ aggregateResults srs
+    -- printWithdrawalResultsByYear $ aggregateResults srs
 
-    (Just s1966) <- pure $ List.find (isYear 1966) srs
-    print $ s1966.startYear
-    print $ s1966.endBalance
-    printYearHeader
-    mapM_ printYear $ s1966.years
-    print $ isFailure s1966
+    -- (Just s1966) <- pure $ List.find (isYear 1966) srs
+    -- print $ s1966.startYear
+    -- print $ s1966.endBalance
+    -- printYearHeader
+    -- mapM_ printYear $ s1966.years
+    -- print $ isFailure s1966
 
-    toChartFile  "graphs/withdrawals.html"
-      [ withdrawalBinChart 60 (simData srs)
-      , withdrawalLineChart $ simData srs
-      , withdrawalStackChart $ medianWithdrawals srs 
-      ]
+    -- toChartFile  "graphs/withdrawals.html"
+    --   [ withdrawalBinChart 60 (simData srs)
+    --   , withdrawalLineChart $ simData srs
+    --   , withdrawalStackChart $ medianWithdrawals srs 
+    --   ]
 
 
     pure ()
 
   where
 
-    runRaise :: NonEmpty (NonEmpty History) -> Pct Stocks -> Balances -> USD (Amt Withdrawal) -> Pct Withdrawal -> Pct Raise -> IO ()
-    runRaise ss ps start sw swr raise = do
-        -- print ("stocks:", ps, "init:", sw, "swr:", swr, "raise:", raise, "start:")
+    ss = samples 60 hs
+    bnds = usd 411.8 :: USD (Bal Bonds)
+    stks = usd 1065.5
+    kids = usd 161.3
+    start = Portfolio (usd 1275) (usd 0)
 
-        let acts = actions sw start ps swr raise
-        let sim = simulation' start acts
-        let srs = fmap sim ss :: NonEmpty SimResult
+    allRaises = map pct [3.0, 3.1 .. 3.5] :: [Pct Withdrawal]
+    allAllocs = map pct [85, 90 .. 100] :: [Pct Stocks]
+    allStarts = map usd [38, 39 .. 43] :: [USD (Amt Withdrawal)]
+
+    findBest :: IO ()
+    findBest = do
+
+      let isValid = \wd -> wd.low > (usd 30)
+      let res = runAll3 allAllocs allRaises allStarts isValid runSearch :: [(Pct Stocks, Pct Withdrawal, USD (Amt Withdrawal), WithdrawalResults)]
+
+      forM_ res $ \(ps, pw, sw, wd) -> do
+        putStrLn $ tableRow (columns ps sw) wd
+
+      pure ()
+
+
+    runSearch :: Pct Stocks -> Pct Withdrawal -> USD (Amt Withdrawal) -> WithdrawalResults
+    runSearch ps rs sw = 
+      let acts = actions sw start ps rs
+          sim = simulation' start acts
+          srs = fmap sim ss :: NonEmpty SimResult
+      in aggregateResultsAll $ aggregateResults $ srs
+      
+
+    -- runRaise :: NonEmpty (NonEmpty History) -> Pct Stocks -> Balances -> USD (Amt Withdrawal) -> Pct Withdrawal -> Pct Raise -> IO ()
+    -- runRaise ss ps start sw swr raise = do
+    --     -- print ("stocks:", ps, "init:", sw, "swr:", swr, "raise:", raise, "start:")
+
+    --     let acts = actions sw start ps swr
+    --     let sim = simulation' start acts
+    --     let srs = fmap sim ss :: NonEmpty SimResult
 
 
         -- let cols = 
         -- printWithdrawalResultsByYear $ aggregateResults srs
         -- printWithdrawalResultsRow (show swr) 
-        putStrLn $ tableRow (columns ps swr) $ aggregateResultsAll $ aggregateResults srs
+        -- putStrLn $ tableRow (columns ps swr) $ aggregateResultsAll $ aggregateResults srs
 
 
     columns ps swr =
@@ -131,9 +147,10 @@ runActual hs = do
         ] <> withdrawalResultsCols
 
 
-    actions :: USD (Amt Withdrawal) -> Balances -> Pct Stocks -> Pct Withdrawal -> Pct Raise -> History -> Actions ()
-    actions sw start ps swr raise startH =
-        let wd = peakWithdrawal (reverseTimeline startH.year hs) swr start
+    actions :: USD (Amt Withdrawal) -> Balances -> Pct Stocks -> Pct Withdrawal -> History -> Actions ()
+    actions sw start' ps swr startH =
+        -- TODO is peak lower than the original??
+        let wd = peakWithdrawal (reverseTimeline startH.year hs) swr start'
         in do
 
         n <- now
@@ -142,17 +159,17 @@ runActual hs = do
         -- withdraw sw
 
         -- TODO this isn't adjusted for inflation
-        onYears [0..2] $ do
-            expense $ usd $ 9.6 + 13.2
+        -- onYears [0..2] $ do
+        --     expense $ usd $ 9.6 + 13.2
 
-        onYears [3..4] $ do
-            expense $ usd $ 6.4 + 13.2
+        -- onYears [3..4] $ do
+        --     expense $ usd $ 6.4 + 13.2
 
-        onYears [5..7] $ do
-            expense $ usd $ 3.4 + 13.2
+        -- onYears [5..7] $ do
+        --     expense $ usd $ 3.4 + 13.2
 
-        onYears [30..60] $ do
-            income $ usd 25
+        -- onYears [30..60] $ do
+        --     income $ usd 25
 
         rebalance $ rebalanceFixed ps
 

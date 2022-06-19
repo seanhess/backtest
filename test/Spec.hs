@@ -37,6 +37,7 @@ data Info
 type Test = ReaderT String IO
 type Assertion = IO
 
+-- TODO withdrawal isn't zeroing out in my example
 main :: IO ()
 main = do
   putStrLn "Running Tests"
