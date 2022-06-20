@@ -97,7 +97,7 @@ runActual hs = do
 
   where
 
-    ss = samples 60 hs
+    ss = samples 20 hs
     bnds = usd 411.8 :: USD (Bal Bonds)
     stks = usd 1065.5
     kids = usd 161.3

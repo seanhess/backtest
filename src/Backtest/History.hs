@@ -74,20 +74,19 @@ samples :: YearsLeft -> NonEmpty History -> NonEmpty (NonEmpty History)
 samples years hs = NE.tails hs
   & fmap (take years)
   & fmap (simHistories years)
-  & NE.filter (\hs' -> isNumYears hs' && isNotTooFuture (lastYear hs') )
+  & NE.filter isNumYears
   & map (NE.fromList)
+  & filter isGoodYearRange
   & NE.fromList
   where
     isNumYears :: [History] -> Bool
     isNumYears hs' =
       length hs' == years
 
-    lastYear :: [History] -> Maybe Year
-    lastYear hs' = (.year) <$> lastMay hs'
+    isGoodYearRange :: NonEmpty History -> Bool
+    isGoodYearRange hs' =
+      (head hs').year <= (Year 2020) && (last hs').year <= (Year 2030)
 
-    isNotTooFuture :: Maybe Year -> Bool
-    isNotTooFuture Nothing = False
-    isNotTooFuture (Just y) = y <= (Year 2030)
 
 
 
