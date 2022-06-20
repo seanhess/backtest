@@ -2,7 +2,9 @@ module Backtest.Debug where
 
 import Backtest.Types
 import Backtest.Prelude
+import Debug.Trace
 import Data.List as List
+
 import qualified Data.List.NonEmpty as NE
 
 
@@ -122,4 +124,8 @@ stringRow :: [String] -> String
 stringRow cells =
     "|" <> (List.intercalate " |" cells) <> " |"
 
-    
+debug :: Show a => String -> a -> a
+debug msg a = trace (msg <> ": " <> show a) a
+
+dump :: Show s => String -> s -> a -> a
+dump msg s a = trace (msg <> ": " <> show s) a

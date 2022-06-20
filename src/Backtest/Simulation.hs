@@ -31,7 +31,6 @@ module Backtest.Simulation
 import Backtest.Prelude
 import Backtest.Types hiding (history, startYear)
 import Backtest.Types.Pct as Pct
-import Backtest.Aggregate (withdrawalResults, withdrawalSpread)
 import qualified Backtest.Types.Sim as Sim
 
 import Control.Monad.State (State, StateT, MonadState, modify, execStateT, put, get, gets, runStateT, evalState, evalStateT)

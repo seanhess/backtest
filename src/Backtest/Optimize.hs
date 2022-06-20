@@ -2,6 +2,9 @@ module Backtest.Optimize where
 
 import Backtest.Prelude
 import Backtest.Types hiding (low)
+import Backtest.Debug (debug)
+import Backtest.Aggregate (medWithdrawal)
+import qualified Data.List.NonEmpty as NE
 
 -- Find the optimal starting amount and raise for a given situation
 
@@ -27,6 +30,41 @@ type Range a = (a, a)
 --   let rs = map run as :: [result]
 --   in filter (\ar -> isValid $ snd ar) $ zip as rs
 
+
+
+-- keep stepping it up
+
+
+-- we want to take the highest optimize max, and collect all the inputs that use it
+-- no... take the allocation
+-- optimize for the stocks first
+
+optimizeAlloc :: NonEmpty (Pct Stocks, Pct Withdrawal, NonEmpty SimResult) -> (Pct Stocks, Pct Withdrawal, NonEmpty SimResult)
+optimizeAlloc allocs =
+  last $ NE.sortBy (comparing score) allocs
+  where
+    score (_, swr, srs) = (swr, medWithdrawal srs)
+    
+
+
+-- step up and re-run each time, nothing fancy
+optimizeMax :: forall x result. Show x => x -> (x -> x) -> (x -> result) -> (result -> Bool) -> [(x, result)]
+optimizeMax start step run isValid =
+  takeWhile (isValid . snd) $ zip steps results
+  where
+    steps :: [x]
+    steps = take 80 $ iterate step start
+
+    results :: [result]
+    results = fmap run steps
+
+
+concatAlloc :: Pct Stocks -> [(Pct Withdrawal, NonEmpty SimResult)] -> [(Pct Stocks, Pct Withdrawal, NonEmpty SimResult)]
+concatAlloc ps opt = map (\(swr, srs) -> (ps, swr, srs)) opt
+
+
+-- optimizeWithdrawal :: Pct Withdrawal -> (Pct Withdrawal -> [[SimResult]]) -> ([[SimResult]] -> Bool)
+-- optimizeWithdrawal
 
 
 runAll3 :: [a] -> [b] -> [c] -> (result -> Bool) -> (a -> b -> c -> result) -> [(a, b, c, result)]

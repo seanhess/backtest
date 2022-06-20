@@ -44,8 +44,8 @@ run = do
 
 runActual :: NonEmpty History -> IO ()
 runActual hs = do
-    countHistories
-    -- findBest
+    -- countHistories
+    findBest
 
 
     -- at 95% stocks I can support 40k/1275k withdrawals and 3.1% raise
@@ -97,15 +97,15 @@ runActual hs = do
 
   where
 
-    ss = samples 20 hs
+    ss = samples 60 hs
     bnds = usd 411.8 :: USD (Bal Bonds)
     stks = usd 1065.5
     kids = usd 161.3
     start = Portfolio (usd 1275) (usd 0)
 
-    allRaises = map pct [3.0, 3.1 .. 3.5] :: [Pct Withdrawal]
-    allAllocs = map pct [85, 90 .. 100] :: [Pct Stocks]
-    allStarts = map usd [1] :: [USD (Amt Withdrawal)]
+    -- allRaises = map pct [3.0, 3.1 .. 3.5] :: [Pct Withdrawal]
+    allAllocs = map pct [60, 70 .. 100] :: [Pct Stocks]
+    -- allStarts = map usd [1] :: [USD (Amt Withdrawal)]
 
     countHistories :: IO ()
     countHistories = do
@@ -114,28 +114,29 @@ runActual hs = do
 
     findBest :: IO ()
     findBest = do
+      -- let alloc = pct 90
 
-      let isValid = const True -- \wd -> wd.low > (usd 30)
-      let res = runAll3 allAllocs allRaises allStarts isValid runSearch :: [(Pct Stocks, Pct Withdrawal, USD (Amt Withdrawal), NonEmpty SimResult)]
+      forM_ allAllocs $ \ps -> do
+        print ps
+        res <- pure $ optimizeMax (pct 2.9) (\p -> p + pct 0.1) (runSearch ps) simValid
+        forM_ res $ \(swr, srs) -> do
+          print (swr, medWithdrawal srs, minWithdrawal srs)
 
-      forM_ res $ \(ps, swr, _, srs) -> do
-        -- print (ps, swr)
-        -- print $ median $ fmap ((.low) . (.wdAmts)) srs
-        -- forM_ srs $ \sr -> do
-        --    putStrLn $ tableRow (withdrawalResultsCols) sr.wdAmts
-        -- putStrLn $ tableRow (columns ps swr) (map (l.length) $ aggregateResults srs)
-        print (ps, swr, sum $ fmap (head . (fmap (.withdrawal)) . (.years)) srs)
-
+      -- let res = runAll3 allAllocs allRaises allStarts isValid runSearch :: [(Pct Stocks, Pct Withdrawal, USD (Amt Withdrawal), NonEmpty SimResult)]
+      -- putStrLn $ tableRow (columns ps swr) (map (l.length) $ aggregateResults srs)
       pure ()
 
-
-    runSearch :: Pct Stocks -> Pct Withdrawal -> USD (Amt Withdrawal) -> NonEmpty SimResult
-    runSearch ps rs sw = 
-      let acts = actions sw start ps rs
+    runSearch :: Pct Stocks -> Pct Withdrawal -> NonEmpty SimResult
+    runSearch ps swr = 
+      let wda = staticWithdrawal swr start
+          acts = actions wda start ps swr
           sim = simulation' start acts
           srs = fmap sim ss :: NonEmpty SimResult
-      in srs -- $ aggregateResultsAll $ aggregateResults $ srs
-      
+      in srs
+
+    -- it's only valid if NONE of the withdrawals ever hits zero
+    simValid :: NonEmpty SimResult -> Bool
+    simValid srs = all (not . isWithdrawalFail) srs
 
     -- runRaise :: NonEmpty (NonEmpty History) -> Pct Stocks -> Balances -> USD (Amt Withdrawal) -> Pct Withdrawal -> Pct Raise -> IO ()
     -- runRaise ss ps start sw swr raise = do
@@ -171,17 +172,17 @@ runActual hs = do
         -- withdraw sw
 
         -- TODO this isn't adjusted for inflation
-        -- onYears [0..2] $ do
-        --     expense $ usd $ 9.6 + 13.2
+        onYears [0..2] $ do
+            expense $ usd $ 9.6 + 13.2
 
-        -- onYears [3..4] $ do
-        --     expense $ usd $ 6.4 + 13.2
+        onYears [3..4] $ do
+            expense $ usd $ 6.4 + 13.2
 
-        -- onYears [5..7] $ do
-        --     expense $ usd $ 3.4 + 13.2
+        onYears [5..7] $ do
+            expense $ usd $ 3.4 + 13.2
 
-        -- onYears [30..60] $ do
-        --     income $ usd 25
+        onYears [30..60] $ do
+            income $ usd 25
 
         rebalance $ rebalanceFixed ps
 

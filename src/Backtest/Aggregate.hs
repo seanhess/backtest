@@ -5,6 +5,7 @@ module Backtest.Aggregate where
 
 import Backtest.Prelude
 import Backtest.Types
+import Backtest.Simulation (withdrawals)
 import Data.List.NonEmpty as NE (transpose, NonEmpty, filter)
 
 
@@ -60,6 +61,17 @@ lowWithdrawals start low high wds =
         h = amount high start
     in length $ NE.filter (\w -> l <= w && w < h) wds
 
+minWithdrawal :: NonEmpty SimResult -> USD (Amt Withdrawal)
+minWithdrawal srs = minimum $ fmap (minimum . withdrawals) srs
+
+medWithdrawal :: NonEmpty SimResult -> USD (Amt Withdrawal)
+medWithdrawal srs = median $ sorted $ fmap (median . withdrawals) srs
+
+isWithdrawalFail :: SimResult -> Bool
+isWithdrawalFail sr =
+  let start = (head sr.years).withdrawal :: USD (Amt Withdrawal)
+      low = minimum $ fmap (.withdrawal) sr.years :: USD (Amt Withdrawal)
+  in low < start
 
 
 aggregateResults :: NonEmpty SimResult -> NonEmpty WithdrawalResults
