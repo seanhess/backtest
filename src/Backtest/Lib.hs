@@ -44,7 +44,8 @@ run = do
 
 runActual :: NonEmpty History -> IO ()
 runActual hs = do
-    findBest
+    countHistories
+    -- findBest
 
 
     -- at 95% stocks I can support 40k/1275k withdrawals and 3.1% raise
@@ -105,6 +106,11 @@ runActual hs = do
     allRaises = map pct [3.0, 3.1 .. 3.5] :: [Pct Withdrawal]
     allAllocs = map pct [85, 90 .. 100] :: [Pct Stocks]
     allStarts = map usd [1] :: [USD (Amt Withdrawal)]
+
+    countHistories :: IO ()
+    countHistories = do
+      forM_ ss $ \s -> do
+        print $ NE.toList $ fmap (.year) s
 
     findBest :: IO ()
     findBest = do

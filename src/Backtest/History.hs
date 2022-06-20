@@ -34,6 +34,7 @@ toHistories hr =
     Nothing -> error "toHistories: no histories found from rows"
     Just x -> x
 
+
 fakeHistory :: Year -> History
 fakeHistory y = History y (Portfolio (pct 0) (pct 0)) (Portfolio (usd 4582) (usd 46.65)) (CAPE 30)
 
@@ -47,6 +48,8 @@ simHistories _ [] = []
 simHistories yl hs@(h:_) =
   let (Year s) = h.year
       end = Year $ s + yl - 1
+
+  -- maximum of 10 sim histories
   in map (simHistory hs) [h.year..end]
 
 toHistory :: HistoryRow -> HistoryRow -> Maybe History
@@ -66,13 +69,26 @@ toHistory past now = do
       }
 
 
+-- it's a nonempty of lists
 samples :: YearsLeft -> NonEmpty History -> NonEmpty (NonEmpty History)
 samples years hs = NE.tails hs
   & fmap (take years)
-  & NE.filter (\hs' -> length hs' >= years-10 )
   & fmap (simHistories years)
+  & NE.filter (\hs' -> isNumYears hs' && isNotTooFuture (lastYear hs') )
   & map (NE.fromList)
   & NE.fromList
+  where
+    isNumYears :: [History] -> Bool
+    isNumYears hs' =
+      length hs' == years
+
+    lastYear :: [History] -> Maybe Year
+    lastYear hs' = (.year) <$> lastMay hs'
+
+    isNotTooFuture :: Maybe Year -> Bool
+    isNotTooFuture Nothing = False
+    isNotTooFuture (Just y) = y <= (Year 2030)
+
 
 
 
