@@ -25,6 +25,7 @@ module Backtest.Simulation
   , actionContext
   , actionState
   , yearBalances
+  , withdrawals
   ) where
 
 import Backtest.Prelude
@@ -76,8 +77,6 @@ simulation start actions hs =
     in runSim context $ do
           years <- runYears actions hs
 
-          let wds = fmap (.withdrawal) years
-
           end <- gets (._balances) 
 
           pure $ SimResult
@@ -86,8 +85,8 @@ simulation start actions hs =
             , endYear = ye
             , endBalance = end
             , years = years
-            , wdAmts = withdrawalResults wds
-            , wdSpread = withdrawalSpread (total start) wds
+            -- , wdAmts = withdrawalResults wds
+            -- , wdSpread = withdrawalSpread (total start) wds
             }
     
 
@@ -192,7 +191,6 @@ runYear h rets actions = do
 
                 yearStart end act
 
-
     saveYear year
     saveBalances year.end
 
@@ -200,8 +198,12 @@ runYear h rets actions = do
 
 
 saveYear :: YearStart -> Sim ()
-saveYear ys = modify $ \st ->
-    st { _years = ys : st._years }
+saveYear ys = modify addYear
+  where
+    addYear st = st
+      { _years = ys : st._years
+      }
+    
 
 
 saveBalances :: Balances -> Sim ()
@@ -412,4 +414,5 @@ calcReturns h b =
         db = fromUSD $ amount h.returns.bonds b.bonds :: USD (Amt Bonds)
     in Portfolio ds db
 
-
+withdrawals :: SimResult -> Sorted (USD (Amt Withdrawal))
+withdrawals sr = sorted $ fmap (.withdrawal) sr.years

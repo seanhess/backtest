@@ -30,8 +30,6 @@ data SimResult = SimResult
   , endYear :: Year
   , endBalance :: Balances
   , years :: NonEmpty YearStart
-  , wdAmts :: WithdrawalResults
-  , wdSpread :: WithdrawalSpread Int
   }
 
 data Success
@@ -62,14 +60,16 @@ type WithdrawalResults = Histogram (USD (Amt Withdrawal))
 
 -- how do you decide? Oh, below median
 data Histogram a = Histogram
-  { init :: a
-  , low :: a
+  { low :: a
   , p10 :: a
   , p25 :: a
   , med :: a
   , p75 :: a
   , p90 :: a
   }
+
+instance Show a => Show (Histogram a) where
+  show h = show (h.low, h.p10, h.p25, h.med, h.p75, h.p90)
 
 
 data WithdrawalSpread a = WithdrawalSpread
@@ -85,3 +85,14 @@ data WithdrawalSpread a = WithdrawalSpread
   , whigh :: a
   }
 
+
+
+
+newtype Sorted a = Sorted { toList :: NonEmpty a }
+  deriving (Foldable, Show, Eq)
+
+sorted :: Ord a => NonEmpty a -> Sorted a
+sorted as = Sorted $ sort as
+
+minSorted :: Ord a => Sorted a -> a
+minSorted as = head as.toList

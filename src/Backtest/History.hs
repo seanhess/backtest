@@ -66,8 +66,6 @@ toHistory past now = do
       }
 
 
--- now it can extend them!
--- but by how much?
 samples :: YearsLeft -> NonEmpty History -> NonEmpty (NonEmpty History)
 samples years hs = NE.tails hs
   & fmap (take years)

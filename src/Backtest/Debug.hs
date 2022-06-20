@@ -67,36 +67,8 @@ printWithdrawalSpread wr = do
     putStrLn $ " 4.5%: " <> show wr.w4_5
     putStrLn $ "high%: " <> show wr.whigh
 
-printAggregateSpread :: AggregateSpread -> IO ()
-printAggregateSpread aw = do
 
-    printWithdrawalSpreadHeader
 
-    printWithdrawalSpreadRow "Total" aw.totalSpread
-    printWithdrawalSpreadRow "Worst" aw.worstSpread
-    printWithdrawalSpreadRow "Num" aw.numSamples
-
-printWithdrawalSpreadHeader :: IO ()
-printWithdrawalSpreadHeader = do
-    printTableRow 9 ["", "low%", "2.0%", "2.5%", "3.0%", "3.5%", "4.0%", "4.5%", "5.0%", "5.5%", "high%"]
-
-printWithdrawalSpreadRow :: Show a => String -> WithdrawalSpread a -> IO ()
-printWithdrawalSpreadRow lbl ws = do
-    printTableRow 9 [lbl, show ws.wlow, show ws.w2_0, show ws.w2_5, show ws.w3_0, show ws.w3_5, show ws.w4_0, show ws.w4_5, show ws.w5_0, show ws.w5_5, show ws.whigh]
-
-printWithdrawalResultsHeader :: IO ()
-printWithdrawalResultsHeader = do
-    printTableRow 8 ["", "init", "low", "p10", "p25", "med", "p75", "p90"]
-
-printWithdrawalResultsRow :: String -> WithdrawalResults -> IO ()
-printWithdrawalResultsRow lbl wr = do
-    printTableRow 8 [lbl, show wr.init, show wr.low, show wr.p10, show wr.p25, show wr.med, show wr.p75, show wr.p90]
-
-printWithdrawalResultsByYear :: NonEmpty (WithdrawalResults) -> IO ()
-printWithdrawalResultsByYear wrs = do
-    printWithdrawalResultsHeader
-    forM_ (zip [1..] (NE.toList wrs)) $ \(y, wr) -> do
-        printWithdrawalResultsRow (show y) wr
 
 printTableRow :: Int -> [String] -> IO ()
 printTableRow p items = do
@@ -105,8 +77,7 @@ printTableRow p items = do
 
 withdrawalResultsCols :: [Column WithdrawalResults]
 withdrawalResultsCols =
-    [ Column "init" 8 $ show . (.init)
-    , Column "low" 8  $ show . (.low)
+    [ Column "low" 8  $ show . (.low)
     , Column "p10" 8  $ show . (.p10)
     , Column "p25" 8 $ show . (.p25)
     , Column "med" 8 $ show . (.med)

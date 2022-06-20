@@ -4,7 +4,7 @@ module Backtest.Lib where
 import Backtest.Prelude
 import Backtest.Types hiding (history)
 import Backtest.History
-import Backtest.Simulation (simulation, simulation', Actions, rebalance, withdraw, bondsFirst, balances, yearsLeft, now, income, expense, yearsElapsed, onYears)
+import Backtest.Simulation (simulation, simulation', Actions, rebalance, withdraw, bondsFirst, balances, yearsLeft, now, income, expense, yearsElapsed, onYears, withdrawals)
 import Backtest.Strategy
 import Backtest.Strategy.ABW
 import Backtest.Strategy.Steps
@@ -15,7 +15,7 @@ import Backtest.Aggregate
 import Backtest.Optimize
 import Debug.Trace (trace, traceM)
 import Backtest.Debug
-import Data.List as List
+import qualified Data.List as List
 import qualified Data.List.NonEmpty as NE
 import Control.Monad
 
@@ -104,26 +104,31 @@ runActual hs = do
 
     allRaises = map pct [3.0, 3.1 .. 3.5] :: [Pct Withdrawal]
     allAllocs = map pct [85, 90 .. 100] :: [Pct Stocks]
-    allStarts = map usd [38, 39 .. 43] :: [USD (Amt Withdrawal)]
+    allStarts = map usd [1] :: [USD (Amt Withdrawal)]
 
     findBest :: IO ()
     findBest = do
 
-      let isValid = \wd -> wd.low > (usd 30)
-      let res = runAll3 allAllocs allRaises allStarts isValid runSearch :: [(Pct Stocks, Pct Withdrawal, USD (Amt Withdrawal), WithdrawalResults)]
+      let isValid = const True -- \wd -> wd.low > (usd 30)
+      let res = runAll3 allAllocs allRaises allStarts isValid runSearch :: [(Pct Stocks, Pct Withdrawal, USD (Amt Withdrawal), NonEmpty SimResult)]
 
-      forM_ res $ \(ps, pw, sw, wd) -> do
-        putStrLn $ tableRow (columns ps sw) wd
+      forM_ res $ \(ps, swr, _, srs) -> do
+        -- print (ps, swr)
+        -- print $ median $ fmap ((.low) . (.wdAmts)) srs
+        -- forM_ srs $ \sr -> do
+        --    putStrLn $ tableRow (withdrawalResultsCols) sr.wdAmts
+        -- putStrLn $ tableRow (columns ps swr) (map (l.length) $ aggregateResults srs)
+        print (ps, swr, sum $ fmap (head . (fmap (.withdrawal)) . (.years)) srs)
 
       pure ()
 
 
-    runSearch :: Pct Stocks -> Pct Withdrawal -> USD (Amt Withdrawal) -> WithdrawalResults
+    runSearch :: Pct Stocks -> Pct Withdrawal -> USD (Amt Withdrawal) -> NonEmpty SimResult
     runSearch ps rs sw = 
       let acts = actions sw start ps rs
           sim = simulation' start acts
           srs = fmap sim ss :: NonEmpty SimResult
-      in aggregateResultsAll $ aggregateResults $ srs
+      in srs -- $ aggregateResultsAll $ aggregateResults $ srs
       
 
     -- runRaise :: NonEmpty (NonEmpty History) -> Pct Stocks -> Balances -> USD (Amt Withdrawal) -> Pct Withdrawal -> Pct Raise -> IO ()
@@ -141,6 +146,7 @@ runActual hs = do
         -- putStrLn $ tableRow (columns ps swr) $ aggregateResultsAll $ aggregateResults srs
 
 
+    columns :: Pct Stocks -> Pct Withdrawal -> [Column WithdrawalResults]
     columns ps swr =
         [ Column "stocks%" 8 (\_ -> show ps)
         , Column "swr" 7 (\_ -> show swr)
@@ -221,7 +227,6 @@ runSimulation _ _ hs = do
     let srs = fmap sim ss :: NonEmpty SimResult
 
 
-    printWithdrawalResultsByYear $ aggregateResults srs
 
     -- printWithdrawalResultsHeader
 
@@ -396,10 +401,9 @@ runAggregate :: NonEmpty (NonEmpty History) -> Balances -> (History -> Actions (
 runAggregate ss start getActions = do 
     let sim = simulation' start getActions
     let srs = fmap sim ss :: NonEmpty SimResult
-    let wds = fmap (.wdSpread) srs
+    let wds = fmap withdrawalSpread srs
 
     -- printAggregateSpread $ aggregateSpread wds
-    printWithdrawalResultsByYear $ aggregateResults srs
 
 
     -- putStrLn "Median Results"
@@ -416,7 +420,7 @@ runAggregate ss start getActions = do
     where
         yearWds :: NonEmpty SimResult -> NonEmpty (Year, WithdrawalSpread Int)
         yearWds srs =
-            fmap (\sr -> (sr.startYear, sr.wdSpread)) srs
+            fmap (\sr -> (sr.startYear, withdrawalSpread sr)) srs
 
         isLow :: (Year, WithdrawalSpread Int) -> Bool
         isLow (_, s) = s.wlow > 0

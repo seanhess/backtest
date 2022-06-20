@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Backtest.Aggregate where
 
 
@@ -8,25 +9,25 @@ import Data.List.NonEmpty as NE (transpose, NonEmpty, filter)
 
 
 
+
 medianWithdrawals :: NonEmpty SimResult -> NonEmpty MedianWithdrawal
 medianWithdrawals srs = 
   fmap toMed $ transpose $ fmap (.years) srs
   where
     toMed yrs = MedianWithdrawal
       { yearIndex = (head yrs).yearIndex
-      , withdrawal = median $ fmap (.withdrawal) yrs
-      , netExpenses = median $ fmap (.netExpenses) yrs
+      , withdrawal = median $ sorted $ fmap (.withdrawal) yrs
+      , netExpenses = median $ sorted $ fmap (.netExpenses) yrs
       }
 
 
 
 
-withdrawalResults :: NonEmpty (USD (Amt Withdrawal)) -> WithdrawalResults
+withdrawalResults :: Sorted (USD (Amt Withdrawal)) -> WithdrawalResults
 withdrawalResults wds =
     Histogram
         { low = minimum wds
         , med = median wds
-        , init = head wds
         , p10 = percentile 0.10 wds
         , p25 = percentile 0.25 wds
         , p75 = percentile 0.75 wds
@@ -35,8 +36,8 @@ withdrawalResults wds =
     where
 
 
-withdrawalSpread :: USD (Bal Total) -> NonEmpty (USD (Amt Withdrawal)) -> WithdrawalSpread Int
-withdrawalSpread start wds =
+withdrawalSpread :: SimResult -> WithdrawalSpread Int
+withdrawalSpread sr =
     WithdrawalSpread
         { wlow = lowWithdrawals start (pct 0.0) (pct 2.0) wds
         , w2_0 = lowWithdrawals start (pct 2.0) (pct 2.5) wds
@@ -49,6 +50,9 @@ withdrawalSpread start wds =
         , w5_5 = lowWithdrawals start (pct 5.5) (pct 6.0) wds
         , whigh = lowWithdrawals start (pct 6.0) (pct 100) wds
         }
+  where
+    start = total sr.startBalance
+    wds = fmap (.withdrawal) sr.years
 
 lowWithdrawals :: USD (Bal Total) -> Pct Withdrawal -> Pct Withdrawal -> NonEmpty (USD (Amt Withdrawal)) -> Int
 lowWithdrawals start low high wds =
@@ -63,18 +67,17 @@ aggregateResults srs = srs
   & fmap (.years)
   & transpose
   & fmap (fmap (.withdrawal))
-  & fmap withdrawalResults
+  & fmap (withdrawalResults . sorted)
 
 
 aggregateResultsAll :: NonEmpty WithdrawalResults -> WithdrawalResults
 aggregateResultsAll wrs = Histogram
   { low = minimum $ fmap (.low) wrs
-  , init = minimum $ fmap (.init) wrs
-  , med = median $ fmap (.med) wrs
-  , p10 = median $ fmap (.p10) wrs
-  , p25 = median $ fmap (.p10) wrs
-  , p75 = median $ fmap (.p75) wrs
-  , p90 = median $ fmap (.p90) wrs
+  , med = median $ sorted $ fmap (.med) wrs
+  , p10 = median $ sorted $ fmap (.p10) wrs
+  , p25 = median $ sorted $ fmap (.p10) wrs
+  , p75 = median $ sorted $ fmap (.p75) wrs
+  , p90 = median $ sorted $ fmap (.p90) wrs
   }
 
 -- aggregateMedian :: [WithdrawalResults] -> WithdrawalResults
@@ -154,7 +157,7 @@ yearSpread srs =
     , whigh = years (.whigh)
     }
   where
-    years f = map (.startYear) $ NE.filter (hasSpread f . (.wdSpread)) srs
+    years f = map (.startYear) $ NE.filter (hasSpread f . withdrawalSpread) srs
 
 
 
@@ -168,16 +171,14 @@ averageEndPortfolio srs =
 medianEndPortfolio :: NonEmpty SimResult -> USD (Bal Total)
 medianEndPortfolio srs =
     let tots = fmap (total . (.endBalance)) srs
-    in fromCents $ median $ fmap totalCents tots
+    in fromCents $ median $ sorted $ fmap totalCents tots
 
-
-
-median :: (Ord a) => NonEmpty a -> a   
-median xs = sort xs !! mid   
+median :: (Ord a) => Sorted a -> a   
+median xs = xs.toList !! mid   
  where mid = (length xs) `div` 2 
 
-percentile :: (Ord a) => Float -> NonEmpty a -> a   
-percentile p xs = sort xs !! n
+percentile :: (Ord a) => Float -> Sorted a -> a   
+percentile p xs = xs.toList !! n
  where n = round $ (fromIntegral $ length xs) * p
 
 

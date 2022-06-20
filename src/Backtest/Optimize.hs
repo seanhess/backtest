@@ -7,6 +7,8 @@ import Backtest.Types hiding (low)
 
 
 
+
+
 -- it needs to return something
 -- [[SimResult]]
 
@@ -24,6 +26,8 @@ type Range a = (a, a)
 -- runAll as isValid run =
 --   let rs = map run as :: [result]
 --   in filter (\ar -> isValid $ snd ar) $ zip as rs
+
+
 
 runAll3 :: [a] -> [b] -> [c] -> (result -> Bool) -> (a -> b -> c -> result) -> [(a, b, c, result)]
 runAll3 as bs xs isValid run =
