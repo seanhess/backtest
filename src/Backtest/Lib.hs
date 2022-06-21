@@ -106,14 +106,28 @@ runActual hs = do
 
     tryOptimize :: IO ()
     tryOptimize = do
-      -- we need to know the actual starting history year
+
+
+      -- Optimize with history
       let res = optimize ss start (actions start)
 
       printTable columns res
 
+      -- Best result
       putStrLn "BEST"
       Just best <- pure $ bestResult res
       putStrLn $ tableRow columns best
+
+      -- peakWithdrawal (reverseTimeline (Year 2022))
+
+      -- Return to last peak
+      -- let back = 
+      -- let hn = History 
+
+      let hn = History {year = Year 2023, returns = Portfolio (pct (-30.0)) (pct 0), values = Portfolio (usd 2082000) (usd 49.86), cape = CAPE 36.94}
+      let hx = hs <> [hn]
+      print $ peakWithdrawal (reverseTimeline hn.year hx) best.swr (rebalanceFixed best.alloc start)
+
 
       -- mwr <- pure $ maximumBy (comparing (\s))
       pure ()
@@ -147,10 +161,10 @@ runActual hs = do
  
     columns :: [Column OptimizeResult]
     columns =
-        [ Column "stocks%" 8 (\(ps, _, _) -> show ps)
-        , Column "swr" 8 (\(_, wr, _) -> show wr)
-        , Column "min" 8 (\(_, _, srs) -> show $ minWithdrawal srs)
-        , Column "med" 8 (\(_, _, srs) -> show $ medWithdrawal srs)
+        [ Column "stocks%" 9 (\o -> show o.alloc)
+        , Column "swr" 7 (\o -> show o.swr)
+        , Column "min" 7 (\o -> show $ minWithdrawal o.results)
+        , Column "med" 7 (\o -> show $ medWithdrawal o.results)
         ]
    
 

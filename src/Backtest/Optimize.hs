@@ -12,50 +12,14 @@ import qualified Data.List as List
 
 
 
-
-
--- it needs to return something
--- [[SimResult]]
-
-type Range a = (a, a)
-
-
--- gives you all valid permutations
--- I'm not sure this final thing is what we want
--- what's the final format?
--- it's ((x, y, y), results)?
--- yeah that works!
-
--- filters out the bad ones!
--- runAll :: forall a result. [a] -> (result -> Bool) -> (a -> result) -> [(a, result)]
--- runAll as isValid run =
---   let rs = map run as :: [result]
---   in filter (\ar -> isValid $ snd ar) $ zip as rs
-
-
-
--- keep stepping it up
-
-
--- we want to take the highest optimize max, and collect all the inputs that use it
--- no... take the allocation
--- optimize for the stocks first
-
--- TODO have this do a little more work
--- it can set the simValid function
--- it can choose all the allocs, etc
--- should map (optimizeMax _) allAllocs -> optimizeAlloc
--- 
-
-
 data Inputs = Inputs
   { swr :: Pct Withdrawal
   , alloc :: Pct Stocks
   }
 
-data Tested = Tested
-  { swr :: Pct Withdrawal
-  , alloc :: Pct Stocks
+data OptimizeResult = OptimizeResult
+  { alloc :: Pct Stocks
+  , swr :: Pct Withdrawal
   , results :: NonEmpty SimResult
   }
 
@@ -65,14 +29,11 @@ type WDA = USD (Amt Withdrawal)
 
 -- b = Tested
 -- a = Pct Stocks
--- 
 -- unfoldr :: (a -> (b, Maybe a)) -> a -> NonEmpty b
-
-type OptimizeResult = (Pct Stocks, Pct Withdrawal, NonEmpty SimResult)
 
 -- no, we CHOOSE the starting values
 -- only the optimization variables are passed in. The rest are applied
-optimize :: NonEmpty (NonEmpty History) -> Balances -> (PS -> WR -> Actions ()) -> [OptimizeResult]
+optimize :: NonEmpty (NonEmpty History) -> Balances -> (Pct Stocks -> Pct Withdrawal -> Actions ()) -> [OptimizeResult]
 optimize ss bal actions =
   optimizeAlloc startPs startRate
 
@@ -93,7 +54,7 @@ optimize ss bal actions =
 
       mwr' <- fst <$> lastMay res
 
-      pure (concatAlloc ps res, (stepAlloc ps, mwr'))
+      pure (map (optimizeResult ps) res, (stepAlloc ps, mwr'))
 
     optimizeRate :: Pct Stocks -> Pct Withdrawal -> [(Pct Withdrawal, NonEmpty SimResult)]
     optimizeRate ps wr = optimizeMax wr stepRate isSimValid (runSim ps)
@@ -106,16 +67,16 @@ optimize ss bal actions =
     isSimValid :: NonEmpty SimResult -> Bool
     isSimValid = all (not . isWithdrawalFail)
 
-    concatAlloc :: Pct Stocks -> [(Pct Withdrawal, NonEmpty SimResult)] -> [OptimizeResult]
-    concatAlloc ps opt = map (\(swr, srs) -> (ps, swr, srs)) opt
+    optimizeResult :: Pct Stocks -> (Pct Withdrawal, NonEmpty SimResult) -> OptimizeResult
+    optimizeResult ps (swr, srs) =
+      OptimizeResult ps swr srs
 
 
 -- maximize by: wdr, then median
 bestResult :: [OptimizeResult] -> Maybe OptimizeResult
 bestResult = maximumByMay (comparing rateThenMed)
   where
-    rateThenMed (_, wr, srs) = (wr, medWithdrawal srs)
-
+    rateThenMed o = (o.swr, medWithdrawal o.results)
 
 
 
