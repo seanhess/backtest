@@ -45,7 +45,8 @@ run = do
 runActual :: NonEmpty History -> IO ()
 runActual hs = do
     -- countHistories
-    findBest
+    -- findBest
+    tryOptimize
 
 
     -- at 95% stocks I can support 40k/1275k withdrawals and 3.1% raise
@@ -103,73 +104,30 @@ runActual hs = do
     kids = usd 161.3
     start = Portfolio (usd 1275) (usd 0)
 
-    -- allRaises = map pct [3.0, 3.1 .. 3.5] :: [Pct Withdrawal]
-    allAllocs = map pct [60, 70 .. 100] :: [Pct Stocks]
-    -- allStarts = map usd [1] :: [USD (Amt Withdrawal)]
+    tryOptimize :: IO ()
+    tryOptimize = do
+      -- we need to know the actual starting history year
+      let res = optimize ss start (actions start)
 
-    countHistories :: IO ()
-    countHistories = do
-      forM_ ss $ \s -> do
-        print $ NE.toList $ fmap (.year) s
+      printTable columns res
 
-    findBest :: IO ()
-    findBest = do
-      -- let alloc = pct 90
+      putStrLn "BEST"
+      Just best <- pure $ bestResult res
+      putStrLn $ tableRow columns best
 
-      forM_ allAllocs $ \ps -> do
-        print ps
-        res <- pure $ optimizeMax (pct 2.9) (\p -> p + pct 0.1) (runSearch ps) simValid
-        forM_ res $ \(swr, srs) -> do
-          print (swr, medWithdrawal srs, minWithdrawal srs)
-
-      -- let res = runAll3 allAllocs allRaises allStarts isValid runSearch :: [(Pct Stocks, Pct Withdrawal, USD (Amt Withdrawal), NonEmpty SimResult)]
-      -- putStrLn $ tableRow (columns ps swr) (map (l.length) $ aggregateResults srs)
+      -- mwr <- pure $ maximumBy (comparing (\s))
       pure ()
 
-    runSearch :: Pct Stocks -> Pct Withdrawal -> NonEmpty SimResult
-    runSearch ps swr = 
-      let wda = staticWithdrawal swr start
-          acts = actions wda start ps swr
-          sim = simulation' start acts
-          srs = fmap sim ss :: NonEmpty SimResult
-      in srs
+    actions :: Balances -> Pct Stocks -> Pct Withdrawal -> Actions ()
+    actions start' ps wr = do
 
-    -- it's only valid if NONE of the withdrawals ever hits zero
-    simValid :: NonEmpty SimResult -> Bool
-    simValid srs = all (not . isWithdrawalFail) srs
-
-    -- runRaise :: NonEmpty (NonEmpty History) -> Pct Stocks -> Balances -> USD (Amt Withdrawal) -> Pct Withdrawal -> Pct Raise -> IO ()
-    -- runRaise ss ps start sw swr raise = do
-    --     -- print ("stocks:", ps, "init:", sw, "swr:", swr, "raise:", raise, "start:")
-
-    --     let acts = actions sw start ps swr
-    --     let sim = simulation' start acts
-    --     let srs = fmap sim ss :: NonEmpty SimResult
-
-
-        -- let cols = 
-        -- printWithdrawalResultsByYear $ aggregateResults srs
-        -- printWithdrawalResultsRow (show swr) 
-        -- putStrLn $ tableRow (columns ps swr) $ aggregateResultsAll $ aggregateResults srs
-
-
-    columns :: Pct Stocks -> Pct Withdrawal -> [Column WithdrawalResults]
-    columns ps swr =
-        [ Column "stocks%" 8 (\_ -> show ps)
-        , Column "swr" 7 (\_ -> show swr)
-        ] <> withdrawalResultsCols
-
-
-    actions :: USD (Amt Withdrawal) -> Balances -> Pct Stocks -> Pct Withdrawal -> History -> Actions ()
-    actions sw start' ps swr startH =
-        -- TODO is peak lower than the original??
-        let wd = peakWithdrawal (reverseTimeline startH.year hs) swr start'
-        in do
+        -- get default starting withdrawal, if you can't find the old one
+        -- sy <- startYear
+        -- let swda = peakWithdrawal (reverseTimeline sy hs) wr start'
+        let swda = staticWithdrawal wr start'
 
         n <- now
-        -- withdrawRaised sw swr raise
-        withdrawFloor wd swr
-        -- withdraw sw
+        withdrawFloor swda wr
 
         -- TODO this isn't adjusted for inflation
         onYears [0..2] $ do
@@ -186,7 +144,15 @@ runActual hs = do
 
         rebalance $ rebalanceFixed ps
 
-    
+ 
+    columns :: [Column OptimizeResult]
+    columns =
+        [ Column "stocks%" 8 (\(ps, _, _) -> show ps)
+        , Column "swr" 8 (\(_, wr, _) -> show wr)
+        , Column "min" 8 (\(_, _, srs) -> show $ minWithdrawal srs)
+        , Column "med" 8 (\(_, _, srs) -> show $ medWithdrawal srs)
+        ]
+   
 
 
 

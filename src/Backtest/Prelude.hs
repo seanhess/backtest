@@ -24,8 +24,8 @@ module Backtest.Prelude
   , headMay, headDef
   , tailMay, tailDef
   , lastMay
-  , maximumMay, maximumDef
-  , minimumMay, minimumDef
+  , maximumMay, maximumDef, maximumByMay
+  , minimumMay, minimumDef, minimumByMay
 
   -- * lifted IO
   , putStrLn, print, putStr

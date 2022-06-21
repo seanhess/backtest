@@ -3,8 +3,10 @@ module Backtest.Optimize where
 import Backtest.Prelude
 import Backtest.Types hiding (low)
 import Backtest.Debug (debug)
-import Backtest.Aggregate (medWithdrawal)
+import Backtest.Simulation (Actions (), simulation)
+import Backtest.Aggregate (medWithdrawal, isWithdrawalFail)
 import qualified Data.List.NonEmpty as NE
+import qualified Data.List as List
 
 -- Find the optimal starting amount and raise for a given situation
 
@@ -39,17 +41,102 @@ type Range a = (a, a)
 -- no... take the allocation
 -- optimize for the stocks first
 
-optimizeAlloc :: NonEmpty (Pct Stocks, Pct Withdrawal, NonEmpty SimResult) -> (Pct Stocks, Pct Withdrawal, NonEmpty SimResult)
-optimizeAlloc allocs =
-  last $ NE.sortBy (comparing score) allocs
+-- TODO have this do a little more work
+-- it can set the simValid function
+-- it can choose all the allocs, etc
+-- should map (optimizeMax _) allAllocs -> optimizeAlloc
+-- 
+
+
+data Inputs = Inputs
+  { swr :: Pct Withdrawal
+  , alloc :: Pct Stocks
+  }
+
+data Tested = Tested
+  { swr :: Pct Withdrawal
+  , alloc :: Pct Stocks
+  , results :: NonEmpty SimResult
+  }
+
+type WR = Pct Withdrawal
+type PS = Pct Stocks
+type WDA = USD (Amt Withdrawal)
+
+-- b = Tested
+-- a = Pct Stocks
+-- 
+-- unfoldr :: (a -> (b, Maybe a)) -> a -> NonEmpty b
+
+type OptimizeResult = (Pct Stocks, Pct Withdrawal, NonEmpty SimResult)
+
+-- no, we CHOOSE the starting values
+-- only the optimization variables are passed in. The rest are applied
+optimize :: NonEmpty (NonEmpty History) -> Balances -> (PS -> WR -> Actions ()) -> [OptimizeResult]
+optimize ss bal actions =
+  optimizeAlloc startPs startRate
+
   where
-    score (_, swr, srs) = (swr, medWithdrawal srs)
+    startPs = pct 100
+    startRate = pct 2.8
+
+    stepAlloc ps = ps - pct 5
+    stepRate wr = wr + pct 0.05
+
+    optimizeAlloc :: Pct Stocks -> Pct Withdrawal -> [OptimizeResult]
+    optimizeAlloc ps wr =
+      mconcat $ List.unfoldr nextAlloc (ps, wr)
+
+    nextAlloc :: (Pct Stocks, Pct Withdrawal) -> Maybe ([OptimizeResult], (Pct Stocks, Pct Withdrawal))
+    nextAlloc (ps, mwr) = do
+      let res = optimizeRate ps mwr
+
+      mwr' <- fst <$> lastMay res
+
+      pure (concatAlloc ps res, (stepAlloc ps, mwr'))
+
+    optimizeRate :: Pct Stocks -> Pct Withdrawal -> [(Pct Withdrawal, NonEmpty SimResult)]
+    optimizeRate ps wr = optimizeMax wr stepRate isSimValid (runSim ps)
+
+    runSim :: Pct Stocks -> Pct Withdrawal -> NonEmpty SimResult
+    runSim ps wr =
+      let sim = simulation bal (actions ps wr)
+      in fmap sim ss
+
+    isSimValid :: NonEmpty SimResult -> Bool
+    isSimValid = all (not . isWithdrawalFail)
+
+    concatAlloc :: Pct Stocks -> [(Pct Withdrawal, NonEmpty SimResult)] -> [OptimizeResult]
+    concatAlloc ps opt = map (\(swr, srs) -> (ps, swr, srs)) opt
+
+
+-- maximize by: wdr, then median
+bestResult :: [OptimizeResult] -> Maybe OptimizeResult
+bestResult = maximumByMay (comparing rateThenMed)
+  where
+    rateThenMed (_, wr, srs) = (wr, medWithdrawal srs)
+
+
+
+
+-- -- the highest one
+-- bestRate :: [(Pct Stocks, Pct Withdrawal, NonEmpty SimResult)] -> Maybe (Pct Withdrawal)
+-- bestRate = maximumBy snd
+
+-- bestAlloc :: [(Pct Stocks, Pct Withdrawal, NonEmpty SimResult)] -> Maybe (Pct Stocks)
+-- bestAlloc = _
+
+-- optimizeAlloc :: NonEmpty (Pct Stocks, Pct Withdrawal, NonEmpty SimResult) -> (Pct Stocks, Pct Withdrawal, NonEmpty SimResult)
+-- optimizeAlloc allocs =
+--   last $ NE.sortBy (comparing score) allocs
+--   where
+--     score (_, swr, srs) = (swr, medWithdrawal srs)
     
 
 
 -- step up and re-run each time, nothing fancy
-optimizeMax :: forall x result. Show x => x -> (x -> x) -> (x -> result) -> (result -> Bool) -> [(x, result)]
-optimizeMax start step run isValid =
+optimizeMax :: forall x result. Show x => x -> (x -> x) -> (result -> Bool) -> (x -> result) -> [(x, result)]
+optimizeMax start step isValid run =
   takeWhile (isValid . snd) $ zip steps results
   where
     steps :: [x]
@@ -59,8 +146,6 @@ optimizeMax start step run isValid =
     results = fmap run steps
 
 
-concatAlloc :: Pct Stocks -> [(Pct Withdrawal, NonEmpty SimResult)] -> [(Pct Stocks, Pct Withdrawal, NonEmpty SimResult)]
-concatAlloc ps opt = map (\(swr, srs) -> (ps, swr, srs)) opt
 
 
 -- optimizeWithdrawal :: Pct Withdrawal -> (Pct Withdrawal -> [[SimResult]]) -> ([[SimResult]] -> Bool)
