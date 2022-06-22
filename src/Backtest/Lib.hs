@@ -25,6 +25,7 @@ run :: IO ()
 run = do
     rs <- loadReturns
     let hs = toHistories rs
+    -- mapM_ print hs
 
 
     -- mapM_ print hs
@@ -46,6 +47,7 @@ runActual :: NonEmpty History -> IO ()
 runActual hs = do
     -- countHistories
     -- findBest
+    -- runSim
     tryOptimize
 
 
@@ -102,14 +104,39 @@ runActual hs = do
     bnds = usd 411.8 :: USD (Bal Bonds)
     stks = usd 1065.5
     kids = usd 161.3
-    start = Portfolio (usd 1275) (usd 0)
+    start = Portfolio (usd 1175) (usd 0)
+
+    runSim :: IO ()
+    runSim = do
+
+      -- this runs only ONE simulation?
+      let ps = pct 90
+      let wr = pct 3.0
+      let sim = simulation start (actions start ps wr)
+      let srs = fmap sim ss :: NonEmpty SimResult
+
+      -- let syCol = Column "start year" 9 (\sr -> show sr.startYear)
+      flip printTable (NE.toList srs) $
+        [ Column "year" 9 (\sr -> show sr.startYear)
+        , Column "min" 7 (\sr -> show $ minimum $ withdrawals sr)
+        , Column "med" 7 (\sr -> show $ median $ withdrawals sr)
+        ]
+
+
+      (Just s1966) <- pure $ List.find (isYear 1966) srs
+      print $ s1966.startYear
+      print $ s1966.endBalance
+      printTable yearCols $ NE.toList s1966.years
+      pure ()
+
 
     tryOptimize :: IO ()
     tryOptimize = do
 
+      print $ length ss
 
       -- Optimize with history
-      let res = optimize ss start (actions start)
+      let res = optimize stepAlloc5 stepRate5 ss (pct 100) (pct 2.8) start (actions start)
 
       printTable columns res
 
@@ -118,18 +145,14 @@ runActual hs = do
       Just best <- pure $ bestResult res
       putStrLn $ tableRow columns best
 
-      -- peakWithdrawal (reverseTimeline (Year 2022))
-
-      -- Return to last peak
-      -- let back = 
-      -- let hn = History 
-
-      let hn = History {year = Year 2023, returns = Portfolio (pct (-30.0)) (pct 0), values = Portfolio (usd 2082000) (usd 49.86), cape = CAPE 36.94}
+      let hn = History {year = Year 2023, returns = Portfolio (pct (-23.4)) (pct 0), values = Portfolio (usd 2278900) (usd 49.86), cape = CAPE 36.94}
       let hx = hs <> [hn]
+      putStrLn $ "Peak Withdrawal:"
       print $ peakWithdrawal (reverseTimeline hn.year hx) best.swr (rebalanceFixed best.alloc start)
 
+      putStrLn $ "Peak Withdrawal (100% stocks, 2.95%):"
+      print $ peakWithdrawal (reverseTimeline hn.year hx) (pct 2.95) (rebalanceFixed (pct 100) start)
 
-      -- mwr <- pure $ maximumBy (comparing (\s))
       pure ()
 
     actions :: Balances -> Pct Stocks -> Pct Withdrawal -> Actions ()
@@ -252,8 +275,7 @@ runSimulation _ _ hs = do
     (Just s1966) <- pure $ List.find (isYear 1982) srs
     print $ s1966.startYear
     print $ s1966.endBalance
-    printYearHeader
-    mapM_ printYear $ s1966.years
+    printTable yearCols $ NE.toList s1966.years
     print $ isFailure s1966
     pure ()
 

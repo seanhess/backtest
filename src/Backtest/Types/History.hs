@@ -25,7 +25,10 @@ data Inflation
 data RealTotal
 
 data CAPE = CAPE { fromCAPE :: Float }
-  deriving (Show, Eq, Read, Ord)
+  deriving (Eq, Read, Ord)
+
+instance Show CAPE where
+  show (CAPE c) = show c
 
 
 -- instance FromField CAPE where
@@ -41,15 +44,16 @@ data HistoryRow = HistoryRow
   , month     :: Int
   , stocks    :: USD (Bal Stocks)
   , bonds     :: USD (Bal Bonds)
-  , cpi       :: Pct Inflation
   , cape      :: Maybe CAPE
   } deriving (Show, Eq)
 
 instance FromNamedRecord HistoryRow where
   parseNamedRecord m = do
     date   <- m .: "Date" :: Parser Float
-    cpi    <- m .: "CPI"
+    -- cpi    <- m .: "CPI"
     capes  <- m .: "CAPE"
+
+    -- you need total return to account for dividends too
     stocks <- clean =<< m .: "Real Total Return Price"
     bonds  <- clean =<< m .: "Real Total Bond Returns"
 

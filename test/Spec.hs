@@ -232,8 +232,8 @@ testHistory :: Test ()
 testHistory = do
   -- HistoryRow is a snapshot of the market at the START of the year
   -- TODO should I be using month 12? Are they end of month values or beginning?
-  let hr1 = HistoryRow (Year 1871) 1 (usd 1.00) (usd 1.00) (pct 10.0) (Just $ CAPE 10)
-  let hr2 = HistoryRow (Year 1872) 1 (usd 1.10) (usd 1.10) (pct 20.0) (Just $ CAPE 20)
+  let hr1 = HistoryRow (Year 1871) 1 (usd 1.00) (usd 1.00) (Just $ CAPE 10)
+  let hr2 = HistoryRow (Year 1872) 1 (usd 1.10) (usd 1.10) (Just $ CAPE 20)
   let hs = toHistories [hr1, hr2]
 
   expect "to combine into one history entry" $ do
@@ -252,9 +252,9 @@ testHistory = do
 
 testInflation :: Test ()
 testInflation = do
-  let hr1 = HistoryRow (Year 1900) 1 (usd 100) (usd 100) (pct 10) (Just $ CAPE 10)
-  let hr2 = HistoryRow (Year 1901) 1 (usd 110) (usd 101) (pct 20) (Just $ CAPE 10)
-  let hr3 = HistoryRow (Year 1902) 1 (usd 95)  (usd 101) (pct 20) (Just $ CAPE 10)
+  let hr1 = HistoryRow (Year 1900) 1 (usd 100) (usd 100) (Just $ CAPE 10)
+  let hr2 = HistoryRow (Year 1901) 1 (usd 110) (usd 101) (Just $ CAPE 10)
+  let hr3 = HistoryRow (Year 1902) 1 (usd 95)  (usd 101) (Just $ CAPE 10)
   let hs = toHistories [hr1, hr2, hr3]
 
   -- we want to only withdraw
@@ -274,8 +274,8 @@ testSimEndBalance :: Test ()
 testSimEndBalance = do
 
   -- This results in only 1872, with returns over 1871 and the current cape raito (20)
-  let hr1 = HistoryRow (Year 1900) 1 (usd 1.00) (usd 1.00) (pct 10.0) (Just $ CAPE 10)
-  let hr2 = HistoryRow (Year 1901) 1 (usd 1.10) (usd 1.01) (pct 20.0) (Just $ CAPE 20)
+  let hr1 = HistoryRow (Year 1900) 1 (usd 1.00) (usd 1.00) (Just $ CAPE 10)
+  let hr2 = HistoryRow (Year 1901) 1 (usd 1.10) (usd 1.01) (Just $ CAPE 20)
   let hs = toHistories [hr1, hr2]
 
   -- there are no withdrawals or rebalancing, so it is only returns
@@ -290,7 +290,7 @@ testSimEndBalance = do
   expect "no first year returns" $ do
     y.returns === Portfolio mempty mempty
 
-  let hr3 = HistoryRow (Year 1902) 1 (usd 2.20) (usd 2.02) (pct 30.0) (Just $ CAPE 30)
+  let hr3 = HistoryRow (Year 1902) 1 (usd 2.20) (usd 2.02) (Just $ CAPE 30)
   let hs' = toHistories [hr1, hr2, hr3]
   let sim' = simulation thousand60 noActions hs'
 

@@ -31,18 +31,19 @@ type WDA = USD (Amt Withdrawal)
 -- a = Pct Stocks
 -- unfoldr :: (a -> (b, Maybe a)) -> a -> NonEmpty b
 
+stepAlloc5 :: Pct Stocks -> Pct Stocks
+stepAlloc5 p = p - pct 5
+
+stepRate5 :: Pct Withdrawal -> Pct Withdrawal
+stepRate5 r = r + pct 0.05
+
 -- no, we CHOOSE the starting values
 -- only the optimization variables are passed in. The rest are applied
-optimize :: NonEmpty (NonEmpty History) -> Balances -> (Pct Stocks -> Pct Withdrawal -> Actions ()) -> [OptimizeResult]
-optimize ss bal actions =
+optimize :: (Pct Stocks -> Pct Stocks) -> (Pct Withdrawal -> Pct Withdrawal) -> NonEmpty (NonEmpty History) -> Pct Stocks -> Pct Withdrawal -> Balances -> (Pct Stocks -> Pct Withdrawal -> Actions ()) -> [OptimizeResult]
+optimize stepAlloc stepRate ss startPs startRate bal actions =
   optimizeAlloc startPs startRate
 
   where
-    startPs = pct 100
-    startRate = pct 2.8
-
-    stepAlloc ps = ps - pct 5
-    stepRate wr = wr + pct 0.05
 
     optimizeAlloc :: Pct Stocks -> Pct Withdrawal -> [OptimizeResult]
     optimizeAlloc ps wr =

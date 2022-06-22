@@ -8,46 +8,24 @@ import Data.List as List
 import qualified Data.List.NonEmpty as NE
 
 
-printYears :: [YearStart] -> IO ()
-printYears ys = do
-  printYearHeader
-  mapM_ printYear ys
 
-printYearHeader :: IO ()
-printYearHeader =
-    printTableRow 9
-      [ "Year"
-      , "ret.stck"
-      , "ret.bnds"
-      , "beg.stck"
-      , "beg.bnds"
-      , "income"
-      , "expenses"
-      , "withdraw"
-      , "act.stck"
-      , "act.bnds"
-      , "end.stck"
-      , "end.bnds"
-      , "cape"
-      ]
+yearCols :: [Column YearStart]
+yearCols =
+    [ Column "Year" 9     $ \y -> show y.history.year
+    , Column "ret.stck" 9 $ \y -> show y.returns.stocks
+    , Column "ret.bnds" 9 $ \y -> show y.returns.bonds
+    , Column "beg.stck" 9 $ \y -> show y.start.stocks
+    , Column "beg.bnds" 9 $ \y -> show y.start.bonds
+    , Column "income"   9 $ \y -> show y.netIncome
+    , Column "expenses" 9 $ \y -> show y.netExpenses
+    , Column "withdraw" 9 $ \y -> show y.withdrawal
+    , Column "act.stck" 9 $ \y -> show y.actions.stocks
+    , Column "act.bnds" 9 $ \y -> show y.actions.bonds
+    , Column "end.stck" 9 $ \y -> show y.end.stocks
+    , Column "end.bnds" 9 $ \y -> show y.end.bonds
+    , Column "cape"     9 $ \y -> show y.history.cape.fromCAPE
+    ]
 
-printYear :: YearStart -> IO ()
-printYear yr =
-    printTableRow 9
-      [ show yr.history.year
-      , show yr.returns.stocks
-      , show yr.returns.bonds
-      , show yr.start.stocks
-      , show yr.start.bonds
-      , show yr.netIncome
-      , show yr.netExpenses
-      , show yr.withdrawal
-      , show yr.actions.stocks
-      , show yr.actions.bonds
-      , show yr.end.stocks
-      , show yr.end.bonds
-      , show yr.history.cape.fromCAPE
-      ]
 
 printWithdrawalResults :: WithdrawalResults -> IO ()
 printWithdrawalResults wr = do
@@ -101,11 +79,14 @@ data Column a = Column
   }
 
 
-printTable :: [Column a] -> [a] -> IO ()
-printTable cols as = mapM_ putStrLn $ tableRows cols as
+printTable :: Foldable t => [Column a] -> t a -> IO ()
+printTable cols as = do
+  putStrLn $ headerRow cols
+  forM_ as $ \a -> do
+    putStrLn $ tableRow cols a
 
 tableRows :: [Column a] -> [a] -> [String]
-tableRows cols as = headerRow cols : map (tableRow cols) as
+tableRows cols as = headerRow cols : fmap (tableRow cols) as
 
 tableCell :: a -> Column a -> String
 tableCell a col = do
