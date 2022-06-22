@@ -371,7 +371,7 @@ testRebalance = do
   let bb = Portfolio (usd 0) (usd 100)
   let be = Portfolio (usd 60) (usd 40)
 
-  let rb = rebalanceFixed (pct 60) bs
+  let rb = rebalanceFixed S60 bs
 
   expect "rebalance calculates targets" $ do
     rb === be
@@ -409,7 +409,7 @@ testStandard = do
     ch.bonds === usd (-40)
 
   expect "rebalance" $ do
-    let bal' = rebalanceFixed (pct 60) bal
+    let bal' = rebalanceFixed S60 bal
     let ch = changes bal bal'
     ch.bonds === usd (80)
     ch.stocks === usd (-80)
@@ -422,13 +422,13 @@ testStandard = do
     bal'.bonds === usd 360
 
   expect "rebalance" $ do
-    let bal' = runTestActionsBal h bal $ rebalancePct (pct 60)
+    let bal' = runTestActionsBal h bal $ rebalancePct S60
     bal'.stocks === usd 720
     bal'.bonds === usd 480
 
 
   -- run full standard
-  let bal' = runTestActionsBal h bal (withdraw4 start >> rebalancePct (pct 60))
+  let bal' = runTestActionsBal h bal (withdraw4 start >> rebalancePct S60)
   let chs  = changes bal bal'
 
   expect "withdrawal should result in net -40" $ do
@@ -538,22 +538,22 @@ testPrimeNew = do
 testBands :: Test ()
 testBands = do
   expect "diffAbsPercent normal" $ do
-    diffAbsPercent (pct 60) (Portfolio (usd 62) (usd 38)) === pct 2
+    diffAbsPercent S60 (Portfolio (usd 62) (usd 38)) === pct 2
 
   expect "diffAbsPercent high" $ do
-    diffAbsPercent (pct 60) (Portfolio (usd 65) (usd 35)) === pct 5
+    diffAbsPercent S60 (Portfolio (usd 65) (usd 35)) === pct 5
 
   expect "diffAbsPercent low" $ do
-    diffAbsPercent (pct 40) (Portfolio (usd 65) (usd 35)) === pct 25
+    diffAbsPercent S40 (Portfolio (usd 65) (usd 35)) === pct 25
 
   expect "diffRelPercent normal" $ do
-    diffRelPercent (pct 50) (Portfolio (usd 55) (usd 45))  === pct 10
+    diffRelPercent S50 (Portfolio (usd 55) (usd 45))  === pct 10
 
   expect "diffRelPercent high" $ do
-    diffRelPercent (pct 50) (Portfolio (usd 65) (usd 35))  === pct 30
+    diffRelPercent S50 (Portfolio (usd 65) (usd 35))  === pct 30
 
   expect "diffRelPercent low" $ do
-    diffRelPercent (pct 50) (Portfolio (usd 30) (usd 70))  === pct 40
+    diffRelPercent S50 (Portfolio (usd 30) (usd 70))  === pct 40
 
 
 testPMT :: Test ()
@@ -584,7 +584,7 @@ testABW = do
 
 
 
-  let p = thousand (pct 100)
+  let p = thousand S100
   let years = 50
   let cape = CAPE 40
   let ret = estimatedReturnTotal p estimatedReturnBonds (estimatedReturnStocks cape)

@@ -9,7 +9,7 @@ import Backtest.Types.Usd as Usd
 import Backtest.Types.Pct as Pct
 import Backtest.Strategy (staticWithdrawal, thousand60, withdraw4, rebalancePct)
 import Backtest.Simulation
-import Backtest.History (compoundStockReturn, priorYears, priorYears, priorYears, priorYears, priorYears, priorYears, priorYears, priorYears, YearsLeft)
+import Backtest.History (compoundStockReturn, priorYears, priorYears, priorYears, priorYears, priorYears, priorYears, priorYears, priorYears)
 import qualified Data.List.NonEmpty as NE
 
 import Debug.Trace (traceM, trace)
@@ -30,13 +30,13 @@ withdrawABW = do
     yl <- yearsLeft
     withdraw $ amortizedWithdrawal yl h.cape bal
 
-amortizedWithdrawal :: YearsLeft -> CAPE -> Balances -> USD (Amt Withdrawal)
+amortizedWithdrawal :: NumYears -> CAPE -> Balances -> USD (Amt Withdrawal)
 amortizedWithdrawal yrs cape bal =
   let retStk = estimatedReturnStocks cape
       retBnd = estimatedReturnBonds
   in amortize (estimatedReturnTotal bal retBnd retStk) yrs (total bal)
 
-amortize :: Pct (Return Total) -> YearsLeft -> USD (Bal Total) -> USD (Amt Withdrawal)
+amortize :: Pct (Return Total) -> NumYears -> USD (Bal Total) -> USD (Amt Withdrawal)
 amortize ret yrs tot =
   let wdp = calcWithdrawal yrs ret
   in amount wdp tot
@@ -54,7 +54,7 @@ withdrawABWDips = do
     withdraw wda
 
 
-returnsWithRecentHistory :: YearsLeft -> Balances -> History -> NonEmpty History -> [Pct (Return Total)]
+returnsWithRecentHistory :: NumYears -> Balances -> History -> NonEmpty History -> [Pct (Return Total)]
 returnsWithRecentHistory yl bal cur hs =
     let retStk = estimatedReturnStocks cur.cape :: Pct (Return Stocks)
         bonds  = replicate yl estimatedReturnBonds
@@ -96,7 +96,7 @@ estimatedCrashDepth retPast = min (pct 0) $ max crash crashMod
 -- and see if we can survive that
 -- worst = lowest ending balance?
 -- worst = lowest compound return (no, with withdrawals)
-badReturns :: YearsLeft -> Pct (Return Total) -> [Pct (Return Total)]
+badReturns :: NumYears -> Pct (Return Total) -> [Pct (Return Total)]
 badReturns yl er =
   take (yl-1) $ earlyCrash <> flat 6 <> rets
   -- take (yl-1) $ flat 8 <> rets
@@ -115,7 +115,7 @@ badReturns yl er =
 estimatedReturnTotal :: Balances -> Pct (Return Bonds) -> Pct (Return Stocks) -> Pct (Return Total)
 estimatedReturnTotal (Portfolio (USD 0) (USD 0)) _ _ = 0
 estimatedReturnTotal bal rb rs =
-  let ps = allocationStocks bal
+  let ps = pctStocks bal
       pb = pctBonds ps
   in totalReturn
     [ weightedReturn ps rs
@@ -135,7 +135,7 @@ estimatedReturnBonds = pct 2
 
 
 -- | current withdrawal% amortized for remaining lifespan
-calcWithdrawal :: YearsLeft -> Pct (Return Total) -> Pct Withdrawal
+calcWithdrawal :: NumYears -> Pct (Return Total) -> Pct Withdrawal
 calcWithdrawal n (Pct 0) = Pct $ (1 / fromIntegral n)
 calcWithdrawal n rp =
   pctFromFloat $ pmt' (Pct.toFloat rp) n 1
@@ -226,7 +226,7 @@ pmtFluctuate' rets bal wstart =
       | left <  0  = w
       | otherwise  = f.high
 
-    findWithdrawal :: YearsLeft -> FlucWD -> FlucWD
+    findWithdrawal :: NumYears -> FlucWD -> FlucWD
     findWithdrawal periods f =
       let w = f.next
           count = f.count + 1

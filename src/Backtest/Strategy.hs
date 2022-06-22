@@ -11,9 +11,10 @@ staticWithdrawal :: Pct Withdrawal -> Balances -> USD (Amt Withdrawal)
 staticWithdrawal p bal1 =
     amount p (total bal1)
 
-rebalanceFixed :: Pct Stocks -> Balances -> Balances
-rebalanceFixed ps bal =
+rebalanceFixed :: Allocation -> Balances -> Balances
+rebalanceFixed al bal =
     let tot = total bal
+        ps = allocToPct al
         pb = pctBonds ps
         ts = toBalance $ amount ps tot :: USD (Bal Stocks)
         tb = toBalance $ amount pb tot :: USD (Bal Bonds)
@@ -58,19 +59,19 @@ primeBuyStocks start p bal =
 
 
 -- Larry Swedroe 5/25 bands
-rebalance525Bands :: Pct Stocks -> Balances -> Balances
-rebalance525Bands ps bal
-    | diffAbsPercent ps bal >= pct 5 = rebalanceFixed ps bal
-    | diffRelPercent ps bal >= pct 25 = rebalanceFixed ps bal
+rebalance525Bands :: Allocation -> Balances -> Balances
+rebalance525Bands al bal
+    | diffAbsPercent al bal >= pct 5 = rebalanceFixed al bal
+    | diffRelPercent al bal >= pct 25 = rebalanceFixed al bal
     | otherwise = mempty
 
-diffAbsPercent :: Pct Stocks -> Balances -> Pct Stocks
-diffAbsPercent ps bal =
-    abs (allocationStocks bal - ps)
+diffAbsPercent :: Allocation -> Balances -> Pct Stocks
+diffAbsPercent al bal =
+    abs (pctStocks bal - (allocToPct al))
 
-diffRelPercent :: Pct Stocks -> Balances -> Pct Stocks
-diffRelPercent ps bal =
-    abs $ (allocationStocks bal) / ps - 1
+diffRelPercent :: Allocation -> Balances -> Pct Stocks
+diffRelPercent al bal =
+    abs $ (pctStocks bal) / (allocToPct al) - 1
 
 
 withdraw4 :: Balances -> Actions ()
@@ -79,14 +80,14 @@ withdraw4 start = do
     withdraw const4Percent
 
 
-million :: Pct Stocks -> Balances
-million ps = rebalanceFixed ps $ Portfolio
+million :: Allocation -> Balances
+million al = rebalanceFixed al $ Portfolio
   { stocks = usd $ 500*1000
   , bonds = usd $ 500*1000
   }
 
-thousand :: Pct Stocks -> Balances
-thousand ps = rebalanceFixed ps $ Portfolio
+thousand :: Allocation -> Balances
+thousand al = rebalanceFixed al $ Portfolio
   { stocks = usd $ 500
   , bonds = usd $ 500
   }
@@ -111,5 +112,5 @@ swr4 = pct 4
 
 -- wait... shoot! 
 -- rebalancing has to be based on the END of the calculation
-rebalancePct :: Pct Stocks -> Actions ()
+rebalancePct :: Allocation -> Actions ()
 rebalancePct ps = rebalance $ rebalanceFixed ps

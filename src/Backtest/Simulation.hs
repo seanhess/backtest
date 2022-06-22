@@ -364,13 +364,13 @@ startYear = do
     hs <- history
     pure $ (.year) $ head hs
 
-yearsElapsed :: Actions Int
+yearsElapsed :: Actions NumYears
 yearsElapsed = do
     ys <- startYear
     yc <- (.year) <$> now
     pure $ fromYear yc - fromYear ys
 
-yearsLeft :: Actions Int
+yearsLeft :: Actions NumYears
 yearsLeft = do
     Year ye <- asks (._end)
     Year yc <- (.year) <$> now

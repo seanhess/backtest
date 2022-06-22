@@ -13,6 +13,7 @@ import Backtest.Graph
 import Backtest.MSWR (rateResults, isFailure)
 import Backtest.Aggregate
 import Backtest.Optimize
+import Backtest.Cache
 import Debug.Trace (trace, traceM)
 import Backtest.Debug
 import qualified Data.List as List
@@ -110,9 +111,9 @@ runActual hs = do
     runSim = do
 
       -- this runs only ONE simulation?
-      let ps = pct 90
+      let al = S90
       let wr = pct 3.0
-      let sim = simulation start (actions start ps wr)
+      let sim = simulation start (actions start al wr)
       let srs = fmap sim ss :: NonEmpty SimResult
 
       -- let syCol = Column "start year" 9 (\sr -> show sr.startYear)
@@ -136,7 +137,7 @@ runActual hs = do
       print $ length ss
 
       -- Optimize with history
-      let res = optimize stepAlloc5 stepRate5 ss (pct 100) (pct 2.8) start (actions start)
+      let res = optimize stepAlloc5 stepRate5 ss S100 (pct 2.8) start (actions start)
 
       printTable columns res
 
@@ -151,12 +152,12 @@ runActual hs = do
       print $ peakWithdrawal (reverseTimeline hn.year hx) best.swr (rebalanceFixed best.alloc start)
 
       putStrLn $ "Peak Withdrawal (100% stocks, 2.95%):"
-      print $ peakWithdrawal (reverseTimeline hn.year hx) (pct 2.95) (rebalanceFixed (pct 100) start)
+      print $ peakWithdrawal (reverseTimeline hn.year hx) (pct 2.95) (rebalanceFixed S100 start)
 
       pure ()
 
-    actions :: Balances -> Pct Stocks -> Pct Withdrawal -> Actions ()
-    actions start' ps wr = do
+    actions :: Balances -> Allocation -> Pct Withdrawal -> Actions ()
+    actions start' al wr = do
 
         -- get default starting withdrawal, if you can't find the old one
         -- sy <- startYear
@@ -179,7 +180,7 @@ runActual hs = do
         onYears [30..60] $ do
             income $ usd 25
 
-        rebalance $ rebalanceFixed ps
+        rebalance $ rebalanceFixed al
 
  
     columns :: [Column OptimizeResult]
@@ -194,13 +195,13 @@ runActual hs = do
 
 
 
-runSimulation :: YearsLeft -> Pct Stocks -> NonEmpty History -> IO ()
+runSimulation :: NumYears -> Pct Stocks -> NonEmpty History -> IO ()
 runSimulation _ _ hs = do
 
     let yrs = 30
-    let ps = pct 75
+    let al = S75
     let ss = samples yrs hs
-    let start = thousand ps
+    let start = thousand al
 
 
     -- (Just h1966) <- pure $ List.find (\h -> h.year == Year 1966) hs
@@ -232,7 +233,7 @@ runSimulation _ _ hs = do
                 -- withdrawPeak (historyPeak n.year hs) p
                 withdrawFloor (staticWithdrawal p start) p
 
-                rebalance $ rebalanceFixed ps
+                rebalance $ rebalanceFixed al
                 -- rebalance $ rebalancePrimeNew start.stocks
     let srs = fmap sim ss :: NonEmpty SimResult
 
@@ -291,43 +292,43 @@ runSimulation _ _ hs = do
 
 
 
-runAggregates :: YearsLeft -> Pct Stocks -> NonEmpty History -> IO ()
-runAggregates years ps hs = do
+runAggregates :: NumYears -> Allocation -> NonEmpty History -> IO ()
+runAggregates years al hs = do
     let ss = samples years hs
-    let bal = thousand ps
+    let bal = thousand al
 
     putStrLn "Rebalance Fixed"
     putStrLn "----------------"
     runAggregate ss bal $ const $ do
         withdrawABW
-        rebalance $ rebalanceFixed ps
+        rebalance $ rebalanceFixed al
     putStrLn ""
 
     -- putStrLn "Fixed Dips"
     -- putStrLn "----------------"
     -- runAggregate ss bal $ do
     --     withdrawABWDips
-    --     rebalance $ rebalanceFixed ps
+    --     rebalance $ rebalanceFixed al
     -- putStrLn ""
 
     -- putStrLn "Fixed Steps"
     -- putStrLn "----------------"
     -- runAggregate ss bal $ do
     --     withdrawSteps $ staticWithdrawal (pct 4) bal
-    --     rebalance $ rebalanceFixed ps
+    --     rebalance $ rebalanceFixed al
     -- putStrLn ""
 
     -- putStrLn "Swedroe 5/25"
     -- putStrLn "----------------"
     -- runAggregate ss bal $ do
     --     withdrawABW
-    --     rebalance (rebalance525Bands ps)
+    --     rebalance (rebalance525Bands al)
 
     -- putStrLn "Swedroe 5/25 Dips"
     -- putStrLn "----------------"
     -- runAggregate ss bal $ do
     --     withdrawABWDips
-    --     rebalance (rebalance525Bands ps)
+    --     rebalance (rebalance525Bands al)
 
     -- putStrLn "Prime Harvesting ABW"
     -- putStrLn "----------------"
@@ -350,7 +351,7 @@ runAggregates years ps hs = do
     let wda = staticWithdrawal swr100 bal
     runAggregate ss bal $ const $ do
         withdrawFloor wda swr100
-        rebalance $ rebalanceFixed ps
+        rebalance $ rebalanceFixed al
     putStrLn ""
 
     -- putStrLn "Floor Fixed 3.3 60/40"
@@ -375,7 +376,7 @@ runAggregates years ps hs = do
     -- putStrLn "----------------"
     -- runAggregate ss bal $ do
     --     withdrawFloor wda swr100
-    --     rebalance $ rebalance525Bands ps
+    --     rebalance $ rebalance525Bands al
     -- putStrLn ""
 
     -- putStrLn "Floor No Rebalance"
@@ -399,7 +400,7 @@ runAggregates years ps hs = do
             wd = peakWithdrawal (reverseTimeline h.year hs) swr bal
         in do n <- now
               withdrawFloor (usd 10) (pct 3.31)
-              rebalance $ rebalanceFixed ps
+              rebalance $ rebalanceFixed al
     putStrLn ""
 
 
@@ -439,7 +440,7 @@ runAggregate ss start getActions = do
 
 
 
--- runCrashes :: YearsLeft -> [History] -> IO ()
+-- runCrashes :: NumYears -> [History] -> IO ()
 -- runCrashes years hs = do
 --     -- -- TODO remove samples with duration less than 3 years?
 --     putStrLn $ intercalate ", " ["year", "cape", "depth", "length", "prior1y","prior2y","prior3y","prior4y","prior5y",     "years"]
@@ -475,8 +476,8 @@ runAggregate ss start getActions = do
 --     pure ()
 
 
-runMSWRs :: YearsLeft -> Pct Stocks -> NonEmpty History -> IO ()
-runMSWRs years ps hs = do
+runMSWRs :: NumYears -> Allocation -> NonEmpty History -> IO ()
+runMSWRs years al hs = do
 
    -- COMPARE MSWR
     -----------------
@@ -485,7 +486,7 @@ runMSWRs years ps hs = do
     --  missing the 60s
 
     let ss = samples years hs
-    let bal = million ps
+    let bal = million al
 
     putStrLn "Compare MSWRs"
     putStrLn "=============="
@@ -494,12 +495,12 @@ runMSWRs years ps hs = do
 
     putStrLn "Rebalance Fixed"
     putStrLn "----------------"
-    runMSWR ss bal (rebalance (rebalanceFixed ps))
+    runMSWR ss bal (rebalance (rebalanceFixed al))
     putStrLn ""
 
     putStrLn "Swedroe 5/25 bands"
     putStrLn "------------------"
-    runMSWR ss bal (rebalance (rebalance525Bands ps))
+    runMSWR ss bal (rebalance (rebalance525Bands al))
     putStrLn ""
 
     putStrLn "Prime Harvesting"

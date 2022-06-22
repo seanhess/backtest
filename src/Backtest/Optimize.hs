@@ -18,7 +18,7 @@ data Inputs = Inputs
   }
 
 data OptimizeResult = OptimizeResult
-  { alloc :: Pct Stocks
+  { alloc :: Allocation
   , swr :: Pct Withdrawal
   , results :: NonEmpty SimResult
   }
@@ -31,36 +31,36 @@ type WDA = USD (Amt Withdrawal)
 -- a = Pct Stocks
 -- unfoldr :: (a -> (b, Maybe a)) -> a -> NonEmpty b
 
-stepAlloc5 :: Pct Stocks -> Pct Stocks
-stepAlloc5 p = p - pct 5
+stepAlloc5 :: Allocation -> Allocation
+stepAlloc5 = succ
 
 stepRate5 :: Pct Withdrawal -> Pct Withdrawal
 stepRate5 r = r + pct 0.05
 
 -- no, we CHOOSE the starting values
 -- only the optimization variables are passed in. The rest are applied
-optimize :: (Pct Stocks -> Pct Stocks) -> (Pct Withdrawal -> Pct Withdrawal) -> NonEmpty (NonEmpty History) -> Pct Stocks -> Pct Withdrawal -> Balances -> (Pct Stocks -> Pct Withdrawal -> Actions ()) -> [OptimizeResult]
-optimize stepAlloc stepRate ss startPs startRate bal actions =
-  optimizeAlloc startPs startRate
+optimize :: (Allocation -> Allocation) -> (Pct Withdrawal -> Pct Withdrawal) -> NonEmpty (NonEmpty History) -> Allocation -> Pct Withdrawal -> Balances -> (Allocation -> Pct Withdrawal -> Actions ()) -> [OptimizeResult]
+optimize stepAlloc stepRate ss startAlc startRate bal actions =
+  optimizeAlloc startAlc startRate
 
   where
 
-    optimizeAlloc :: Pct Stocks -> Pct Withdrawal -> [OptimizeResult]
+    optimizeAlloc :: Allocation -> Pct Withdrawal -> [OptimizeResult]
     optimizeAlloc ps wr =
       mconcat $ List.unfoldr nextAlloc (ps, wr)
 
-    nextAlloc :: (Pct Stocks, Pct Withdrawal) -> Maybe ([OptimizeResult], (Pct Stocks, Pct Withdrawal))
-    nextAlloc (ps, mwr) = do
-      let res = optimizeRate ps mwr
+    nextAlloc :: (Allocation, Pct Withdrawal) -> Maybe ([OptimizeResult], (Allocation, Pct Withdrawal))
+    nextAlloc (al, mwr) = do
+      let res = optimizeRate al mwr
 
       mwr' <- fst <$> lastMay res
 
-      pure (map (optimizeResult ps) res, (stepAlloc ps, mwr'))
+      pure (map (optimizeResult al) res, (stepAlloc al, mwr'))
 
-    optimizeRate :: Pct Stocks -> Pct Withdrawal -> [(Pct Withdrawal, NonEmpty SimResult)]
-    optimizeRate ps wr = optimizeMax wr stepRate isSimValid (runSim ps)
+    optimizeRate :: Allocation -> Pct Withdrawal -> [(Pct Withdrawal, NonEmpty SimResult)]
+    optimizeRate al wr = optimizeMax wr stepRate isSimValid (runSim al)
 
-    runSim :: Pct Stocks -> Pct Withdrawal -> NonEmpty SimResult
+    runSim :: Allocation -> Pct Withdrawal -> NonEmpty SimResult
     runSim ps wr =
       let sim = simulation bal (actions ps wr)
       in fmap sim ss
@@ -68,9 +68,9 @@ optimize stepAlloc stepRate ss startPs startRate bal actions =
     isSimValid :: NonEmpty SimResult -> Bool
     isSimValid = all (not . isWithdrawalFail)
 
-    optimizeResult :: Pct Stocks -> (Pct Withdrawal, NonEmpty SimResult) -> OptimizeResult
-    optimizeResult ps (swr, srs) =
-      OptimizeResult ps swr srs
+    optimizeResult :: Allocation -> (Pct Withdrawal, NonEmpty SimResult) -> OptimizeResult
+    optimizeResult al (swr, srs) =
+      OptimizeResult al swr srs
 
 
 -- maximize by: wdr, then median

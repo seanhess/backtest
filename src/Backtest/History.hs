@@ -9,7 +9,6 @@ import qualified Data.List as List
 import qualified Data.List.NonEmpty as NE
 import Data.Vector as Vector (Vector, toList)
 
-type YearsLeft = Int
 
 loadReturns :: IO (NonEmpty HistoryRow)
 loadReturns = do
@@ -43,7 +42,7 @@ simHistory :: [History] -> Year -> History
 simHistory hs y =
   fromMaybe (fakeHistory y) $ List.find (\h -> h.year == y) hs
 
-simHistories :: YearsLeft -> [History] -> [History]
+simHistories :: NumYears -> [History] -> [History]
 simHistories _ [] = []
 simHistories yl hs@(h:_) =
   let (Year s) = h.year
@@ -70,7 +69,7 @@ toHistory past now = do
 
 
 -- it's a nonempty of lists
-samples :: YearsLeft -> NonEmpty History -> NonEmpty (NonEmpty History)
+samples :: NumYears -> NonEmpty History -> NonEmpty (NonEmpty History)
 samples years hs = NE.tails hs
   & fmap (take years)
   & fmap (simHistories years)
@@ -147,7 +146,7 @@ priorYears y hs = List.reverse $ takeWhile (\h -> h.year < y) $ NE.toList hs
 
 historicalReturns :: Balances -> [History] -> [Pct (Return Total)]
 historicalReturns bal hs =
-  let ps = allocationStocks bal
+  let ps = pctStocks bal
       pb = pctBonds ps
   in map (ret ps pb) hs
     where

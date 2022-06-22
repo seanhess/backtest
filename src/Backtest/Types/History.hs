@@ -12,6 +12,8 @@ import Data.Csv (FromNamedRecord(..), FromField(..), (.:), Parser)
 import Text.Read (readMaybe)
 import Data.Either (fromRight)
 
+type NumYears = Int
+
 newtype Year = Year { fromYear :: Int }
   deriving (Eq, FromField, Ord, Enum, Num)
 
