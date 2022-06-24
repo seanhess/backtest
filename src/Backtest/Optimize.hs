@@ -2,7 +2,7 @@ module Backtest.Optimize where
 
 import Backtest.Prelude
 import Backtest.Types hiding (low)
-import Backtest.Debug (debug)
+import Backtest.Debug (debug, dump)
 import Backtest.Simulation (Actions (), simulation)
 import Backtest.Aggregate (medWithdrawal, isWithdrawalFail)
 import qualified Data.List.NonEmpty as NE
@@ -31,16 +31,23 @@ type WDA = USD (Amt Withdrawal)
 -- a = Pct Stocks
 -- unfoldr :: (a -> (b, Maybe a)) -> a -> NonEmpty b
 
-stepAlloc5 :: Allocation -> Allocation
-stepAlloc5 = succ
+stepAlloc5 :: Allocation -> Maybe Allocation
+stepAlloc5 S50 = Nothing
+stepAlloc5 a = Just $ succ a
 
-stepRate5 :: Pct Withdrawal -> Pct Withdrawal
-stepRate5 r = r + pct 0.05
+stepRate5 :: Pct Withdrawal -> Maybe (Pct Withdrawal)
+stepRate5 = stepRate (pct 0.05)
+
+stepRate :: Pct Withdrawal -> Pct Withdrawal -> Maybe (Pct Withdrawal)
+stepRate s r
+  | r >= pct 100 = Nothing
+  | otherwise = Just $ min (pct 100) (r + s)
+
 
 -- no, we CHOOSE the starting values
 -- only the optimization variables are passed in. The rest are applied
-optimize :: (Allocation -> Allocation) -> (Pct Withdrawal -> Pct Withdrawal) -> NonEmpty (NonEmpty History) -> Allocation -> Pct Withdrawal -> Balances -> (Allocation -> Pct Withdrawal -> Actions ()) -> [OptimizeResult]
-optimize stepAlloc stepRate ss startAlc startRate bal actions =
+optimize :: (Allocation -> Maybe Allocation) -> (Pct Withdrawal -> Maybe (Pct Withdrawal)) -> NonEmpty (NonEmpty History) -> Allocation -> Pct Withdrawal -> Balances -> (Allocation -> Pct Withdrawal -> Actions ()) -> [OptimizeResult]
+optimize stepA stepR ss startAlc startRate bal actions =
   optimizeAlloc startAlc startRate
 
   where
@@ -52,25 +59,26 @@ optimize stepAlloc stepRate ss startAlc startRate bal actions =
     nextAlloc :: (Allocation, Pct Withdrawal) -> Maybe ([OptimizeResult], (Allocation, Pct Withdrawal))
     nextAlloc (al, mwr) = do
       let res = optimizeRate al mwr
-
       mwr' <- fst <$> lastMay res
+      al' <- stepA al
 
-      pure (map (optimizeResult al) res, (stepAlloc al, mwr'))
+      pure (map (optimizeResult al) res, (al', mwr'))
 
     optimizeRate :: Allocation -> Pct Withdrawal -> [(Pct Withdrawal, NonEmpty SimResult)]
-    optimizeRate al wr = optimizeMax wr stepRate isSimValid (runSim al)
+    optimizeRate al wr = maximize wr stepR isSimValid (runSim al)
 
     runSim :: Allocation -> Pct Withdrawal -> NonEmpty SimResult
     runSim ps wr =
       let sim = simulation bal (actions ps wr)
       in fmap sim ss
 
-    isSimValid :: NonEmpty SimResult -> Bool
-    isSimValid = all (not . isWithdrawalFail)
-
     optimizeResult :: Allocation -> (Pct Withdrawal, NonEmpty SimResult) -> OptimizeResult
     optimizeResult al (swr, srs) =
       OptimizeResult al swr srs
+
+
+isSimValid :: NonEmpty SimResult -> Bool
+isSimValid = all (not . isWithdrawalFail)
 
 
 -- maximize by: wdr, then median
@@ -80,32 +88,68 @@ bestResult = maximumByMay (comparing rateThenMed)
     rateThenMed o = (o.swr, medWithdrawal o.results)
 
 
+maximizeRate :: (NonEmpty SimResult -> Bool) -> (Pct Withdrawal -> NonEmpty SimResult) -> [(Pct Withdrawal, NonEmpty SimResult)]
+maximizeRate = maximize' rateSteps
 
--- -- the highest one
--- bestRate :: [(Pct Stocks, Pct Withdrawal, NonEmpty SimResult)] -> Maybe (Pct Withdrawal)
--- bestRate = maximumBy snd
 
--- bestAlloc :: [(Pct Stocks, Pct Withdrawal, NonEmpty SimResult)] -> Maybe (Pct Stocks)
--- bestAlloc = _
-
--- optimizeAlloc :: NonEmpty (Pct Stocks, Pct Withdrawal, NonEmpty SimResult) -> (Pct Stocks, Pct Withdrawal, NonEmpty SimResult)
--- optimizeAlloc allocs =
---   last $ NE.sortBy (comparing score) allocs
---   where
---     score (_, swr, srs) = (swr, medWithdrawal srs)
-    
+rateSteps :: [Pct Withdrawal]
+rateSteps = map pct $ List.nub $ mconcat
+  [ [ 0, 10 .. 50 ]
+  , [ 0, 5 .. 50 ]
+  , [ 1, 2 .. 50 ]
+  , [ 1, 1.5 .. 50 ]
+  , [ 1, 1.2 .. 50 ]
+  , [ 1, 1.1 .. 50 ]
+  ]
 
 
 -- step up and re-run each time, nothing fancy
-optimizeMax :: forall x result. Show x => x -> (x -> x) -> (result -> Bool) -> (x -> result) -> [(x, result)]
-optimizeMax start step isValid run =
+maximize :: forall x result. Show x => x -> (x -> Maybe x) -> (result -> Bool) -> (x -> result) -> [(x, result)]
+maximize start step isValid run =
   takeWhile (isValid . snd) $ zip steps results
   where
     steps :: [x]
-    steps = take 80 $ iterate step start
+    steps = List.unfoldr nextStep start
+
+    nextStep :: x -> Maybe (x, x)
+    nextStep x = do
+      x1 <- step x
+      pure $ (x, x1)
 
     results :: [result]
     results = fmap run steps
+
+
+-- maximizeRate :: (NonEmpty SimResult -> Bool) -> ()
+
+-- ok, we need to start at 0 or 0.1
+-- we could go to half?
+-- step is ....
+-- low, high, what to try next?
+-- optimizes the variables via the multiplicative function. Min max
+maximize' :: forall x result. (Ord x, Show x) => [x] -> (result -> Bool) -> (x -> result) -> [(x, result)]
+maximize' steps isValid run =
+  List.reverse $ tryStep steps []
+  -- filter 
+  -- [0.1, 10, 20, 30, 40, 50, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0.1]
+
+  where
+    tryStep :: [x] -> [(x, result)] -> [(x, result)]
+    tryStep [] rs = rs
+    tryStep (x:xs) rs =
+      let r = run x
+      in if isValid r
+        then tryStep (onlyHigher x xs) ((x, r) : rs)
+        else tryStep (onlyLower x xs) rs
+
+    onlyHigher :: x -> [x] -> [x]
+    onlyHigher x = filter (>x)
+
+    onlyLower :: x -> [x] -> [x]
+    onlyLower x = filter (<x)
+
+    -- results :: [result]
+    -- results = fmap run steps
 
 
 

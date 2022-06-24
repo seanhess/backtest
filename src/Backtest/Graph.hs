@@ -43,8 +43,8 @@ withdrawalStackChart mws =
 
 
 
-withdrawalBinChart :: Int -> Data -> VLSpec
-withdrawalBinChart yrs dt =
+withdrawalBinChart :: NumYears -> Data -> VLSpec
+withdrawalBinChart (NumYears yrs) dt =
     let enc = encoding
                 . position X [ PName "Year",       PmType Quantitative, PBin [ MaxBins yrs ] ]
                 . position Y [ PName "Withdrawal", PmType Quantitative, PBin [ MaxBins 60 ] ] -- , PScale [SDomain (DNumbers [0, 200])] ]

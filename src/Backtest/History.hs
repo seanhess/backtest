@@ -44,7 +44,7 @@ simHistory hs y =
 
 simHistories :: NumYears -> [History] -> [History]
 simHistories _ [] = []
-simHistories yl hs@(h:_) =
+simHistories (NumYears yl) hs@(h:_) =
   let (Year s) = h.year
       end = Year $ s + yl - 1
 
@@ -71,7 +71,7 @@ toHistory past now = do
 -- it's a nonempty of lists
 samples :: NumYears -> NonEmpty History -> NonEmpty (NonEmpty History)
 samples years hs = NE.tails hs
-  & fmap (take years)
+  & fmap (take (fromNumYears years))
   & fmap (simHistories years)
   & NE.filter isNumYears
   & map (NE.fromList)
@@ -80,7 +80,7 @@ samples years hs = NE.tails hs
   where
     isNumYears :: [History] -> Bool
     isNumYears hs' =
-      length hs' == years
+      length hs' == fromNumYears years
 
     isGoodYearRange :: NonEmpty History -> Bool
     isGoodYearRange hs' =

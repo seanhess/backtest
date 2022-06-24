@@ -11,31 +11,32 @@ import Data.List.NonEmpty as NE (filter)
 
 rateResults :: NonEmpty (NonEmpty History) -> Balances -> Actions () -> [Pct Withdrawal] -> [RateResult]
 rateResults ss start reb rates =
-    map runRate rates
+    map (runRateResult ss start reb) rates
+
+toRateResult :: Pct Withdrawal -> NonEmpty SimResult -> RateResult
+toRateResult wdp srs =
+  RateResult
+    { rate = wdp
+    , success = successRate srs
+    , results = srs
+    , avgEndPortfolio = averageEndPortfolio srs
+    , medEndPortfolio = medianEndPortfolio srs
+    }
+        
+runRateResult :: NonEmpty (NonEmpty History) -> Balances -> Actions () -> Pct Withdrawal -> RateResult
+runRateResult ss start reb wdp = toRateResult wdp $ runRate ss start reb wdp
+
+runRate :: NonEmpty (NonEmpty History) -> Balances -> Actions () -> Pct Withdrawal -> NonEmpty SimResult
+runRate ss start reb wdp =
+    let wda = loss $ staticWithdrawal wdp start :: USD (Amt Withdrawal)
+    in fmap (runSimulation wda) ss
 
   where
-
-    runRate :: Pct Withdrawal -> RateResult
-    runRate wdp =
-        let wda = loss $ staticWithdrawal wdp start :: USD (Amt Withdrawal)
-            srs = fmap (runSimulation wda) ss
-        in RateResult
-            { rate = wdp
-            , success = successRate srs
-            , results = srs
-            , avgEndPortfolio = averageEndPortfolio srs
-            , medEndPortfolio = medianEndPortfolio srs
-            }
-
     runSimulation :: USD (Amt Withdrawal) -> NonEmpty History -> SimResult
     runSimulation wda =
         simulation start $ do
             withdraw (loss wda)
             reb
-
--- mswr :: [RateResult] -> Maybe RateResult
--- mswr rrs =
---     List.find (isSuccessful . (.success)) $ reverse rrs
 
 
 

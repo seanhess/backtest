@@ -14,7 +14,7 @@ staticWithdrawal p bal1 =
 rebalanceFixed :: Allocation -> Balances -> Balances
 rebalanceFixed al bal =
     let tot = total bal
-        ps = allocToPct al
+        ps = fromAlloc al
         pb = pctBonds ps
         ts = toBalance $ amount ps tot :: USD (Bal Stocks)
         tb = toBalance $ amount pb tot :: USD (Bal Bonds)
@@ -67,11 +67,11 @@ rebalance525Bands al bal
 
 diffAbsPercent :: Allocation -> Balances -> Pct Stocks
 diffAbsPercent al bal =
-    abs (pctStocks bal - (allocToPct al))
+    abs (pctStocks bal - (fromAlloc al))
 
 diffRelPercent :: Allocation -> Balances -> Pct Stocks
 diffRelPercent al bal =
-    abs $ (pctStocks bal) / (allocToPct al) - 1
+    abs $ (pctStocks bal) / (fromAlloc al) - 1
 
 
 withdraw4 :: Balances -> Actions ()

@@ -37,10 +37,15 @@ run = do
     runActual hs
     -- runAggregates 60 (pct 75) hs
     -- runChart 60 hs
+    -- runCache hs
 
     pure ()
 
 
+runCache :: NonEmpty History -> IO ()
+runCache hs = do
+  Right cache <- pure $ buildSWRCache $ calculateAllMSWRs hs
+  saveToFile "data/cache.csv" cache
 
 -- 3.53% of peak!
 
@@ -49,7 +54,8 @@ runActual hs = do
     -- countHistories
     -- findBest
     -- runSim
-    tryOptimize
+    -- tryOptimize
+    tryMaximize
 
 
     -- at 95% stocks I can support 40k/1275k withdrawals and 3.1% raise
@@ -101,7 +107,7 @@ runActual hs = do
 
   where
 
-    ss = samples 60 hs
+    ss = samples (numYears 40) hs
     bnds = usd 411.8 :: USD (Bal Bonds)
     stks = usd 1065.5
     kids = usd 161.3
@@ -131,6 +137,15 @@ runActual hs = do
       pure ()
 
 
+    tryMaximize :: IO ()
+    tryMaximize = do
+
+      let run' = \wr -> simulation start (actions start S100 wr) <$> ss
+
+      let res = maximizeRate isSimValid run'
+      -- printTable columns res
+      print $ map (\(wr, srs) -> (wr, medWithdrawal srs)) res
+
     tryOptimize :: IO ()
     tryOptimize = do
 
@@ -138,6 +153,7 @@ runActual hs = do
 
       -- Optimize with history
       let res = optimize stepAlloc5 stepRate5 ss S100 (pct 2.8) start (actions start)
+      -- let res = 
 
       printTable columns res
 
@@ -198,7 +214,7 @@ runActual hs = do
 runSimulation :: NumYears -> Pct Stocks -> NonEmpty History -> IO ()
 runSimulation _ _ hs = do
 
-    let yrs = 30
+    let yrs = NumYears 30
     let al = S75
     let ss = samples yrs hs
     let start = thousand al

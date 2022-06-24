@@ -55,7 +55,7 @@ withdrawABWDips = do
 
 
 returnsWithRecentHistory :: NumYears -> Balances -> History -> NonEmpty History -> [Pct (Return Total)]
-returnsWithRecentHistory yl bal cur hs =
+returnsWithRecentHistory (NumYears yl) bal cur hs =
     let retStk = estimatedReturnStocks cur.cape :: Pct (Return Stocks)
         bonds  = replicate yl estimatedReturnBonds
         depth  = estimatedCrashDepth $ compoundStockReturn $ take 5 $ priorYears cur.year hs
@@ -97,7 +97,7 @@ estimatedCrashDepth retPast = min (pct 0) $ max crash crashMod
 -- worst = lowest ending balance?
 -- worst = lowest compound return (no, with withdrawals)
 badReturns :: NumYears -> Pct (Return Total) -> [Pct (Return Total)]
-badReturns yl er =
+badReturns (NumYears yl) er =
   take (yl-1) $ earlyCrash <> flat 6 <> rets
   -- take (yl-1) $ flat 8 <> rets
 
@@ -136,8 +136,8 @@ estimatedReturnBonds = pct 2
 
 -- | current withdrawal% amortized for remaining lifespan
 calcWithdrawal :: NumYears -> Pct (Return Total) -> Pct Withdrawal
-calcWithdrawal n (Pct 0) = Pct $ (1 / fromIntegral n)
-calcWithdrawal n rp =
+calcWithdrawal (NumYears n) (Pct 0) = Pct $ (1 / fromIntegral n)
+calcWithdrawal (NumYears n) rp =
   pctFromFloat $ pmt' (Pct.toFloat rp) n 1
 
 
@@ -195,7 +195,7 @@ pmtFluctuate
 pmtFluctuate rets bal =
   -- guess, calculate remainder, subtract from guess
   -- go until you reach the desired difference
-  let n = length rets + 1
+  let n = NumYears $ length rets + 1
       er = average rets
       w = amortize er n bal :: USD (Amt Withdrawal)
   in pmtFluctuate' rets bal w
@@ -203,7 +203,7 @@ pmtFluctuate rets bal =
 
 pmtFluctuate' :: [Pct (Return Total)] -> USD (Bal Total) -> USD (Amt Withdrawal) -> USD (Amt Withdrawal)
 pmtFluctuate' rets bal wstart = 
-  let periods = length rets + 1
+  let periods = NumYears $ length rets + 1
       ws = take 15 $ drop 1 $ iterate (findWithdrawal periods) $ FlucWD (usd 0) 0 (usd 0) wstart wstart 0
   in fromMaybe wstart $ lastMay $ fmap (.withdrawal) ws
 

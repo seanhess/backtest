@@ -3,6 +3,7 @@ module Backtest.Types.Portfolio where
 import Backtest.Prelude
 import Backtest.Types.Usd
 import Backtest.Types.Pct as Pct
+import Data.List.NonEmpty as NE
 
 
 data Portfolio a f = Portfolio
@@ -85,40 +86,45 @@ data Allocation
   | S60
   | S55
   | S50
-  | S45
-  | S40
-  | S35
-  | S30
-  | S25
-  | S20
-  | S15
-  | S10
-  | S05
-  | S00
-  deriving (Show, Eq, Enum, Bounded)
+  -- | S45
+  -- | S40
+  -- | S35
+  -- | S30
+  -- | S25
+  -- | S20
+  -- | S15
+  -- | S10
+  -- | S05
+  -- | S00
+  deriving (Show, Eq, Enum, Bounded, Read, Ord)
 
-allocToPct :: Allocation -> Pct Stocks
-allocToPct S100 = pct 100
-allocToPct S95  = pct 95
-allocToPct S90  = pct 90
-allocToPct S85  = pct 85
-allocToPct S80  = pct 80
-allocToPct S75  = pct 75
-allocToPct S70  = pct 70
-allocToPct S65  = pct 65
-allocToPct S60  = pct 60
-allocToPct S55  = pct 55
-allocToPct S50  = pct 50
-allocToPct S45  = pct 45
-allocToPct S40  = pct 40
-allocToPct S35  = pct 35
-allocToPct S30  = pct 30
-allocToPct S25  = pct 25
-allocToPct S20  = pct 20
-allocToPct S15  = pct 15
-allocToPct S10  = pct 10
-allocToPct S05  = pct 05
-allocToPct S00  = pct 00
+fromAlloc :: Allocation -> Pct Stocks
+fromAlloc S100 = pct 100
+fromAlloc S95  = pct 95
+fromAlloc S90  = pct 90
+fromAlloc S85  = pct 85
+fromAlloc S80  = pct 80
+fromAlloc S75  = pct 75
+fromAlloc S70  = pct 70
+fromAlloc S65  = pct 65
+fromAlloc S60  = pct 60
+fromAlloc S55  = pct 55
+fromAlloc S50  = pct 50
+-- fromAlloc S45  = pct 45
+-- fromAlloc S40  = pct 40
+-- fromAlloc S35  = pct 35
+-- fromAlloc S30  = pct 30
+-- fromAlloc S25  = pct 25
+-- fromAlloc S20  = pct 20
+-- fromAlloc S15  = pct 15
+-- fromAlloc S10  = pct 10
+-- fromAlloc S05  = pct 05
+-- fromAlloc S00  = pct 00
+
+toAlloc :: Pct Stocks -> Allocation
+toAlloc ps =
+  fromMaybe S100 $ minimumByMay (comparing distance) [minBound..maxBound]
+  where distance al = abs $ fromAlloc al - ps
 
 
 

@@ -356,7 +356,7 @@ history = do
 
 onYears :: [Int] -> Actions () -> Actions ()
 onYears yrs action = do
-    ye <- yearsElapsed
+    NumYears ye <- yearsElapsed
     when (ye `elem` yrs) action
 
 startYear :: Actions Year
@@ -368,13 +368,13 @@ yearsElapsed :: Actions NumYears
 yearsElapsed = do
     ys <- startYear
     yc <- (.year) <$> now
-    pure $ fromYear yc - fromYear ys
+    pure $ NumYears $ fromYear yc - fromYear ys
 
 yearsLeft :: Actions NumYears
 yearsLeft = do
     Year ye <- asks (._end)
     Year yc <- (.year) <$> now
-    pure $ ye - yc
+    pure $ NumYears $ ye - yc
 
 lastYear :: Actions (Maybe YearStart)
 lastYear = do

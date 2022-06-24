@@ -544,7 +544,7 @@ testBands = do
     diffAbsPercent S60 (Portfolio (usd 65) (usd 35)) === pct 5
 
   expect "diffAbsPercent low" $ do
-    diffAbsPercent S40 (Portfolio (usd 65) (usd 35)) === pct 25
+    diffAbsPercent S50 (Portfolio (usd 65) (usd 35)) === pct 15
 
   expect "diffRelPercent normal" $ do
     diffRelPercent S50 (Portfolio (usd 55) (usd 45))  === pct 10
@@ -565,7 +565,7 @@ testPMT = do
     (round $ pmt 0.01 360 100000 * 100) === 102861
 
   expect "using calcWithdrawal" $ do
-    calcWithdrawal 61 (pct 2.37) === pct 3.045
+    calcWithdrawal (numYears 61) (pct 2.37) === pct 3.045
 
 
 testABW :: Test ()
@@ -585,7 +585,7 @@ testABW = do
 
 
   let p = thousand S100
-  let years = 50
+  let years = NumYears 50
   let cape = CAPE 40
   let ret = estimatedReturnTotal p estimatedReturnBonds (estimatedReturnStocks cape)
   let wdp = calcWithdrawal years ret
@@ -633,19 +633,19 @@ testABW = do
   expect "first year withdrawal to be based on CAPE 10" $ do
     let y1 = head sim.years
     y1.year === Year 1900
-    let wdp1 = calcWithdrawal 3 (pctFromFloat (1/10))
+    let wdp1 = calcWithdrawal (numYears 3) (pctFromFloat (1/10))
     y1.withdrawal === amount wdp1 (total bal)
 
   expect "second year withdrawal to be based on CAPE 20" $ do
     (y1 : y2 :_) <- pure $ NE.toList sim.years
     y2.year === Year 1901
-    let wpd2 = calcWithdrawal 2 (pctFromFloat (1/20))
+    let wpd2 = calcWithdrawal (numYears 2) (pctFromFloat (1/20))
     y2.withdrawal === amount wpd2 (total y1.end)
 
   expect "third year withdrawal to be based on CAPE 30" $ do
     [_,y2,y3] <- pure sim.years
     y3.year === Year 1902
-    let wpd3 = calcWithdrawal 1 (pctFromFloat (1/30))
+    let wpd3 = calcWithdrawal (numYears 1) (pctFromFloat (1/30))
     y3.withdrawal === amount wpd3 (total y2.end)
     dollars (y3.withdrawal) === dollars (total y2.end)
 
