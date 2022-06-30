@@ -26,6 +26,8 @@ source-repository head
 library
   exposed-modules:
       Backtest.Aggregate
+      Backtest.App
+      Backtest.App.Counter
       Backtest.Cache
       Backtest.Debug
       Backtest.Graph
@@ -84,13 +86,19 @@ library
     , containers
     , exceptions
     , hvega
+    , juniper
+    , lucid
     , mtl
+    , network
     , record-dot-preprocessor
     , record-hasfield
     , safe
+    , scotty
     , string-conversions
     , text
     , vector
+    , wai
+    , wai-middleware-static
   default-language: Haskell2010
 
 executable backtest-exe
@@ -133,13 +141,19 @@ executable backtest-exe
     , containers
     , exceptions
     , hvega
+    , juniper
+    , lucid
     , mtl
+    , network
     , record-dot-preprocessor
     , record-hasfield
     , safe
+    , scotty
     , string-conversions
     , text
     , vector
+    , wai
+    , wai-middleware-static
   default-language: Haskell2010
 
 test-suite backtest-test
@@ -147,6 +161,8 @@ test-suite backtest-test
   main-is: Spec.hs
   other-modules:
       Backtest.Aggregate
+      Backtest.App
+      Backtest.App.Counter
       Backtest.Cache
       Backtest.Debug
       Backtest.Graph
@@ -206,11 +222,17 @@ test-suite backtest-test
     , containers
     , exceptions
     , hvega
+    , juniper
+    , lucid
     , mtl
+    , network
     , record-dot-preprocessor
     , record-hasfield
     , safe
+    , scotty
     , string-conversions
     , text
     , vector
+    , wai
+    , wai-middleware-static
   default-language: Haskell2010

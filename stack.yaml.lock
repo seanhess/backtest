@@ -3,7 +3,18 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    name: juniper
+    version: 0.2.0
+    git: https://github.com/seanhess/juniper.git
+    pantry-tree:
+      size: 2554
+      sha256: d470947226c9aa57253083f6566d4f18e0cccd91cd588b4811a864a8662119f3
+    commit: 22f0bde0d9f769cdd887e2c6930fb79db9d6c53c
+  original:
+    git: https://github.com/seanhess/juniper.git
+    commit: 22f0bde0d9f769cdd887e2c6930fb79db9d6c53c
 snapshots:
 - completed:
     size: 587393
