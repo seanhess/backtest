@@ -13,7 +13,7 @@ import Backtest.Graph
 import Backtest.MSWR (rateResults, isFailure)
 import Backtest.Aggregate
 import Backtest.Optimize
-import Backtest.Cache
+import Backtest.Cache as Cache
 import Debug.Trace (trace, traceM)
 import Backtest.Debug
 import qualified Data.List as List
@@ -26,6 +26,8 @@ run :: IO ()
 run = do
     rs <- loadReturns
     let hs = toHistories rs
+    cache <- Cache.loadFromFile "data/cache.csv"
+    -- dumpCache cache
     -- mapM_ print hs
 
 
@@ -34,7 +36,7 @@ run = do
     -- runSimulation 60 (pct 75) hs
     -- runMSWRs 60 (pct 60) hs
     -- runCrashes 50 hs
-    runActual hs
+    runActual hs cache
     -- runAggregates 60 (pct 75) hs
     -- runChart 60 hs
     -- runCache hs
@@ -49,69 +51,43 @@ runCache hs = do
 
 -- 3.53% of peak!
 
-runActual :: NonEmpty History -> IO ()
-runActual hs = do
+runActual :: NonEmpty History -> SWRCache -> IO ()
+runActual hs cache = do
     -- countHistories
     -- findBest
-    -- runSim
+    runSim
     -- tryOptimize
-    tryMaximize
-
-
-    -- at 95% stocks I can support 40k/1275k withdrawals and 3.1% raise
-    -- mapped to the peak that's 3.1% of 1500 = $46.5k
-    -- but I have to rebalance to 95%!
-    -- plus I have international which should help a lot!
-
-    --           |    init |     low |     p10 |     p25 |     med |     p75 |     p90 |
-    -- |  3.100% |  $40.00 |  $40.00 |  $46.00 |  $46.00 |  $79.16 | $119.96 | $166.56 |
-
-    -- |  3.170% |  $40.42 |  $40.42 |  $45.93 |  $45.93 |  $75.40 | $114.77 | $155.96 |
-
-    -- 95% |  3.100% |  $40.00 |  $40.00 |  $44.59 |  $44.59 |  $69.47 | $113.64 | $160.45 |
-    -- of peak: 1477 - 51.5 = 1425 * 3.17% = $45.17 - YIKES!
-    -- 10% stocks = 127.5k
-    
-
-    -- oh, generate all the input permutations first
-    -- let inputs = permutations3 allRaises allAllocs allStarts
-
-  
-
-    -- * 1966 failure year
-
-    -- let ps = pct 90 :: Pct Stocks
-    -- let swr = pct 3.17 :: Pct Withdrawal
-    -- let sw = amount swr (total start)
-    -- let raise = pct 110 :: Pct Raise
-    -- let sim = simulation' start $ actions sw start ps swr raise
-    -- let srs = fmap sim ss :: NonEmpty SimResult
-
-    -- printWithdrawalResultsByYear $ aggregateResults srs
-
-    -- (Just s1966) <- pure $ List.find (isYear 1966) srs
-    -- print $ s1966.startYear
-    -- print $ s1966.endBalance
-    -- printYearHeader
-    -- mapM_ printYear $ s1966.years
-    -- print $ isFailure s1966
-
-    -- toChartFile  "graphs/withdrawals.html"
-    --   [ withdrawalBinChart 60 (simData srs)
-    --   , withdrawalLineChart $ simData srs
-    --   , withdrawalStackChart $ medianWithdrawals srs 
-    --   ]
-
-
+    -- tryMaximize
     pure ()
 
   where
 
-    ss = samples (numYears 40) hs
-    bnds = usd 411.8 :: USD (Bal Bonds)
-    stks = usd 1065.5
-    kids = usd 161.3
-    start = Portfolio (usd 1175) (usd 0)
+    years = numYears 60
+
+    ss = samples years hs
+
+    -- total of kid expenses starting in 2023
+    kids = usd 157.4
+    start = Portfolio (usd 1199) (usd 0)
+
+
+
+    expenses :: [Transaction Expense]
+    expenses = 
+      [ Transaction "Child Support" (NumYears 0) 3 (usd 9.6)
+      , Transaction "Child Support" (NumYears 3) 2 (usd 6.4)
+      , Transaction "Child Support" (NumYears 5) 3 (usd 3.4)
+      , Transaction "Extra Kids"    (NumYears 0) 8 (usd 13.2)
+      ]
+
+
+    saveGraphs :: NonEmpty SimResult -> IO ()
+    saveGraphs srs =
+      toChartFile  "graphs/withdrawals.html"
+        [ withdrawalBinChart years (simData srs)
+        , withdrawalLineChart $ simData srs
+        , withdrawalStackChart $ medianWithdrawals srs
+        ]
 
     runSim :: IO ()
     runSim = do
@@ -122,19 +98,23 @@ runActual hs = do
       let sim = simulation start (actions start al wr)
       let srs = fmap sim ss :: NonEmpty SimResult
 
-      -- let syCol = Column "start year" 9 (\sr -> show sr.startYear)
-      flip printTable (NE.toList srs) $
-        [ Column "year" 9 (\sr -> show sr.startYear)
-        , Column "min" 7 (\sr -> show $ minimum $ withdrawals sr)
-        , Column "med" 7 (\sr -> show $ median $ withdrawals sr)
-        ]
-
+      -- flip printTable (NE.toList srs) $
+      --   [ Column "year" 9 (\sr -> show sr.startYear)
+      --   , Column "min" 7 (\sr -> show $ minimum $ withdrawals sr)
+      --   , Column "med" 7 (\sr -> show $ median $ withdrawals sr)
+      --   ]
+      
+      -- saveGraphs srs
 
       (Just s1966) <- pure $ List.find (isYear 1966) srs
       print $ s1966.startYear
       print $ s1966.endBalance
       printTable yearCols $ NE.toList s1966.years
+
+
+      print $ medWithdrawal srs
       pure ()
+
 
 
     tryMaximize :: IO ()
@@ -162,13 +142,15 @@ runActual hs = do
       Just best <- pure $ bestResult res
       putStrLn $ tableRow columns best
 
-      let hn = History {year = Year 2023, returns = Portfolio (pct (-23.4)) (pct 0), values = Portfolio (usd 2278900) (usd 49.86), cape = CAPE 36.94}
+      -- oh do I have to manually calculate this?
+      let hn = History {year = Year 2023, returns = Portfolio (pct (-21)) (pct 0), values = Portfolio (usd 2422500) (usd 49.86), cape = CAPE 36.94}
+
       let hx = hs <> [hn]
       putStrLn $ "Peak Withdrawal:"
       print $ peakWithdrawal (reverseTimeline hn.year hx) best.swr (rebalanceFixed best.alloc start)
 
-      putStrLn $ "Peak Withdrawal (100% stocks, 2.95%):"
-      print $ peakWithdrawal (reverseTimeline hn.year hx) (pct 2.95) (rebalanceFixed S100 start)
+      putStrLn $ "Peak Withdrawal (100% stocks, 3%):"
+      print $ peakWithdrawal (reverseTimeline hn.year hx) (pct 3) (rebalanceFixed S100 start)
 
       pure ()
 
@@ -178,10 +160,19 @@ runActual hs = do
         -- get default starting withdrawal, if you can't find the old one
         -- sy <- startYear
         -- let swda = peakWithdrawal (reverseTimeline sy hs) wr start'
+
+        -- TODO step up the withdrawal amount, not the rate
         let swda = staticWithdrawal wr start'
 
         n <- now
-        withdrawFloor swda wr
+        withdrawCached cache al expenses swda
+        -- withdrawFloor swda wr
+
+
+
+            -- could either be one constant 
+
+        -- but look, here they could overlap
 
         -- TODO this isn't adjusted for inflation
         onYears [0..2] $ do

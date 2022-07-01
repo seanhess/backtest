@@ -17,8 +17,6 @@ data Stocks
 data Bonds
 data Total
 data Withdrawal
-data Income
-data Expense
 
 -- | Total in pennies
 newtype USD a = USD { totalCents :: Int }

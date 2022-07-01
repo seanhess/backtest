@@ -37,6 +37,9 @@ data Info
 type Test = ReaderT String IO
 type Assertion = IO
 
+tests :: IO ()
+tests = main
+
 -- TODO withdrawal isn't zeroing out in my example
 main :: IO ()
 main = do
@@ -59,6 +62,7 @@ main = do
   test "testABW" testABW
   test "testPmtFluctate" testFluctate
   test "testPeak" testPeak
+  test "testExpenses" testExpenses
 
 
 
@@ -565,7 +569,7 @@ testPMT = do
     (round $ pmt 0.01 360 100000 * 100) === 102861
 
   expect "using calcWithdrawal" $ do
-    calcWithdrawal (numYears 61) (pct 2.37) === pct 3.045
+    calcWithdrawal (numYears 60) (pct 2.37) === pct 3.067
 
 
 testABW :: Test ()
@@ -694,7 +698,32 @@ testPeak = do
   expect "to find peak via bonds" $ do
     peakBalance (reverseTimeline hr3.year rows) thousand50 === Portfolio (usd 500) (usd 555)
 
+testExpenses :: Test ()
+testExpenses = do
+  let cs1 = Transaction "Child Support" (NumYears 0) 3 (usd 9.6)
+      cs2 = Transaction "Child Support" (NumYears 3) 2 (usd 6.4)
+      cs3 = Transaction "Child Support" (NumYears 5) 3 (usd 3.4)
+      kid = Transaction "Extra Kids"    (NumYears 0) 8 (usd 13.2)
+  
+  expect "to be sum of all if early" $ do
+    npvExpense (NumYears 0) cs2 === (usd 6.4*2)
 
+  expect "to be all if start" $ do
+    npvExpense (NumYears 3) cs2 === (usd 6.4*2)
+
+  expect "to be drop off" $ do
+    npvExpense (NumYears 4) cs2 === (usd 6.4)
+
+  expect "to be zero late" $ do
+    npvExpense (NumYears 5) cs2 === (usd 0)
+
+  expect "sum of all of them" $ do
+    npvExpenses (NumYears 0) [cs1, cs2, cs3, kid] === usd 157.4
+
+  expect "only later ones" $ do
+    npvExpenses (NumYears 7) [cs1, cs2, cs3, kid] === usd (13.2+3.4)
+
+  pure ()
 
 
 

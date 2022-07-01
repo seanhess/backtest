@@ -12,7 +12,7 @@ import Data.Csv (FromNamedRecord(..), FromField(..), (.:), Parser)
 import Text.Read (readMaybe)
 import Data.Either (fromRight)
 
--- must be between 0-70
+-- must be between 0-60
 newtype NumYears = NumYears { fromNumYears :: Int }
   deriving (Eq, Ord, Show)
 
@@ -21,13 +21,13 @@ instance Enum NumYears where
   fromEnum = fromNumYears
 
 instance Bounded NumYears where
-  minBound = NumYears 1
+  minBound = NumYears 0
   maxBound = NumYears 60
 
 numYears :: Int -> NumYears
 numYears n
-  | n < (fromNumYears minBound) = minBound
-  | n > (fromNumYears maxBound) = maxBound
+  | n < (fromNumYears minBound) = error $ "NumYears below min:" <> show n
+  | n > (fromNumYears maxBound) = error $ "NumYears above max: " <> show n
   | otherwise = NumYears n
 
 newtype Year = Year { fromYear :: Int }

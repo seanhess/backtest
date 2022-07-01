@@ -7,8 +7,15 @@ import Backtest.Types.Pct
 import Backtest.Types.History
 import Backtest.Types.Portfolio
 
+data Income
+data Expense
 
-
+data Transaction a = Transaction
+  { name :: Text
+  , start :: NumYears
+  , duration :: Int
+  , amt :: USD (Amt a)
+  } deriving (Show, Eq)
 
 -- Where you are at the end of the given year, before taking any action
 data YearStart = YearStart

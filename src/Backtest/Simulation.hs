@@ -26,6 +26,8 @@ module Backtest.Simulation
   , actionState
   , yearBalances
   , withdrawals
+  , npvExpenses
+  , npvExpense
   ) where
 
 import Backtest.Prelude
@@ -368,7 +370,7 @@ yearsElapsed :: Actions NumYears
 yearsElapsed = do
     ys <- startYear
     yc <- (.year) <$> now
-    pure $ NumYears $ fromYear yc - fromYear ys
+    pure $ numYears $ fromYear yc - fromYear ys
 
 yearsLeft :: Actions NumYears
 yearsLeft = do
@@ -415,3 +417,19 @@ calcReturns h b =
 
 withdrawals :: SimResult -> Sorted (USD (Amt Withdrawal))
 withdrawals sr = sorted $ fmap (.withdrawal) sr.years
+
+
+-- num years is the current year?
+npvExpenses :: NumYears -> [Transaction Expense] -> USD (Amt Expense)
+npvExpenses cy exs = sum $ map (npvExpense cy) exs
+
+-- years last
+-- expYear :: NumYears -> Transaction Expense -> USD (Amt Expense)
+-- can we turn it into a list?
+npvExpense :: NumYears -> Transaction Expense -> USD (Amt Expense)
+npvExpense cy ex =
+  let past = max 0 (fromNumYears cy - fromNumYears ex.start) :: Int
+  in sum $ drop past $ replicate ex.duration ex.amt
+
+
+

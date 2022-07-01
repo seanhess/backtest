@@ -1,6 +1,6 @@
 module Backtest.Cache where
 
-import Backtest.Prelude
+import Backtest.Prelude hiding (lookup)
 import Backtest.Types
 import Data.Csv (ToNamedRecord(..), (.=), (.:), namedRecord, FromNamedRecord(..), Parser, encodeDefaultOrderedByName, DefaultOrdered(..), decodeByName)
 import qualified Data.Map.Strict as Map
@@ -16,13 +16,44 @@ import qualified Backtest.MSWR as MSWR
 import Backtest.Optimize (maximizeRate)
 import Backtest.Strategy (rebalanceFixed, thousand)
 import Backtest.History (samples)
-import Backtest.Simulation (rebalance)
+import Backtest.Simulation (rebalance, balances, yearsLeft, yearsElapsed, Actions, withdraw, npvExpenses, lastWithdrawal)
 import Backtest.Debug (dump, debug, printTable, Column(..))
+import Numeric (showFFloat)
 
 
 
 -- ok!
 -- just run all of them
+
+-- guaranteed to be the right length and have an entry for every allocation
+type SWRCache = KeyRange NumYears (KeyRange Allocation (Pct Withdrawal))
+
+lookup :: Allocation -> NumYears -> SWRCache -> Pct Withdrawal
+lookup al ny cache =
+  cache & lookupKey ny & lookupKey al
+
+
+
+
+
+cachedWithdrawal :: SWRCache -> Allocation -> NumYears -> NumYears -> [Transaction Expense] -> Balances -> USD (Amt Withdrawal) -> USD (Amt Withdrawal)
+cachedWithdrawal cache alloc yl ye exps bal old = 
+  let swr = lookup alloc yl cache
+      expNPV = npvExpenses ye exps
+      tot = total bal - toBalance (toTotal expNPV)
+      new = amount swr tot
+  in max old new
+
+withdrawCached :: SWRCache -> Allocation -> [Transaction Expense] -> USD (Amt Withdrawal) -> Actions ()
+withdrawCached cache alloc exps start = do
+  old <- fromMaybe start <$> lastWithdrawal
+  bal <- balances
+  yl <- yearsLeft
+  ye <- yearsElapsed
+  -- let wda = dump "withdrawCached" (start, old, ny) $ cachedWithdrawal cache alloc ny exps bal old
+  let wda = cachedWithdrawal cache alloc yl ye exps bal old
+  withdraw wda
+  pure ()
 
 
 calculateAllMSWRs :: NonEmpty History -> [(NumYears, [(Allocation, Pct Withdrawal)])]
@@ -49,14 +80,6 @@ calculateAllMSWRs hs =
     isSuccess srs = MSWR.successRate srs == pct 100
 
 
-
-
--- guaranteed to be the right length and have an entry for every allocation
-type SWRCache = KeyRange NumYears (KeyRange Allocation (Pct Withdrawal))
-
-lookup :: Allocation -> NumYears -> SWRCache -> Pct Withdrawal
-lookup al ny cache =
-  cache & lookupKey ny & lookupKey al
 
 
 -- | Build a cache from a list of numrows, etc
@@ -142,7 +165,7 @@ instance ToNamedRecord CacheRow where
     where
       eachAlloc :: (Allocation, Pct Withdrawal) -> (BS.ByteString, BS.ByteString)
       eachAlloc (a, p) =
-        cs (show a) .= ((Pct.toFloat p) * 100)
+        cs (show a) .= (showFFloat (Just 2) ((Pct.toFloat p) * 100) "")
 
 instance FromNamedRecord CacheRow where
   parseNamedRecord m = do
@@ -154,7 +177,7 @@ instance FromNamedRecord CacheRow where
       parseAlloc :: Allocation -> Parser (Allocation, Pct Withdrawal)
       parseAlloc al = do
         p <- m .: (cs $ show al)
-        pure (al, p)
+        pure (al, pct p)
 
 
 
