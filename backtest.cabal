@@ -27,7 +27,6 @@ library
   exposed-modules:
       Backtest.Aggregate
       Backtest.App
-      Backtest.App.Counter
       Backtest.Cache
       Backtest.Debug
       Backtest.Graph
@@ -86,24 +85,22 @@ library
     , containers
     , exceptions
     , hvega
-    , juniper
-    , lucid
     , mtl
-    , network
     , record-dot-preprocessor
     , record-hasfield
     , safe
-    , scotty
     , string-conversions
     , text
     , vector
-    , wai
-    , wai-middleware-static
   default-language: Haskell2010
 
 executable backtest-exe
   main-is: Main.hs
   other-modules:
+      Backtest.App.Counter
+      Backtest.App.Static
+      Web.UI
+      Web.UI.LayoutTest
       Paths_backtest
   hs-source-dirs:
       app
@@ -140,11 +137,13 @@ executable backtest-exe
     , cassava
     , containers
     , exceptions
+    , file-embed
     , hvega
     , juniper
     , lucid
     , mtl
     , network
+    , raw-strings-qq
     , record-dot-preprocessor
     , record-hasfield
     , safe
@@ -162,7 +161,6 @@ test-suite backtest-test
   other-modules:
       Backtest.Aggregate
       Backtest.App
-      Backtest.App.Counter
       Backtest.Cache
       Backtest.Debug
       Backtest.Graph
@@ -222,17 +220,11 @@ test-suite backtest-test
     , containers
     , exceptions
     , hvega
-    , juniper
-    , lucid
     , mtl
-    , network
     , record-dot-preprocessor
     , record-hasfield
     , safe
-    , scotty
     , string-conversions
     , text
     , vector
-    , wai
-    , wai-middleware-static
   default-language: Haskell2010

@@ -34,13 +34,6 @@ dependencies:
 - string-conversions
 - text
 - vector
-- network
-
-- juniper
-- lucid
-- wai
-- wai-middleware-static
-- scotty
 
 ghc-options:
   - -Wincomplete-patterns
@@ -91,6 +84,14 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - backtest
+    - file-embed
+    - juniper
+    - lucid
+    - wai
+    - wai-middleware-static
+    - scotty
+    - network
+    - raw-strings-qq
 
 tests:
   backtest-test:

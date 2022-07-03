@@ -67,19 +67,19 @@ withdrawalLineChart dt =
     in asSpec [ bkg, dt, width 500, mark Line [MTooltip TTEncoding], enc []]
 
 
-simData :: NonEmpty SimResult -> Data
-simData srs = dataFromRows [] $ mconcat $ map simDataRows $ NE.toList srs
+simData :: USD (Amt Withdrawal) -> NonEmpty SimResult -> Data
+simData maxW srs = dataFromRows [] $ mconcat $ map simDataRows $ NE.toList srs
+  where
+    simDataRows :: SimResult -> [DataRow]
+    simDataRows sr = foldr (yearDataRow sr.startYear) [] sr.years
 
-simDataRows :: SimResult -> [DataRow]
-simDataRows sr = foldr (yearDataRow sr.startYear) [] sr.years
-
-yearDataRow :: Year -> YearStart -> [DataRow] -> [DataRow]
-yearDataRow sy ys =
-  dataRow
-    [ ("Year", Number (fromIntegral ys.yearIndex))
-    , ("Start", Str (cs $ show $ fromYear sy))
-    , ("Withdrawal", Number (fromIntegral $ dollars ys.withdrawal))
-    ]
+    yearDataRow :: Year -> YearStart -> [DataRow] -> [DataRow]
+    yearDataRow sy ys =
+      dataRow
+        [ ("Year", Number (fromIntegral ys.yearIndex))
+        , ("Start", Str (cs $ show $ fromYear sy))
+        , ("Withdrawal", Number (fromIntegral $ dollars (min maxW ys.withdrawal)))
+        ]
 
 
 

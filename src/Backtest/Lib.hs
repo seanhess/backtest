@@ -84,8 +84,8 @@ runActual hs cache = do
     saveGraphs :: NonEmpty SimResult -> IO ()
     saveGraphs srs =
       toChartFile  "graphs/withdrawals.html"
-        [ withdrawalBinChart years (simData srs)
-        , withdrawalLineChart $ simData srs
+        [ withdrawalBinChart years (simData (usd 600) srs)
+        , withdrawalLineChart $ simData (usd 600) srs
         , withdrawalStackChart $ medianWithdrawals srs
         ]
 
@@ -104,7 +104,7 @@ runActual hs cache = do
       --   , Column "med" 7 (\sr -> show $ median $ withdrawals sr)
       --   ]
       
-      -- saveGraphs srs
+      saveGraphs srs
 
       (Just s1966) <- pure $ List.find (isYear 1966) srs
       print $ s1966.startYear
@@ -287,15 +287,6 @@ runSimulation _ _ hs = do
     print $ isFailure s1966
     pure ()
 
-
-    -- toExampleChart $ withdrawalBinChart $ simData srs
-    toChartFile  "graphs/withdrawals.html"
-      [ withdrawalBinChart yrs (simData srs)
-      , withdrawalLineChart $ simData srs
-      , withdrawalStackChart $ medianWithdrawals srs
-      ]
-
-    pure ()
 
 
 
