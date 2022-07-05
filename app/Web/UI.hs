@@ -1,5 +1,5 @@
 module Web.UI
-  ( stylesheet, AppColor(..), generate, range
+  ( stylesheet, AppColor(..), range
 
   ) where
 
@@ -15,41 +15,52 @@ import Web.UI.Types
 import Web.UI.Classes
 import Web.UI.Generate
 
+import Lucid.Base (makeAttribute)
+
 
 -- Inspired by Tailwind and Elm UI
 
 
 
-newtype UI c t a = UI { fromUI :: Html a }
+newtype UI t a = UI { fromUI :: Html a }
 
-instance IsString (UI c t ()) where
+instance IsString (UI t ()) where
   fromString s = UI $ (toHtml $ pack s)
 
 
 -- should also do something?
-layout :: UI c t () -> Html ()
+layout :: UI t () -> Html ()
 layout ui = fromUI ui
 
-none :: UI c t ()
+none :: UI t ()
 none = UI $ pure ()
 
 -- TODO Atttributes
-el :: ToAttribute att => [att] -> UI c t () -> UI c t ()
+el :: ToAttribute att => [att] -> UI t () -> UI t ()
 el as ct = UI $ do
   div_ (map toAttribute as) (fromUI ct)
 
--- bg :: Show color => color -> Attribute
--- bg c = class_ (className (BG c))
 
 -- seems kinda silly
 -- border :: Show color => color -> Attribute
 -- border c = classes [BC c, BW T B1, BW B B1, BW L B1, BW R B1 ]
 
 
--- TODO I'm stuck, I don't want to thread the type of color all the way through the program. Yuck
--- what if I need another type??
--- row :: forall c t a. Show c => [Attribute] -> UI c t a -> UI c t a
--- row as cnt = UI $ div_ (classes [Flex Row :: Class c] : as) (fromUI cnt)
+data Event
+  = OnClick Text
+
+instance ToAttribute Event where
+  toAttribute (OnClick act) = makeAttribute "data-click" act
+
+example :: UI t ()
+example = do
+  -- oh no....
+  -- you can't put them together into the same list
+  row [ bg Purple ] "hello"
+
+
+row :: (ToAttribute att) => [att] -> UI t a -> UI t a
+row as cnt = UI $ div_ (toAttribute (Flex Row) : map toAttribute as) (fromUI cnt)
 
 -- hmm... these helpers need to go directly to attributes, no?
 -- or just duplicate them all. Classes
@@ -63,16 +74,6 @@ el as ct = UI $ do
 
 -- The point of this was that I didn't want to have to specify them twice, right?
 -- can I do without Class completely?
--- data Class color
---   = Flex Flex
---   | BW Sides BSize
---   | BC color
---   | BG color
---   deriving (Show, Eq)
-
--- instance Show color => ToClass (Class color) where
---   className c = Text.toLower $ Text.replace " " "-" $ pack $ show c
-
 
 -- toStyles :: (ToValue color) => Class color -> [Text]
 -- toStyles (Flex Col)     = ["display:flex", "flex-direction:column"]

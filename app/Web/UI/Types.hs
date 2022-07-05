@@ -1,7 +1,8 @@
+{-# LANGUAGE DefaultSignatures #-}
 module Web.UI.Types where
 
 import Prelude
-import Data.Text (Text, unpack, pack)
+import Data.Text as Text (Text, unpack, pack, toLower, replace)
 import Lucid (Attribute, class_)
 
 
@@ -37,6 +38,8 @@ instance ToAttribute Class where
 
 class ClassName a where
   className :: a -> Text
+  default className :: Show a => a -> Text
+  className c = Text.toLower $ Text.replace " " "-" $ pack $ show c
 
 class ToAttribute a where
   toAttribute :: a -> Attribute
