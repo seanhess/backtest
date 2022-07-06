@@ -17,7 +17,7 @@ generate :: (ClassName color, ToValue color) => [color] -> [Text]
 generate colors = mconcat $
   [ genClasses (range :: [Flex])
   , genClasses $ do
-      side <- range
+      side <- mconcat [ Side <$> range, Axis <$> range, [All] ]
       size <- range
       pure $ Pad side size
   , genClasses $ mconcat 

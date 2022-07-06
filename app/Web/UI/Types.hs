@@ -28,7 +28,8 @@ instance Show Units where
 
 
 (-) :: Text -> Text -> Text
-a - b = a <> "-" <> b
+a - "" = a
+a - b  = a <> "-" <> b
 
 (.:) :: ToValue v => Text -> v -> Text
 a .: b = a <> ":" <> (pack $ show $ value b)

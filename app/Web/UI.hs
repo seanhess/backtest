@@ -95,7 +95,7 @@ data AppColor
   | White
   deriving (Show, Eq, Bounded, Enum)
 instance ClassName AppColor where
-  className = pack . show
+  className = Text.toLower . pack . show
 
 instance ToValue AppColor where
   value BlackSoft = Color "555"
