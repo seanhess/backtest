@@ -7,28 +7,28 @@ import Web.UI.Types
 import Web.UI.Attributes
 
 stylesheet :: (ClassName color, ToValue color) => [color] -> Text
-stylesheet colors = Text.intercalate "\n" $
-  generate0 <> (generate1 colors)
+stylesheet colors = Text.intercalate "\n" (generate colors)
 
 
-generate0 :: [Text]
-generate0 = map (classDefinition . toClass) $ mconcat 
-  [ fmap (Flex) range
-  , do side <- range
-       size <- range
-       pure $ Pad side size
+generate :: (ClassName color, ToValue color) => [color] -> [Text]
+generate colors = mconcat $
+  [ map (classDefinition . toClass) $ mconcat 
+    [ fmap (Flex) range
+    , do side <- range
+         size <- range
+         pure $ Pad side size
+    ]
+  , map (classDefinition . toClass) $ mconcat 
+    [ fmap BC colors
+    , do side <- range
+         size <- range
+         pure $ BW side size
+    , fmap BG colors
+    ]
   ]
 
 
-  -- wait, it's impossible to generate this without specifying the color! :(
-generate1 :: (ClassName color, ToValue color) => [color] -> [Text]
-generate1 colors = map (classDefinition . toClass) $ mconcat 
-  [ fmap BC colors
-  , do side <- range
-       size <- range
-       pure $ BW side size
-  , fmap BG colors
-  ]
+
 
 range :: (Enum a, Bounded a) => [a]
 range = [minBound..maxBound]
