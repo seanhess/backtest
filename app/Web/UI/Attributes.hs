@@ -10,37 +10,119 @@ import Web.UI.Types
 classes :: ToClass c => [c] -> Attribute
 classes cls = class_ ((Text.intercalate " " $ map (name . toClass) cls) <> " ")
 
+
+data Flex = Row | Col
+  deriving (Show, Eq, Enum, Bounded)
+
 flex :: Flex -> Attribute
-flex f = classes [Flex f]
+flex f = classes [f]
 
 bg :: (ToValue color, ClassName color) => color -> Attribute
 bg c = classes [BG c]
 
 
+-- these don't need to be exposed to the user
+-- do I need them at all any more?
+-- I need a way to generate the range of values
+-- it could still be a function though
+-- no, we don't want 2 kinds of functions
+data Border color
+  = BW Sides BSize
+  | BC color
+  deriving (Show, Eq)
+instance Show color => ClassName (Border color)
+
+-- this is why I need more than one class at a time
+border :: (ToValue color, ClassName color) => color -> BSize -> Attribute
+border c s = classes [BW T s, BW B s, BW L s, BW R s, BC c]
 
 
--- layout
-
--- options!
--- hmm... that's interesting
--- I wonder if I like it?
-
--- can it accept multiple options
--- people want to work in pixels
--- but we want to scale via REM
 
 
--- this could be a natural conversion
--- it's always pixels -> rem
--- 0, 1, 2, 4, 6, 8, 10, 12, 14, 16, 20, 24, 28, 32, 36, 40, 44, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240, 256, 288, 320, 384
+
+
+data Pad = Pad Sides Space
+
+padding :: Space -> Attribute
+padding s = classes [Pad L s, Pad R s, Pad T s, Pad B s]
+
+
+
+
+
+data Background color
+  = BG color
+  deriving (Show, Eq)
+instance Show color => ClassName (Background color)
+
+
+
+
+class ToClass a where
+  toClass :: a -> Class
+
+instance ToClass Flex where
+  toClass Row = Class "fr" ["display:flex", "flex-direction:row"]
+  toClass Col = Class "fc" ["display:flex", "flex-direction:column"]
+
+instance ToClass Pad where
+  toClass c@(Pad side size)    =
+    Class ("p"-(className side)-(className size))
+          ["padding" .: size]
+
+instance (ToValue color, ClassName color) => ToClass (Border color) where
+  toClass c@(BW side size) =
+    Class ("bdw"-(className side)-(className size))
+          ["border"-(styleName side)-"width" .: size]
+
+  toClass c@(BC color) =
+    Class ("bdc"-className color)
+          ["border-color" .: color]
+
+instance (ToValue color, ClassName color) => ToClass (Background color) where
+  toClass c@(BG color) =
+    Class ("bgc"-className color) ["background-color" .: color]
+
+
+
+
+
+-- VALUES ----
+-----------------------------------
+
+-- put these all together
+
+data Sides = L | R | T | B
+  deriving (Show, Eq, Enum, Bounded)
+instance ToStyle Sides where
+  styleName L = "left"
+  styleName R = "right"
+  styleName T = "top"
+  styleName B = "bottom"
+instance ClassName Sides
+
+
+-- these are always in fixed pixels
+data BSize = B0 | B1 | B2 | B4 | B6 | B8
+  deriving (Show, Eq, Enum, Bounded)
+instance ClassName BSize
+
+instance ToValue BSize where
+  value B0 = Px 0
+  value B1 = Px 1
+  value B2 = Px 2
+  value B4 = Px 4
+  value B6 = Px 6
+  value B8 = Px 8
+
 
 -- this is the default
 -- you can extend it by making your own
-data Size = S0 | S1 | S2 | S4 | S6 | S8 | S10 | S12 | S14 | S16 | S20 | S24 | S28 | S32 | S36 | S40 | S44 | S48
+data Space = S0 | S1 | S2 | S4 | S6 | S8 | S10 | S12 | S14 | S16 | S20 | S24 | S28 | S32 | S36 | S40 | S44 | S48
   deriving (Show, Eq, Enum, Bounded)
-instance ClassName Size where
+instance ClassName Space where
   className s = pack $ drop 1 $ show s
-instance ToValue Size where
+instance ToValue Space where
   value S0 = Px 0
   value S1 = Px 1
   value S2 = Rem 0.125
@@ -69,86 +151,3 @@ data Sides' a = Sides'
   { left :: a
   , right :: a
   }
-
-padding :: Size -> Attribute
-padding s = classes [Pad L s, Pad R s, Pad T s, Pad B s]
-
--- Hmm, no, we want some kind of a size attribute
--- gap :: Int -> Attribute
--- gap a = _
-
-
--- doesn't depend on color
-data Class0
-  = Flex Flex
-  | Pad Sides Size
-  deriving (Show, Eq)
-
-instance ClassName Class0
-
-
-data Class1 color
-  = BW Sides BSize
-  | BC color
-  | BG color
-  deriving (Show, Eq)
-
-instance Show color => ClassName (Class1 color)
-
-
-
-
-class ToClass a where
-  toClass :: a -> Class
-
-instance ToClass Class0 where
-  toClass c@(Flex Row) = Class "fr" ["display:flex", "flex-direction:row"]
-  toClass c@(Flex Col) = Class "fc" ["display:flex", "flex-direction:column"]
-  toClass c@(Pad side size)    =
-    Class ("p"-(className side)-(className size))
-          ["padding" .: size]
-
-instance (ToValue color, ClassName color) => ToClass (Class1 color) where
-  toClass c@(BW side size) =
-    Class ("bdw"-(className side)-(className size))
-          ["border"-(styleName side)-"width" .: size]
-
-  toClass c@(BC color) =
-    Class ("bdc"-className color)
-          ["border-color" .: color]
-
-  toClass c@(BG color) =
-    Class ("bgc"-className color) ["background-color" .: color]
-
-
-
-
-
--- VALUES ----
------------------------------------
-
-data Flex = Row | Col
-  deriving (Show, Eq, Enum, Bounded)
-
--- put these all together
-
-data Sides = L | R | T | B
-  deriving (Show, Eq, Enum, Bounded)
-instance ToStyle Sides where
-  styleName L = "left"
-  styleName R = "right"
-  styleName T = "top"
-  styleName B = "bottom"
-instance ClassName Sides
-
-data BSize = B0 | B1 | B2 | B4 | B6 | B8
-  deriving (Show, Eq, Enum, Bounded)
-instance ClassName BSize
-
-instance ToValue BSize where
-  value B0 = Px 0
-  value B1 = Px 1
-  value B2 = Px 2
-  value B4 = Px 4
-  value B6 = Px 6
-  value B8 = Px 8
