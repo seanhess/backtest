@@ -8,4 +8,3 @@ import Backtest.App as App
 
 main :: IO ()
 main = run
-

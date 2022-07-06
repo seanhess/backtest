@@ -9,9 +9,17 @@ import Lucid.Html5
 import qualified Backtest.App.Counter as Counter
 import qualified Backtest.App.Static as Static
 import Web.UI.LayoutTest (layoutTest)
+import qualified Data.Text.IO as Text
 
 import Juniper
 import Juniper.Web (document)
+
+import Web.UI.Generate (stylesheet, range)
+import Web.UI (AppColor)
+
+writeStylesheet :: IO ()
+writeStylesheet = do
+  Text.writeFile "static/ui.css" $ stylesheet (range :: [AppColor])
 
 
 

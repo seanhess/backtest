@@ -26,7 +26,6 @@ source-repository head
 library
   exposed-modules:
       Backtest.Aggregate
-      Backtest.App
       Backtest.Cache
       Backtest.Debug
       Backtest.Graph
@@ -97,10 +96,14 @@ library
 executable backtest-exe
   main-is: Main.hs
   other-modules:
+      Backtest.App
       Backtest.App.Counter
       Backtest.App.Static
       Web.UI
+      Web.UI.Attributes
+      Web.UI.Generate
       Web.UI.LayoutTest
+      Web.UI.Types
       Paths_backtest
   hs-source-dirs:
       app
@@ -160,7 +163,6 @@ test-suite backtest-test
   main-is: Spec.hs
   other-modules:
       Backtest.Aggregate
-      Backtest.App
       Backtest.Cache
       Backtest.Debug
       Backtest.Graph

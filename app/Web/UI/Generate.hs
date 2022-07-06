@@ -6,6 +6,8 @@ import Data.Text (Text)
 import Web.UI.Types
 import Web.UI.Attributes
 
+
+
 stylesheet :: (ClassName color, ToValue color) => [color] -> Text
 stylesheet colors = Text.intercalate "\n" (generate colors)
 
