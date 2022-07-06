@@ -4,7 +4,7 @@ import Prelude
 import qualified Data.Text as Text
 import Data.Text (Text)
 import Web.UI.Types
-import Web.UI.Classes
+import Web.UI.Attributes
 
 stylesheet :: (ClassName color, ToValue color) => [color] -> Text
 stylesheet colors = Text.intercalate "\n" $
@@ -14,6 +14,9 @@ stylesheet colors = Text.intercalate "\n" $
 generate0 :: [Text]
 generate0 = map (classDefinition . toClass) $ mconcat 
   [ fmap (Flex) range
+  , do side <- range
+       size <- range
+       pure $ Pad side size
   ]
 
 
@@ -21,9 +24,9 @@ generate0 = map (classDefinition . toClass) $ mconcat
 generate1 :: (ClassName color, ToValue color) => [color] -> [Text]
 generate1 colors = map (classDefinition . toClass) $ mconcat 
   [ fmap BC colors
-  -- , do side <- range
-  --      size <- range
-  --      pure $ BW side size
+  , do side <- range
+       size <- range
+       pure $ BW side size
   , fmap BG colors
   ]
 

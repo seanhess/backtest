@@ -12,17 +12,20 @@ import Text.RawString.QQ (r)
 import Data.String (IsString(..))
 import qualified Data.Text as Text
 import Web.UI.Types
-import Web.UI.Classes
+import Web.UI.Attributes
 import Web.UI.Generate
 
 import Lucid.Base (makeAttribute)
 
 
 -- Inspired by Tailwind and Elm UI
+-- TODO some way to compose attributes more elegantly?
+-- TODO tables
 
 
-
-newtype UI t a = UI { fromUI :: Html a }
+newtype UI t a = UI
+  { fromUI :: Html a
+  }
 
 instance IsString (UI t ()) where
   fromString s = UI $ (toHtml $ pack s)
@@ -36,9 +39,27 @@ none :: UI t ()
 none = UI $ pure ()
 
 -- TODO Atttributes
-el :: ToAttribute att => [att] -> UI t () -> UI t ()
-el as ct = UI $ do
-  div_ (map toAttribute as) (fromUI ct)
+-- should it BE html?
+
+el :: [Attribute] -> UI t () -> UI t ()
+el as ct = UI $
+  div_ as (fromUI ct)
+
+text :: Text -> UI t ()
+text = UI . toHtml
+
+row :: [Attribute] -> UI t () -> UI t ()
+row as ct = UI $
+  div_ (flex Row : as) (fromUI ct)
+
+col :: [Attribute] -> UI t () -> UI t ()
+col as ct = UI $
+  div_ (flex Col : as) (fromUI ct)
+
+paragraph :: [Attribute] -> UI t a -> UI t a
+paragraph as cnt = UI $ p_ as (fromUI cnt)
+
+
 
 
 -- seems kinda silly
@@ -46,41 +67,21 @@ el as ct = UI $ do
 -- border c = classes [BC c, BW T B1, BW B B1, BW L B1, BW R B1 ]
 
 
-data Event
-  = OnClick Text
+-- data Event
+--   = OnClick Text
 
-instance ToAttribute Event where
-  toAttribute (OnClick act) = makeAttribute "data-click" act
+-- instance ToAttribute Event where
+--   toAttribute (OnClick act) = makeAttribute "data-click" act
+
+onClick :: Text -> Attribute
+onClick t = makeAttribute "data-onclick" t
 
 example :: UI t ()
 example = do
   -- oh no....
   -- you can't put them together into the same list
-  row [ bg Purple ] "hello"
+  row [ bg Purple, flex Col, onClick "asdf" ] "hello"
 
-
-row :: (ToAttribute att) => [att] -> UI t a -> UI t a
-row as cnt = UI $ div_ (toAttribute (Flex Row) : map toAttribute as) (fromUI cnt)
-
--- hmm... these helpers need to go directly to attributes, no?
--- or just duplicate them all. Classes
--- the nicely named functions need to be for users to use in their attributes
-
--- but... but.... I want a bunch of classes
--- background' is unsatisfying
-
--- col :: [Attribute] -> UI content a -> UI layout a
--- col as cnt = UI $ div_ (class_ (className (Flex Col)) : as) (fromUI cnt)
-
--- The point of this was that I didn't want to have to specify them twice, right?
--- can I do without Class completely?
-
--- toStyles :: (ToValue color) => Class color -> [Text]
--- toStyles (Flex Col)     = ["display:flex", "flex-direction:column"]
--- toStyles (Flex Row)     = ["display:flex", "flex-direction:row"]
--- toStyles (BW side size) = ["border"-(styleName side)-"width" .: size]
--- toStyles (BC color)     = ["border-color" .: color]
--- toStyles (BG color)     = ["background-color" .: color]
 
 
 
