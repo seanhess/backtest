@@ -5,6 +5,9 @@ import Lucid
 import Data.Text as Text (Text, intercalate, pack)
 import Web.UI.Types
 
+-- TODO the classes are weird. We are implementing ToClass for many things which only need a quick name
+-- could we always use show? It doesn't really matter what it is. But we'd like it to be short
+
 -- | Map classes to a single class attribute. Always
 -- append a space in case someone else adds to class
 classes :: Class c => [c] -> Attribute
@@ -28,12 +31,12 @@ bg c = classes [BG c]
 
 -- TODO I wish these could be one unified datatype
 data BorderColor color = BC color
-data BorderWidth = BW Sides BSize
+data BorderWidth       = BW Sides BSize
 
 
 
 -- TODO having to collapse to classNames isn't awesome
-
+-- but it's not the end of the world either
 border :: (Value color) => color -> BSize -> Attribute
 border c s = classNames [toClass (BW All s), toClass (BC c)]
 
@@ -56,11 +59,7 @@ borderB     = borderWidth' [Side B]
 
 
 
-
-
-
-
-
+-- this only works because they both mention space
 data Pad space = Pad Sides space
 
 pad' :: (Value space) => [Sides] -> space -> Attribute
@@ -88,9 +87,7 @@ padL :: (Value space) => space -> Attribute
 padL = pad' [Side L]
 
 
-
-
-data Gap s = Gap s
+data Gap space = Gap space
 
 gap :: (Value s) => s -> Attribute
 gap s = classes [Gap s]
@@ -139,7 +136,6 @@ instance (Value space) => Class (Pad space) where
     where
       styles All       = [ "padding" .: size ]
       styles (Side sd) = [ "padding"-(sideName sd) .: size ]
-
 
 instance (Value space) => Class (Gap space) where
   toClass (Gap size) = 
