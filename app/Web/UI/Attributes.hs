@@ -39,19 +39,16 @@ border c s = classNames [className (BW All s), className (BC c)]
 borderColor :: (ToValue color, ToClass color) => color -> Attribute
 borderColor c = classes [BC c]
 
--- oh no!
--- borderWidth' :: [Sides] -> BSize -> Attribute
--- borderWidth' sds sz = classes [BW (Side L) sz]
+borderWidth' :: [Sides] -> BSize -> Attribute
+borderWidth' sds sz = classes [BW (Side L) sz]
 
-borderWidth :: BSize -> Attribute
-borderWidth sz = classes [BW All sz]
--- borderWidth = borderWidth' [All]
--- borderX     = borderWidth' [Side L, Side R]
--- borderY     = borderWidth' [Side T, Side B]
--- borderL     = borderWidth' [Side L]
--- borderR     = borderWidth' [Side R]
--- borderT     = borderWidth' [Side T]
--- borderB     = borderWidth' [Side B]
+borderWidth = borderWidth' [All]
+borderX     = borderWidth' [Side L, Side R]
+borderY     = borderWidth' [Side T, Side B]
+borderL     = borderWidth' [Side L]
+borderR     = borderWidth' [Side R]
+borderT     = borderWidth' [Side T]
+borderB     = borderWidth' [Side B]
 
 
 
