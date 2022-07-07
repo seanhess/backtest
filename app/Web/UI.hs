@@ -94,16 +94,14 @@ data AppColor
   | GreenHover
   | White
   deriving (Show, Eq, Bounded, Enum)
-instance ToClass AppColor where
-  className = Text.toLower . pack . show
-
-instance ToValue AppColor where
-  value BlackSoft = Color "555"
-  value GrayStone = Color "999"
-  value Purple    = Color "510C76"
-  value PurpleLight = Color "862F8B"
-  value Green      = Color "93E852"
-  value GreenHover = Color "BDF294"
-  value White      = Color "FFF"
+instance Segment AppColor
+instance Value AppColor where
+  units BlackSoft = Color "555"
+  units GrayStone = Color "999"
+  units Purple    = Color "510C76"
+  units PurpleLight = Color "862F8B"
+  units Green      = Color "93E852"
+  units GreenHover = Color "BDF294"
+  units White      = Color "FFF"
 
  

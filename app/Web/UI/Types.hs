@@ -8,12 +8,16 @@ import Lucid (Attribute, class_)
 import Numeric (showFFloat)
 
 
-class ToValue a where
-  value :: a -> Units
+class Segment a where
+  segment :: a -> Text
+
+  default segment :: Show a => a -> Text
+  segment c = Text.replace " " "" $ Text.toLower $ pack $ show c
 
 
-class ToStyle a where
-  styleName :: a -> Text
+class Segment a => Value a where
+  units :: a -> Units
+
 
 data Units
   = Px Int
@@ -31,23 +35,15 @@ instance Show Units where
 a - ""  = a
 a - b  = a <> "-" <> b
 
-(.:) :: ToValue v => Text -> v -> Text
-a .: b = a <> ":" <> (pack $ show $ value b)
+(.:) :: Value v => Text -> v -> Text
+a .: b = a <> ":" <> (pack $ show $ units b)
 
 
--- serializes to a class. Other attributes can be different!
--- instance ToAttribute Class where
---   toAttribute (Class n _) = class_ (n <> " ")
+data Class_ = Class
+  { className :: Text
+  , styles :: [Text]
+  }
 
-
--- it's kind of weird to have both
-class ToClass a where
-  className :: a -> Text
-  classStyles :: a -> [Text]
-
-  default className :: Show a => a -> Text
-  className c = Text.replace " " "-" $ Text.toLower $ pack $ show c
-
-  default classStyles :: a -> [Text]
-  classStyles _ = []
+class Class a where
+  toClass :: a -> Class_
 

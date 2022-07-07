@@ -9,17 +9,19 @@ import Data.Proxy
 
 
 
-stylesheet :: (ToClass color, ToValue color, ToClass space, ToValue space) => [color] -> [space] -> Text
+stylesheet :: (Value color, Value space) => [color] -> [space] -> Text
 stylesheet colors spaces = Text.intercalate "\n" (generate colors spaces)
 
 
--- could allow you to pass in your own space sizes
-generate :: (ToClass color, ToValue color, ToClass spaces, ToValue spaces) => [color] -> [spaces] -> [Text]
+-- you have to pass in your own colors and space sizes, and anything else customizable
+-- obviously we can have a default one
+-- but we will always need colors? No, we could have a nice default color palette
+generate :: (Value color, Value spaces) => [color] -> [spaces] -> [Text]
 generate colors spaces = mconcat $
   [ genClasses (range :: [Flex])
   , genClasses $ do
       side <- All : (Side <$> range)
-      size <- range
+      size <- spaces
       pure $ Pad side size
   , genClasses $ fmap BC colors
   , genClasses $ do
@@ -36,9 +38,10 @@ generate colors spaces = mconcat $
 range :: (Enum a, Bounded a) => [a]
 range = [minBound..maxBound]
 
-classDefinition :: ToClass c => c -> Text
-classDefinition c = "." <> className c <> " { " <> (Text.intercalate "; " $ (classStyles c)) <> " }"
+classDefinition :: Class_ -> Text
+classDefinition c =
+  "." <> className c <> " { " <> (Text.intercalate "; " $ (styles c)) <> " }"
 
 -- oh, that's not that great
-genClasses :: forall c. (ToClass c) => [c] -> [Text]
-genClasses cls = map classDefinition cls
+genClasses :: forall c. (Class c) => [c] -> [Text]
+genClasses cls = map (classDefinition . toClass) cls
