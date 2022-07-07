@@ -3,7 +3,7 @@
 module Web.UI.Types where
 
 import Prelude
-import Data.Text as Text (Text, unpack, pack, toLower, replace)
+import Data.Text as Text (Text, unpack, pack, toLower, replace, splitOn)
 import Lucid (Attribute, class_)
 import Numeric (showFFloat)
 
@@ -28,26 +28,26 @@ instance Show Units where
 
 
 (-) :: Text -> Text -> Text
-a - "" = a
+a - ""  = a
 a - b  = a <> "-" <> b
 
 (.:) :: ToValue v => Text -> v -> Text
 a .: b = a <> ":" <> (pack $ show $ value b)
 
 
-data Class = Class
-  { name   :: Text
-  , styles :: [Text]
-  }
-
 -- serializes to a class. Other attributes can be different!
 -- instance ToAttribute Class where
 --   toAttribute (Class n _) = class_ (n <> " ")
 
-class ClassName a where
-  className :: a -> Text
-  default className :: Show a => a -> Text
-  className c = Text.toLower $ Text.replace " " "-" $ pack $ show c
 
--- class ToAttribute a where
---   toAttribute :: a -> Attribute
+-- it's kind of weird to have both
+class ToClass a where
+  className :: a -> Text
+  classStyles :: a -> [Text]
+
+  default className :: Show a => a -> Text
+  className c = Text.replace " " "-" $ Text.toLower $ pack $ show c
+
+  default classStyles :: a -> [Text]
+  classStyles _ = []
+

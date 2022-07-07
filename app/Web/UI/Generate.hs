@@ -9,24 +9,25 @@ import Data.Proxy
 
 
 
-stylesheet :: (ClassName color, ToValue color) => [color] -> Text
-stylesheet colors = Text.intercalate "\n" (generate colors)
+stylesheet :: (ToClass color, ToValue color, ToClass space, ToValue space) => [color] -> [space] -> Text
+stylesheet colors spaces = Text.intercalate "\n" (generate colors spaces)
 
 
-generate :: (ClassName color, ToValue color) => [color] -> [Text]
-generate colors = mconcat $
+-- could allow you to pass in your own space sizes
+generate :: (ToClass color, ToValue color, ToClass spaces, ToValue spaces) => [color] -> [spaces] -> [Text]
+generate colors spaces = mconcat $
   [ genClasses (range :: [Flex])
   , genClasses $ do
-      side <- mconcat [ Side <$> range, Axis <$> range, [All] ]
+      side <- All : (Side <$> range)
       size <- range
       pure $ Pad side size
-  , genClasses $ mconcat 
-    [ fmap BC colors
-    , do side <- range
-         size <- range
-         pure $ BW side size
-    ]
+  , genClasses $ fmap BC colors
+  , genClasses $ do
+      side <- All : (Side <$> range)
+      size <- range
+      pure $ BW side size
   , genClasses $ fmap BG colors
+  , genClasses $ fmap Gap spaces
   ]
 
 
@@ -35,9 +36,9 @@ generate colors = mconcat $
 range :: (Enum a, Bounded a) => [a]
 range = [minBound..maxBound]
 
-classDefinition :: Class -> Text
-classDefinition (Class n ss) = "." <> n <> " { " <> (Text.intercalate ";" $ ss) <> " }"
+classDefinition :: ToClass c => c -> Text
+classDefinition c = "." <> className c <> " { " <> (Text.intercalate "; " $ (classStyles c)) <> " }"
 
 -- oh, that's not that great
 genClasses :: forall c. (ToClass c) => [c] -> [Text]
-genClasses cls = map (classDefinition . toClass) cls
+genClasses cls = map classDefinition cls

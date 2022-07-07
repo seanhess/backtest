@@ -16,10 +16,11 @@ import Juniper.Web (document)
 
 import Web.UI.Generate (stylesheet, range)
 import Web.UI (AppColor)
+import Web.UI.Attributes (Space)
 
 writeStylesheet :: IO ()
 writeStylesheet = do
-  Text.writeFile "static/ui.css" $ stylesheet (range :: [AppColor])
+  Text.writeFile "static/ui.css" $ stylesheet (range :: [AppColor]) (range :: [Space])
 
 
 

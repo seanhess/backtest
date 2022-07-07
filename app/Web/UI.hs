@@ -94,7 +94,7 @@ data AppColor
   | GreenHover
   | White
   deriving (Show, Eq, Bounded, Enum)
-instance ClassName AppColor where
+instance ToClass AppColor where
   className = Text.toLower . pack . show
 
 instance ToValue AppColor where
