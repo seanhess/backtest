@@ -24,10 +24,12 @@ data Units
   = Px Int
   | Color Text
   | Rem Float
+  | Lit Text
 instance Show Units where
   show (Px n) = show n <> "px"
   show (Color t) = "#" <> unpack t
   show (Rem f) = showFFloat (Just 3) f "rem"
+  show (Lit t) = unpack t
 
 
 

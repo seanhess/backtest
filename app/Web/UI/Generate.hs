@@ -9,14 +9,17 @@ import Data.Proxy
 
 
 
-stylesheet :: (Option Color color, Option Space space) => [color] -> [space] -> Text
+stylesheet
+  :: (Option Color color, Option Space space, Option Size space)
+  => [color] -> [space]
+  -> Text
 stylesheet colors spaces = Text.intercalate "\n" (generate colors spaces)
 
 
--- you have to pass in your own colors and space sizes, and anything else customizable
--- obviously we can have a default one
--- but we will always need colors? No, we could have a nice default color palette
-generate :: (Option Color color, Option Space space) => [color] -> [space] -> [Text]
+generate
+  :: (Option Color color, Option Space space, Option Size space)
+  => [color] -> [space]
+  -> [Text]
 generate colors spaces = mconcat $
   [ genClasses (range :: [Flex])
   , genClasses $ do
@@ -30,6 +33,10 @@ generate colors spaces = mconcat $
       pure $ BW side size
   , genClasses $ fmap (BG . option) colors
   , genClasses $ fmap (Gap . option) spaces
+  , genClasses $ fmap (Width . option) spaces
+  , genClasses $ fmap (Width . option) (range :: [Dim])
+  , genClasses $ fmap (Height . option) spaces
+  , genClasses $ fmap (Height . option) (range :: [Dim])
   ]
 
 

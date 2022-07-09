@@ -4,11 +4,8 @@ module Web.UI.Attributes where
 
 import Prelude hiding ((-))
 import Lucid
-import Data.Text as Text (Text, intercalate, pack)
+import Data.Text as Text (Text, intercalate, pack, toLower)
 import Web.UI.Types
-
--- TODO the classes are weird. We are implementing ToClass for many things which only need a quick name
--- could we always use show? It doesn't really matter what it is. But we'd like it to be short
 
 -- | Map classes to a single class attribute. Always
 -- append a space in case someone else adds to class
@@ -19,18 +16,20 @@ classNames :: [Class_] -> Attribute
 classNames cns = class_ ((Text.intercalate " " (map className cns)) <> " ")
 
 
+data Size
+  = Width (Opt Size)
+  | Height (Opt Size)
 
-data Dim space
-  = Width space
-  | Height space
+instance Option Size Space
+instance Option Size Dim
 
 -- this is equivalent to value, I think
 
--- width :: Option space Dim => space -> Attribute
--- width s = _
+width :: Option Size d => d -> Attribute
+width d = classes [Width (option d)]
 
--- height :: Option space Dim => space -> Attribute
--- height s = _
+height :: Option Size d => d -> Attribute
+height d = classes [Height (option d)]
 
 
 data Flex = Row | Col
@@ -197,6 +196,15 @@ instance Class Background where
     Class ("bgc" - segment color)
           ["background-color" .: color]
 
+instance Class Size where
+  toClass (Width dim) =
+    Class ("w" - segment dim)
+          ["width" .: dim]
+
+  toClass (Height dim) =
+    Class ("h" - segment dim)
+          ["height" .: dim]
+
 
 
 
@@ -274,3 +282,19 @@ instance Value Space where
 instance Option Space Space
 
 data Color
+
+
+-- am I really reproducing css?
+data Dim
+  = Full
+  | Auto
+  | Fit
+  | Min
+  | Max
+  | Screen
+  deriving (Show, Enum, Bounded)
+instance Segment Dim
+instance Value Dim where
+  units a = Lit $ Text.toLower $ pack $ show a 
+
+
