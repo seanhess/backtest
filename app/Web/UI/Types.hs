@@ -1,5 +1,8 @@
 {-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 module Web.UI.Types where
 
 import Prelude
@@ -14,10 +17,8 @@ class Segment a where
   default segment :: Show a => a -> Text
   segment c = Text.replace " " "" $ Text.toLower $ pack $ show c
 
-
 class Segment a => Value a where
   units :: a -> Units
-
 
 data Units
   = Px Int
@@ -35,8 +36,12 @@ instance Show Units where
 a - ""  = a
 a - b  = a <> "-" <> b
 
-(.:) :: Value v => Text -> v -> Text
-a .: b = a <> ":" <> (pack $ show $ units b)
+(.:) :: Value a => Text -> a -> Text
+a .: b =
+  a <> ":" <> (pack $ show $ units b)
+
+-- asdf :: Value typ a => a -> Text
+-- asdf = segment
 
 
 data Class_ = Class

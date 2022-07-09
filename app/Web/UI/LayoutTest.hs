@@ -4,6 +4,7 @@ import Prelude
 import Lucid
 import Lucid.Html5
 import Web.UI
+import Web.UI.Attributes
 
 -- TODO: Spacing vs Padding!
 -- spacing = gap
@@ -25,10 +26,7 @@ import Web.UI
 --       space
 --       el [] "test"
 --   row [ width Fill, background GreenLight ] $ el [] "Bottom"
---
--- stylesTest :: IO ()
--- stylesTest = do
---   print $ flex (Col, Center)
+
 
 
 layoutTest :: Html ()

@@ -1,3 +1,5 @@
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 module Web.UI.Attributes where
 
 import Prelude hiding ((-))
@@ -17,6 +19,20 @@ classNames :: [Class_] -> Attribute
 classNames cns = class_ ((Text.intercalate " " (map className cns)) <> " ")
 
 
+
+data Dim space
+  = Width space
+  | Height space
+
+-- this is equivalent to value, I think
+
+-- width :: Option space Dim => space -> Attribute
+-- width s = _
+
+-- height :: Option space Dim => space -> Attribute
+-- height s = _
+
+
 data Flex = Row | Col
   deriving (Show, Eq, Enum, Bounded)
 
@@ -24,24 +40,25 @@ flex :: Flex -> Attribute
 flex f = classes [f]
 
 
-bg :: (Value color) => color -> Attribute
-bg c = classes [BG c]
+bg :: (Option Color color) => color -> Attribute
+bg c = classes [BG (option c)]
 
 
 
 -- TODO I wish these could be one unified datatype
-data BorderColor color = BC color
-data BorderWidth       = BW Sides BSize
+data Border
+  = BC (Opt Color)
+  | BW Sides BSize
 
 
 
 -- TODO having to collapse to classNames isn't awesome
 -- but it's not the end of the world either
-border :: (Value color) => color -> BSize -> Attribute
-border c s = classNames [toClass (BW All s), toClass (BC c)]
+border :: (Option Color color) => color -> BSize -> Attribute
+border c s = classes [BW All s, BC (option c)]
 
-borderColor :: (Value color, Class color) => color -> Attribute
-borderColor c = classes [BC c]
+borderColor :: (Option Color color) => color -> Attribute
+borderColor c = classes [BC (option c)]
 
 borderWidth' :: [Sides] -> BSize -> Attribute
 borderWidth' sds sz = classes [BW (Side L) sz]
@@ -60,50 +77,73 @@ borderB     = borderWidth' [Side B]
 
 
 -- this only works because they both mention space
-data Pad space = Pad Sides space
+data Pad = Pad Sides (Opt Space)
 
-pad' :: (Value space) => [Sides] -> space -> Attribute
-pad' sds sp = classes $ map (\s -> Pad s sp) sds
+pad' :: (Option Space space) => [Sides] -> space -> Attribute
+pad' sds sp = classes $ map (\s -> Pad s (option sp)) sds
 
-pad :: (Value space) => space -> Attribute
+pad :: (Option Space space) => space -> Attribute
 pad  = pad' [All]
 
-padX :: (Value space) => space -> Attribute
+padX :: (Option Space space) => space -> Attribute
 padX = pad' [Side L, Side R]
 
-padY :: (Value space) => space -> Attribute
+padY :: (Option Space space) => space -> Attribute
 padY = pad' [Side T, Side B]
 
-padT :: (Value space) => space -> Attribute
+padT :: (Option Space space) => space -> Attribute
 padT = pad' [Side T]
 
-padB :: (Value space) => space -> Attribute
+padB :: (Option Space space) => space -> Attribute
 padB = pad' [Side B]
 
-padR :: (Value space) => space -> Attribute
+padR :: (Option Space space) => space -> Attribute
 padR = pad' [Side R]
 
-padL :: (Value space) => space -> Attribute
+padL :: (Option Space space) => space -> Attribute
 padL = pad' [Side L]
 
 
-data Gap space = Gap space
+-- class Option opt c where
+--   asdf :: opt -> c
 
-gap :: (Value s) => s -> Attribute
-gap s = classes [Gap s]
+class Option d a where
+  option :: a -> Opt d
+
+  default option :: (Value a) => a -> Opt d
+  option a = Opt (segment a) (units a)
+
+  -- what does it do?
+
+data Opt d = Opt
+  { optSegment :: Text
+  , optUnits :: Units
+  }
+instance Segment (Opt d) where
+  segment = optSegment
+instance Value (Opt d) where
+  units = optUnits
+
+
+-- anything space-like!
+data Gap = Gap (Opt Space)
+
+gap :: Option Space o => o -> Attribute
+gap s = classes [Gap (option s)]
+
 
 
 data AppSpace
   = AS1
   | AS2
   | AS3
-  deriving (Show)
+  deriving (Show, Enum, Bounded)
 instance Segment AppSpace
-
 instance Value AppSpace where
   units AS1 = (Rem 0.345)
   units AS2 = (Rem 0.800)
   units AS3 = (Rem 1.9)
+instance Option Space AppSpace
 
 
 
@@ -118,9 +158,8 @@ test = [gap AS1]
 
 
 
-data Background color
-  = BG color
-  deriving (Show, Eq)
+data Background
+  = BG (Opt Color)
 
 
 
@@ -130,31 +169,30 @@ instance Class Flex where
   toClass Col = Class "fc" ["display:flex", "flex-direction:column"]
 
 
-instance (Value space) => Class (Pad space) where
+instance Class Pad where
   toClass (Pad a size) =
     Class ("p" <> segment a - segment size) (styles a)
     where
       styles All       = [ "padding" .: size ]
       styles (Side sd) = [ "padding"-(sideName sd) .: size ]
 
-instance (Value space) => Class (Gap space) where
-  toClass (Gap size) = 
-    Class ("g" - segment size)
-          ["gap" .: size]
+instance Class Gap where
+  toClass (Gap opt) = 
+    Class ("g" - segment opt)
+          ["gap" .: opt]
 
-instance (Value color) => Class (BorderColor color) where
+instance Class Border where
   toClass (BC color) =
     Class ("bdc" - segment color)
           ["border-color" .: color]
 
-instance Class BorderWidth where
   toClass (BW side size) =
     Class ("bdw" <> segment side - segment size) (styles side)
     where
       styles All       = ["border-width" .: size]
       styles (Side sd) = ["border"-(sideName sd)-"width" .: size]
 
-instance (Value color) => Class (Background color) where
+instance Class Background where
   toClass (BG color) =
     Class ("bgc" - segment color)
           ["background-color" .: color]
@@ -233,3 +271,6 @@ instance Value Space where
   units S40 = Rem 2.5
   units S44 = Rem 2.75
   units S48 = Rem 3
+instance Option Space Space
+
+data Color

@@ -1,5 +1,7 @@
 module Web.UI
   ( stylesheet, AppColor(..), range
+  , row, col, el, UI
+  , layout, none
 
   ) where
 
@@ -103,5 +105,6 @@ instance Value AppColor where
   units Green      = Color "93E852"
   units GreenHover = Color "BDF294"
   units White      = Color "FFF"
+instance Option Color AppColor
 
  

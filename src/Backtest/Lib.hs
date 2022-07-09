@@ -55,30 +55,31 @@ runActual :: NonEmpty History -> SWRCache -> IO ()
 runActual hs cache = do
     -- countHistories
     -- findBest
-    runSim
-    -- tryOptimize
+    -- runSim
+    tryOptimize
     -- tryMaximize
     pure ()
 
   where
 
-    years = numYears 60
+    years = numYears 30
 
     ss = samples years hs
 
     -- total of kid expenses starting in 2023
-    kids = usd 157.4
-    start = Portfolio (usd 1199) (usd 0)
+    -- kids = usd 157.4
+    -- start = Portfolio (usd 1199) (usd 0)
+    start = Portfolio (usd 1000) (usd 0)
 
 
 
     expenses :: [Transaction Expense]
-    expenses = 
-      [ Transaction "Child Support" (NumYears 0) 3 (usd 9.6)
-      , Transaction "Child Support" (NumYears 3) 2 (usd 6.4)
-      , Transaction "Child Support" (NumYears 5) 3 (usd 3.4)
-      , Transaction "Extra Kids"    (NumYears 0) 8 (usd 13.2)
-      ]
+    expenses = []
+      -- [ Transaction "Child Support" (NumYears 0) 3 (usd 9.6)
+      -- , Transaction "Child Support" (NumYears 3) 2 (usd 6.4)
+      -- , Transaction "Child Support" (NumYears 5) 3 (usd 3.4)
+      -- -- , Transaction "Extra Kids"    (NumYears 0) 8 (usd 13.2)
+      -- ]
 
 
     saveGraphs :: NonEmpty SimResult -> IO ()
@@ -165,8 +166,8 @@ runActual hs cache = do
         let swda = staticWithdrawal wr start'
 
         n <- now
-        withdrawCached cache al expenses swda
-        -- withdrawFloor swda wr
+        -- withdrawCached cache al expenses swda
+        withdrawFloor swda wr
 
 
 
@@ -175,16 +176,17 @@ runActual hs cache = do
         -- but look, here they could overlap
 
         -- TODO this isn't adjusted for inflation
-        onYears [0..2] $ do
-            expense $ usd $ 9.6 + 13.2
+        -- onYears [5] $ expense (usd 50)
+        -- onYears [0..2] $ do
+        --     expense $ usd $ 9.6 + 13.2
 
-        onYears [3..4] $ do
-            expense $ usd $ 6.4 + 13.2
+        -- onYears [3..4] $ do
+        --     expense $ usd $ 6.4 + 13.2
 
-        onYears [5..7] $ do
-            expense $ usd $ 3.4 + 13.2
+        -- onYears [5..7] $ do
+        --     expense $ usd $ 3.4 + 13.2
 
-        onYears [30..60] $ do
+        onYears [10..30] $ do
             income $ usd 25
 
         rebalance $ rebalanceFixed al
