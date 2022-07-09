@@ -8,19 +8,19 @@ import Lucid (renderBS, renderText, Html)
 import Lucid.Html5
 import qualified Backtest.App.Counter as Counter
 import qualified Backtest.App.Static as Static
-import Web.UI.LayoutTest (layoutTest)
+-- import Web.UI.LayoutTest (layoutTest)
 import qualified Data.Text.IO as Text
 
 import Juniper
 import Juniper.Web (document)
 
-import Web.UI.Generate (stylesheet, range)
-import Web.UI (AppColor)
-import Web.UI.Attributes (Space)
+-- import Web.UI.Generate (stylesheet, range)
+-- import Web.UI (AppColor)
+-- import Web.UI.Attributes (Space)
 
-writeStylesheet :: IO ()
-writeStylesheet = do
-  Text.writeFile "static/ui.css" $ stylesheet (range :: [AppColor]) (range :: [Space])
+-- writeStylesheet :: IO ()
+-- writeStylesheet = do
+--   Text.writeFile "static/ui.css" $ stylesheet (range :: [AppColor]) (range :: [Space])
 
 
 
@@ -37,8 +37,8 @@ start = do
     page "/page" $ do
       handle cfg Counter.page
 
-    get "/layout" $ do
-      html $ renderText $ toDocument $ layoutTest
+    -- get "/layout" $ do
+    --   html $ renderText $ toDocument $ layoutTest
 
     -- -- if you use "lucid" it doesn't work
     -- get "/app/about" $

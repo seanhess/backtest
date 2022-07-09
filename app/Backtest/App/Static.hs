@@ -5,15 +5,14 @@ import Data.ByteString (ByteString)
 import Data.FileEmbed (embedFile)
 import Web.Scotty.Trans (ActionT, ScottyT, setHeader, raw, get, text)
 import Web.UI as UI
-import Web.UI.Attributes as UI
 import qualified Data.Text.Lazy as Lazy
 import qualified Juniper.JS as Juniper
 
 files :: MonadIO m => ScottyT Lazy.Text m ()
 files = do
-  get "/ui.css" $ do
-    setHeader "Content-Type" "text/css"
-    text $ cs (UI.stylesheet (range :: [AppColor]) (range :: [Space]))
+  -- get "/ui.css" $ do
+  --   setHeader "Content-Type" "text/css"
+  --   text $ cs (UI.stylesheet (range :: [AppColor]) (range :: [Space]))
 
   get "/modern-normalize.css" $ static ".css" normalize
 

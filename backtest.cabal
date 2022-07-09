@@ -99,11 +99,10 @@ executable backtest-exe
       Backtest.App
       Backtest.App.Counter
       Backtest.App.Static
+      Lucid.Tailwind
+      Lucid.Tailwind.Options
+      Lucid.Tailwind.Size
       Web.UI
-      Web.UI.Attributes
-      Web.UI.Generate
-      Web.UI.LayoutTest
-      Web.UI.Types
       Paths_backtest
   hs-source-dirs:
       app
