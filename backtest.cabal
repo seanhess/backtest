@@ -80,6 +80,7 @@ library
       Decimal
     , base >=4.7 && <5
     , bytestring
+    , casing
     , cassava
     , containers
     , exceptions
@@ -99,9 +100,11 @@ executable backtest-exe
       Backtest.App
       Backtest.App.Counter
       Backtest.App.Static
-      Lucid.Tailwind
-      Lucid.Tailwind.Options
-      Lucid.Tailwind.Size
+      Tailwind
+      Tailwind.Lucid
+      Tailwind.Options
+      Tailwind.Prefix
+      Tailwind.Size
       Web.UI
       Paths_backtest
   hs-source-dirs:
@@ -136,6 +139,7 @@ executable backtest-exe
     , backtest
     , base >=4.7 && <5
     , bytestring
+    , casing
     , cassava
     , containers
     , exceptions
@@ -217,6 +221,7 @@ test-suite backtest-test
     , backtest
     , base >=4.7 && <5
     , bytestring
+    , casing
     , cassava
     , containers
     , exceptions

@@ -1,33 +1,43 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Lucid.Tailwind.Size where
+module Tailwind.Size where
 
 import Prelude hiding ((-))
-import Data.Text (Text)
-import Lucid.Tailwind.Options
+import Data.Text as Text (Text, replace, toLower, pack)
+import Tailwind.Options
 
-data Sides a
+data Side a
   = T a
   | B a
   | L a
   | R a
 
-instance (Segment a) => Segment (Sides a) where
+instance (Segment a) => Segment (Side a) where
   seg (T a) = "t" - seg a
   seg (B a) = "b" - seg a
   seg (L a) = "l" - seg a
   seg (R a) = "r" - seg a
 
 
-data Axes a
+data Axis a
   = X a
   | Y a
 
--- oh, no, we need to control how it's added, right? 
--- we can't just add another segment
--- we don't know where the hyphens are
-instance (Segment a) => Segment (Axes a) where
+instance (Segment a) => Segment (Axis a) where
   seg (X a) = "x" - seg a
   seg (Y a) = "y" - seg a
+
+
+data Corners a
+  = TL a
+  | TR a
+  | BL a
+  | BR a
+
+instance (Segment a) => Segment (Corners a) where
+  seg (TL a) = "tl" - seg a
+  seg (TR a) = "tr" - seg a
+  seg (BL a) = "bl" - seg a
+  seg (BR a) = "br" - seg a
 
 
 data Auto = Auto
@@ -40,9 +50,9 @@ instance Segment Auto where
 
 
 data Full = Full
-  deriving (Enum, Bounded)
+  deriving (Enum, Bounded, Show)
 instance Segment Full where
-  seg Full = "full"
+  seg = segHyphens
 
 
 -- SOME of the sizes. Dumb
@@ -125,44 +135,10 @@ data Size
   | S72
   | S80
   | S96
-  deriving (Eq, Enum, Bounded)
+  deriving (Eq, Enum, Bounded, Show)
 instance Segment Size where
-  seg Px  = "px"
-  seg S0   = "0"
-  seg S0_5 = "0.5"
-  seg S1   = "1"
-  seg S1_5 = "1.5"
-  seg S2   = "2"
-  seg S2_5 = "2.5"
-  seg S3   = "3"
-  seg S3_5 = "3.5"
-  seg S4   = "4"
-  seg S4_5 = "4.5"
-  seg S5   = "5"
-  seg S6   = "6"
-  seg S7   = "7"
-  seg S8   = "8"
-  seg S9   = "9"
-  seg S10  = "10"
-  seg S11  = "11"
-  seg S12  = "12"
-  seg S14  = "14"
-  seg S16  = "16"
-  seg S20  = "20"
-  seg S24  = "24"
-  seg S28  = "28"
-  seg S32  = "32"
-  seg S36  = "36"
-  seg S40  = "40"
-  seg S44  = "44"
-  seg S48  = "48"
-  seg S52  = "52"
-  seg S56  = "56"
-  seg S60  = "60"
-  seg S64  = "64"
-  seg S72  = "72"
-  seg S80  = "80"
-  seg S96  = "96"
+  seg Px = "px"
+  seg s = Seg $ Text.replace "_" "." $ pack $ drop 1 $ show s
 
 
 data XSML
@@ -224,5 +200,6 @@ instance Segment BorderSize where
 
 data None
   = None
+  deriving (Show)
 instance Segment None where
-  seg None = "none"
+  seg = segHyphens

@@ -3,12 +3,14 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE DefaultSignatures #-}
-module Lucid.Tailwind.Options
+module Tailwind.Options
   ( Option(..)
   , Segment(..)
   , Seg(..)
   , (-)
   , Class(..)
+  , segHyphens
+  , segDropPrefix
   ) where
 
 import Prelude hiding ((-))
@@ -22,12 +24,20 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Text as Text
 import qualified Data.List as List
 import qualified Data.Map as Map
+import Text.Casing as Casing (kebab)
 
 newtype Seg a = Seg { fromSeg :: Text }
-  deriving (Eq, Show, IsString, Semigroup, Monoid)
+  deriving (Eq, Show, IsString, Semigroup)
 
 -- fromText :: Text -> Seg a
 -- fromText t = Seg t
+
+-- arghm. 
+segHyphens :: Show a => a -> Seg b
+segHyphens a = Seg $ Text.toLower $ pack $ Casing.kebab $ show a
+
+segDropPrefix :: Show a => a -> Seg b
+segDropPrefix a = Seg $ pack $ drop 1 $ show a
 
 
 class Segment a where

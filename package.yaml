@@ -35,6 +35,8 @@ dependencies:
 - text
 - vector
 
+- casing
+
 ghc-options:
   - -Wincomplete-patterns
   - -Wdodgy-exports
