@@ -31,7 +31,8 @@ module Tailwind
 
   -- * Transforms
   , translate
-  , transition, Duration(..), Easing(..), Property(..)
+  , transform
+  , transition, rotate, easing, duration, Duration(..), Rotate(..), Easing(..), Property(..)
 
   -- * Effects
   , shadow, Shadow
@@ -62,29 +63,21 @@ import qualified Data.Text as Text
 
 
 
--- you should use your own colors
--- in the meantime, you can simply make a color via the name directly
+-- | you should create your own app colors, but if you haven't set them yet, you can use a color via it's text name
 newtype Color = Color Text
-
 instance Segment Color where
   seg (Color c) = Seg c
 
--- these should all be classes, not attributes!
-bg :: Option Color o => o -> Class
+bg :: Option Color o => o -> [Class]
 bg o = 
   cls $ "bg" - (option o :: Seg Color)
 
 
 
 
--- | Space around child content
--- p-8
--- px-8
--- MOST: do NOT add hyphen
--- Size: DO add a hyphen
-
-
 data Padding
+
+-- Padding doesn't hyphenate the x and y for some reason
 instance Option Padding Size where
   option s = "p" - (seg s)
 instance Option Padding (Axis Size) where
@@ -92,7 +85,7 @@ instance Option Padding (Axis Size) where
 instance Option Padding (Side Size) where
   option s = "p" <> (seg s)
 
-padding :: Option Padding o => o -> Class
+padding :: Option Padding o => o -> [Class]
 padding o =
   cls $ (option o :: Seg Padding)
 
@@ -104,7 +97,7 @@ padding o =
 -- border-0
 
 
-borderWidth :: Option BorderWidth o => o -> Class
+borderWidth :: Option BorderWidth o => o -> [Class]
 borderWidth o = 
   cls $ "border" - (option o :: Seg BorderWidth)
 
@@ -113,19 +106,19 @@ instance Option BorderWidth BorderSize
 instance Option BorderWidth (Side BorderSize)
 instance Option BorderWidth (Axis BorderSize)
 
-borderColor :: Option Color o => o -> Class
+borderColor :: Option Color o => o -> [Class]
 borderColor o = 
   cls $ "border" - (option o :: Seg Color)
 
 
 
 
--- -- | The distance between child elements
+-- | The distance between child elements
 data Gap
 instance Option Gap Size
 instance Option Gap (Axis Size)
 
-gap :: Option Gap o => o -> Class
+gap :: Option Gap o => o -> [Class]
 gap o =
   cls $ "gap" - (option o :: Seg Gap)
 
@@ -137,24 +130,18 @@ instance Option Dimensions Size
 instance Option Dimensions RelSize
 instance Option Dimensions ExtSize
 
-height :: Option Dimensions o => o -> Class
+height :: Option Dimensions o => o -> [Class]
 height o =
   cls $ "h" - (option o :: Seg Dimensions)
 
-width :: Option Dimensions o => o -> Class
+width :: Option Dimensions o => o -> [Class]
 width o =
   cls $ "w" - (option o :: Seg Dimensions)
 
 
 
 
--- | Flex allows for all kinds of layout options
-data Flex
 
-data Direction
-  = Row
-  | Col
-  deriving (Bounded, Enum, Show)
 
 instance Segment Direction where
   seg = segHyphens
@@ -170,26 +157,34 @@ instance Segment Align where
   seg = segHyphens
 
 
--- really, I'm going to make them do both?
+
+flex :: Option Flex o => o -> [Class]
+flex opts = 
+  "flex" : cls ("flex"-(option opts :: Seg Flex))
+
+
+data Flex
 instance Option Flex Direction
 instance Option Flex ()
 
+data Direction
+  = Row
+  | Col
+  deriving (Bounded, Enum, Show)
 
-flex :: Option Flex o => o -> Class
-flex opts = 
-  cls $ "flex"-(option opts :: Seg Flex)
+
+
+self :: Option Self o => o -> [Class]
+self opts = 
+  cls $ "self"-(option opts :: Seg Self)
 
 data Self
 instance Option Self Auto
 instance Option Self Align
 
-self :: Option Self o => o -> Class
-self opts = 
-  cls $ "self"-(option opts :: Seg Self)
-
 -- | Child should grow to fill available space in a flex container
 -- TODO grow-0?
-grow :: Class
+grow :: [Class]
 grow = cls "flex-grow"
 
 
@@ -205,7 +200,7 @@ instance Segment Position where
 
 instance Option Position Position
 
-position :: Option Position o => o -> Class
+position :: Option Position o => o -> [Class]
 position o = cls $ (option o :: Seg Position)
 
 
@@ -213,19 +208,19 @@ data Offset
 instance Option Offset Size
 instance Option Offset (Axis Size)
 
-top :: Option Offset o => o -> Class
+top :: Option Offset o => o -> [Class]
 top o =
   cls $ "top" - (option o :: Seg Offset)
 
-bottom :: Option Offset o => o -> Class
+bottom :: Option Offset o => o -> [Class]
 bottom o =
   cls $ "bottom" - (option o :: Seg Offset)
 
-left :: Option Offset o => o -> Class
+left :: Option Offset o => o -> [Class]
 left o =
   cls $ "left" - (option o :: Seg Offset)
 
-right :: Option Offset o => o -> Class
+right :: Option Offset o => o -> [Class]
 right o =
   cls $ "right" - (option o :: Seg Offset)
 
@@ -235,7 +230,7 @@ data Inset
 instance Option Inset Size
 instance Option Inset (Axis Size)
 
-inset :: Option Inset o => o -> Class
+inset :: Option Inset o => o -> [Class]
 inset o = cls $ "inset" - (option o :: Seg Inset)
 
 
@@ -264,24 +259,39 @@ inset o = cls $ "inset" - (option o :: Seg Inset)
 
 -- | Transforms
 -- > active |: translate (X Px, Y Px)
+
+-- the "transform" property is required
+translate :: Option Translate o => o -> [Class]
+translate o = 
+  cls $ "translate" - (option o :: Seg Translate)
+
 data Translate
 instance Option Translate (Axis Size)
 instance Option Translate (Axis RelSize)
 
--- the "transform" property is required
-translate :: Option Translate o => o -> Class
-translate o = 
-  cls $ "translate" - (option o :: Seg Translate)
+rotate :: Option Rotate o => o -> [Class]
+rotate o =
+  cls $ "rotate" - (option o :: Seg Rotate)
 
-transform :: Class
-transform = cls "transform"
+instance Option Rotate Rotate
+
+data Rotate = R0 | R1 | R2 | R3 | R6 | R12 | R45 | R90 | R180
+  deriving (Show)
+instance Segment Rotate where
+  seg = segDropPrefix
+
+transform :: Option Transform o => o -> [Class]
+transform o = cls $ "transform" - (option o :: Seg Transform)
+
+data Transform
+instance Option Transform None
 
 
 
 
 
 
-transition :: Option Transition o => o -> Class
+transition :: Option Transition o => o -> [Class]
 transition o = 
   cls $ "transition" - (option o :: Seg Transition)
 
@@ -304,7 +314,7 @@ instance Segment Property where
 
 
 
-duration :: Option Duration o => o -> Class
+duration :: Option Duration o => o -> [Class]
 duration o = 
   cls $ "duration" - (option o :: Seg Duration)
 
@@ -326,7 +336,7 @@ instance Segment Duration where
 
 
 
-easing :: Option Easing o => o -> Class
+easing :: Option Easing o => o -> [Class]
 easing o =
   cls $ "easing" - (option o :: Seg Easing)
 
@@ -342,7 +352,7 @@ instance Segment Easing where
   seg = segHyphens
 
 
-delay :: Option Duration o => o -> Class
+delay :: Option Duration o => o -> [Class]
 delay o = 
   cls $ "delay" - (option o :: Seg Duration)
 
@@ -362,7 +372,7 @@ instance Option Rounded (Corners Full)
 instance Option Rounded (Corners SML)
 instance Option Rounded (Corners ())
 
-rounded :: Option Rounded o => o -> Class
+rounded :: Option Rounded o => o -> [Class]
 rounded o = 
   cls $ "rounded" - (option o :: Seg Rounded)
 
@@ -370,7 +380,7 @@ rounded o =
 
 
 
-font :: Option Font o => o -> Class
+font :: Option Font o => o -> [Class]
 font o =
   cls $ "font" - (option o :: Seg Font)
 
@@ -397,7 +407,7 @@ data FontText
 instance Option FontText SML
 instance Option FontText XSML
 
-text :: Option FontText o => o -> Class
+text :: Option FontText o => o -> [Class]
 text o = cls $ "text" - (option o :: Seg FontText)
 
 
@@ -407,7 +417,7 @@ text o = cls $ "text" - (option o :: Seg FontText)
 data Outline
 instance Option Outline None
 
-outline :: Option Outline o => o -> Class
+outline :: Option Outline o => o -> [Class]
 outline o = cls $ "outline" - (option o :: Seg Outline)
 
 
@@ -415,12 +425,12 @@ data Shadow
 instance Option Shadow None
 instance Option Shadow ()
 instance Option Shadow SML
-shadow :: Option Shadow o => o -> Class
+shadow :: Option Shadow o => o -> [Class]
 shadow o = cls $ "shadow" - (option o :: Seg Shadow)
 
 
 
-zIndex :: Option Z o => o -> Class
+zIndex :: Option Z o => o -> [Class]
 zIndex o = cls $ "z" - (option o :: Seg Z)
 
 data Z
@@ -458,7 +468,7 @@ instance Segment Opacity where
   seg = segDropPrefix
 instance Option Opacity Opacity
 
-opacity :: Option Opacity o => o -> Class
+opacity :: Option Opacity o => o -> [Class]
 opacity o = cls $ "opacity" - (option o :: Seg Opacity)
 
 
@@ -466,5 +476,5 @@ opacity o = cls $ "opacity" - (option o :: Seg Opacity)
 -- * Utilties
 
 -- | Add a class prefixed with a space so they concatenate
-cls :: Seg a -> Class
-cls (Seg t) = Class t
+cls :: Seg a -> [Class]
+cls (Seg t) = [Class t]

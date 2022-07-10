@@ -17,8 +17,8 @@ instance Segment AppColor where
   seg White = "white"
 instance Option Color AppColor
 
-example :: [Class]
-example = [ bg Green, hover |: font Bold, borderWidth (T B2), borderColor Black ]
+example :: [[Class]]
+example = [flex Row, bg Green, hover |: font Bold, borderWidth (T B2), borderColor Black, hover |: rotate R90 ]
 
 example' :: Attribute
 example' = classes example
