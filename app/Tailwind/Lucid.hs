@@ -8,4 +8,4 @@ import Data.Text as Text (intercalate)
 
 -- | Convert classes into an Attribute
 classes :: [[Class]] -> Attribute
-classes cns = class_ (Text.intercalate " " (map fromClass (mconcat cns)) <> " ")
+classes cns = class_ (Text.intercalate " " (map fromClass (merge cns)) <> " ")

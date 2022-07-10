@@ -50,6 +50,9 @@ module Tailwind
   , Side(..)
   , Axis(..)
   , None(..)
+
+  -- * Utilities
+  , cls, merge
   )
   where
 
@@ -143,8 +146,6 @@ width o =
 
 
 
-instance Segment Direction where
-  seg = segHyphens
 
 data Align
   = Stretch
@@ -170,8 +171,16 @@ instance Option Flex ()
 data Direction
   = Row
   | Col
+  | RowReverse
+  | ColReverse
   deriving (Bounded, Enum, Show)
+instance Segment Direction where
+  seg = segHyphens
 
+data Wrap
+  = Wrap
+  | NoWrap
+  | WrapReverse
 
 
 self :: Option Self o => o -> [Class]
@@ -473,8 +482,3 @@ opacity o = cls $ "opacity" - (option o :: Seg Opacity)
 
 
 
--- * Utilties
-
--- | Add a class prefixed with a space so they concatenate
-cls :: Seg a -> [Class]
-cls (Seg t) = [Class t]

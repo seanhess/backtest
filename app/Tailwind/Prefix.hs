@@ -13,8 +13,8 @@ newtype Prefix = Prefix { fromPrefix :: Text }
 -- | Apply a prefix to classes  
 -- > [ bg Green, active |: bg Green ]
 (|:) :: Prefix -> [Class] -> [Class]
-(Prefix p) |: cls =
-  map apply cls
+(Prefix p) |: cs =
+  map apply cs
   where
     -- ignore transform
     apply "transform" = "transform"
