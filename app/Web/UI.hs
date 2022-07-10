@@ -8,8 +8,10 @@ import qualified Tailwind.Lucid as Tailwind
 import Control.Monad.State.Strict (State, StateT, runState, modify, MonadState)
 import Tailwind.Options
 import Lucid
+import Lucid.Base (Term(..), makeElement)
 import Data.List (nub)
 import Data.Text (Text)
+import Data.Maybe (mapMaybe)
 
 
 data AppColor
@@ -32,139 +34,69 @@ example' = Tailwind.classes example
 
 
 
-data Node = Node
-  { _attributes :: [Attribute]
-  , _classes :: [[Class]]
-  , _content :: UI ()
-  -- , _node :: [Attribute] -> Html () -> Html ()
-  }
+data Att
+  = Att Attribute
+  | Classes [Class]
 
-empty :: Node
-empty = Node [] [] (pure ())
-
-newtype UI a = UI { fromUI :: State Node a }
-  deriving (Functor, Applicative, Monad, MonadState Node)
-
-runUI :: forall a. ([Attribute] -> Html () -> Html ()) -> UI a -> Html a
-runUI html (UI st) = do
-  let (a, n) = runState st empty :: (a, Node)
-
-  -- wait, where DO I set what the node is though?
-  -- Argh
-  -- I... don't? the parent does?
-  -- erm
-  -- col ... does what exactly
-  html (allAtts n) (runUI )
-  -- to run, you must start with a node
-  -- (_node n) (allAtts n) (runUI (_content n))
-  pure a
+toAttributes :: [Att] -> [Attribute]
+toAttributes ats =
+  let css = mapMaybe getClass ats
+      as = mapMaybe getAtt ats
+  in Tailwind.classes css : as
   where
-    allAtts :: Node -> [Attribute]
-    allAtts n = (Tailwind.classes (_classes n)) : (_attributes n)
+    getClass (Classes cs) = Just cs
+    getClass _ = Nothing
 
--- fromHtml :: Html () -> UI ()
--- fromHtml = 
+    getAtt (Att a) = Just a
+    getAtt _ = Nothing
 
--- runs a ui and turns it into something that can be combined
-node :: ([Attribute] -> Html () -> Html ()) -> UI () -> UI ()
-node f ui = _ -- modify $ \n -> n { _node = f }
+newtype UI a = UI { fromUI :: Html a }
+  deriving (Functor, Applicative, Monad)
 
-classes :: [[Class]] -> UI ()
-classes css =
-  modify (\n -> n { _classes = nub (css <> (_classes n)) })
+-- | Given attributes, expect more child input.
+instance (f ~ UI a) => Term [Att] (f -> UI a) where
+  termWith name f = with (UI . makeElement name . fromUI ) . (\as -> toAttributes $ (as <> map Att f) )
 
-content :: UI () -> UI ()
-content ct = 
-  modify $ \n -> n { _content = ct }
+-- | Given children immediately, just use that and expect no attributes
+instance Term (UI a) (UI a) where
+  termWith name as = with (UI . makeElement name . fromUI ) as
+  {-# INLINE termWith #-}
 
--- we want to set the children?
--- yeah, anything you set is a child
--- wait.... no?
--- I'm confused :)
-col :: UI () -> UI ()
-col ct = do
-  classes [flex Col]
-  -- node div_
+instance With (UI a -> UI a) where
+  with f attrs = \ui -> UI $ do
+    with (fromUI $ f ui) attrs
 
-  -- this is my childrenz
-  content ct
+instance With (UI a) where
+  with ui = UI . with (fromUI ui)
+
+--  with f = \attr -> HtmlT (mk attr <$> runHtmlT (f inner))
+--    where
+--      mk attr ~(f',a) = (\attr' -> f' (unionArgs (M.fromListWith (<>) (map toPair attr)) attr'),a)
+--      toPair (Attribute x y) = (x,y)
 
 
--- -- usage: 
--- addStuff :: Attribute -> UI ()
--- addStuff a = UI f
---   where
---     f as = html
+-- nope this requires actual attributes
+col :: (Term arg result, With result) => arg -> result
+col arg = with (term "div" arg) [ Tailwind.classes [ flex Col ] ]
 
--- we want to be able to set attributes INSIDE
--- wait, what would this mean:
--- it's...
--- it doesn't have a node name
--- it's weird
--- why does it work for html??
--- I can still create an html
--- it's just a
--- we are building content
--- but what's my node?
--- we don't know
--- so it's not in there
+el :: (Term arg result, With result) => arg -> result
+el arg = with (div_ arg) []
+
+space :: UI ()
+space = el [ Classes grow ] (pure ())
 
 text :: Text -> UI ()
-text t = _
-
-test' :: UI ()
-test' = do
-  classes [bg Green]
-  text "hello"
+text t = UI $ toHtml t
 
 test :: UI ()
-test = col $ do
-  -- attributes [ id_ "asdf" ]
-  -- each of these should set the PARENT classes
-  classes [bg Green]
+test = col [ Classes (bg Green), Classes (padding S10), Classes (gap S10), Att (id_ "asdf") ] $ do
+  el [ Classes (bg Black) ] $ text "hello"
+  space
+  el (text "nothing")
+  space
+  el [ Classes (bg White) ] (text "goodbye")
 
-  -- each of these should set the content
-  text "test"
+-- node :: ([Attribute] -> Html () -> Html ()) -> term -> UI ()
+-- node n =
 
-
-
--- row :: UI a -> UI a
--- row = _
-
--- col :: UI a -> UI a
--- col = _
-
--- classes :: [[Class]] -> UI a
--- classes = _
-
--- text :: Text -> UI a
--- text = _
-
--- attributes :: [Attribute] -> UI a
--- attributes = _
-
--- test :: Html ()
--- test = div_ "hello"
-
-
--- let's experiment!
-
-
-
-
-
-
--- we definitely don't want to do our own monad
--- we want to piggy back on html
-
--- well, it actually builds an html, right?
--- ok! how do I make this a monad?
--- it's basically a state monad, right?
--- but... it's a deeply nested structure
--- so.... 
--- hm...
--- yeah, state could work, but it might be slow
--- how does lucid work?
-
--- classes :: [Class] -> UI a
--- classes
+-- div = node div_
