@@ -8,11 +8,13 @@ import Tailwind hiding (Black, text)
 import qualified Tailwind.Lucid as Tailwind
 import Control.Monad.State.Strict (State, StateT, runState, modify, MonadState)
 import Tailwind.Options
-import Lucid
-import Lucid.Base (Term(..), makeElement)
+import qualified Lucid
+import Lucid (Attribute, div_, id_)
+import Lucid.Base (Term(..), makeElement, With(..))
 import Data.List (nub)
 import Data.Text (Text)
 import Data.Maybe (mapMaybe)
+import Data.String (IsString(..))
 
 -- TODO re-export everything, or just use Lucid Attributes for everything
 -- either way we will need to re-export all the classes so they write classes
@@ -38,95 +40,71 @@ example' = Tailwind.classes example
 
 
 
--- data Att
---   = Att Attribute
---   | Classes [Class]
-
--- toAttributes :: [Att] -> [Attribute]
--- toAttributes ats =
---   let css = mapMaybe getClass ats
---       as = mapMaybe getAtt ats
---   in Tailwind.classes (mconcat css) : as
---   where
---     getClass (Classes cs) = Just cs
---     getClass _ = Nothing
-
---     getAtt (Att a) = Just a
---     getAtt _ = Nothing
-
-newtype UI a = UI { fromUI :: Html a }
+newtype UI a = UI { toHtml :: Lucid.Html a }
   deriving (Functor, Applicative, Monad)
+
+instance IsString (UI ()) where
+  fromString s = UI $ Lucid.toHtml s
 
 instance Show (UI a) where
   show (UI h) = "UI " <> show h
 
--- class El a where
---   element :: a -> UI ()
-
-
-
--- instance El (UI ()) where
---   element a = a
-
--- instance El ([Class] -> UI ()) where
---   element _ ui = ui
 
 -- | Given only classes, expect attributes or content
 instance (f ~ UI a) => Term [Class] ([Attribute] -> f -> UI a) where
-  termWith name atts cs atts2 = with (UI . makeElement name . fromUI) (Tailwind.classes cs : atts <> atts2)
+  termWith name atts cs atts2 = with (UI . makeElement name . toHtml) (Tailwind.classes cs : atts <> atts2)
 
 -- | Given classes, expect content as input
 instance (f ~ UI a) => Term [Class] (f -> UI a) where
-  termWith name atts cs = with (UI . makeElement name . fromUI) (Tailwind.classes cs : atts)
+  termWith name atts cs = with (UI . makeElement name . toHtml) (Tailwind.classes cs : atts)
 
 -- | Given children immediately, just use that and expect no attributes
 instance Term (UI a) (UI a) where
-  termWith name as = with (UI . makeElement name . fromUI ) as
+  termWith name as = with (UI . makeElement name . toHtml ) as
   {-# INLINE termWith #-}
 
 instance With (UI a -> UI a) where
   with f attrs = \ui -> UI $ do
-    with (fromUI $ f ui) attrs
+    with (toHtml $ f ui) attrs
 
 instance With ([Attribute] -> UI a -> UI a) where
   with f atts1 = \atts2 ui -> UI $ do
-    with (fromUI $ f atts1 ui) atts2
+    with (toHtml $ f atts1 ui) atts2
 
 instance With (UI a) where
-  with ui = UI . with (fromUI ui)
+  with ui = UI . with (toHtml ui)
 
+row :: (Term a result, With result) => a -> result
+row a = with (div_ a) [ Tailwind.classes [ flex (), flex Row ] ]
 
+col :: (Term a result, With result) => a -> result
+col a = with (div_ a) [ Tailwind.classes [ flex (), flex Col ] ]
 
--- nope this requires actual attributes
-col :: (Term arg result, With result) => arg -> result
-col arg = with (term "div" arg) [ Tailwind.classes [ flex Col ] ]
-
-el :: (Term arg result, With result) => arg -> result
-el arg = with (div_ arg) []
+el :: (Term a result, With result) => a -> result
+el a = div_ a
 
 space :: UI ()
 space = el [ grow ] (pure ())
 
 text :: Text -> UI ()
-text t = UI $ toHtml t
+text t = UI $ Lucid.toHtml t
 
 -- turn off overloaded lists, wahoo
 test :: UI ()
-test = col [bg Green, padding S10, gap S10] [id_ "asdf"] $ do
+test = col [bg Green, padding S10, gap S10, inset S1] [id_ "asdf"] $ do
   el [ bg Black ] $ text "hello"
   space
   el (text "nothing")
   space
   el (text "goodbye")
-  text "woot"
 
+  -- why does this compile?
+  -- you can put HTML in here directly
+  -- let's call that a feature?
+  -- haha
+  -- it's making div_ produce a UI somehow
+  -- which is funny
+  -- div_ [bg Black] [id_ "asdf"] ("this is a normal node")
 
+  "woot"
 
-
--- oh, neat just allow classes in a separate list!
-
-
--- node :: ([Attribute] -> Html () -> Html ()) -> term -> UI ()
--- node n =
-
--- div = node div_
