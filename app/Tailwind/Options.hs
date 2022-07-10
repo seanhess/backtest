@@ -11,7 +11,7 @@ module Tailwind.Options
   , Class(..)
   , segHyphens
   , segDropPrefix
-  , cls, merge
+  , cls
   ) where
 
 import Data.Function ((&))
@@ -65,8 +65,5 @@ newtype Class = Class { fromClass :: Text }
 -- * Utilties
 
 -- | Add a class prefixed with a space so they concatenate
-cls :: Seg a -> [Class]
-cls (Seg t) = [Class t]
-
-merge :: [[Class]] -> [Class]
-merge css = nub $ mconcat css
+cls :: Seg a -> Class
+cls (Seg t) = Class t
