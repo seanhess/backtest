@@ -12,9 +12,10 @@ newtype Prefix = Prefix { fromPrefix :: Text }
 -- * Prefixes, only apply styles in certain situations
 -- | Apply a prefix to classes  
 -- > [ bg Green, active |: bg Green ]
-(|:) :: Prefix -> Class -> Class
+(|:) :: Prefix -> [Class] -> [Class]
 (Prefix p) |: cs =
-  apply cs
+  -- apply cs
+  map apply cs
   where
     -- ignore transform
     apply "transform" = "transform"

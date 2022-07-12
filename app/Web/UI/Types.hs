@@ -20,12 +20,31 @@ instance Show (UI a) where
   show (UI h) = "UI " <> show h
 
 
+--   asdf :: ([Attribute] -> UI ()) -> typ
+
+
+
+-- node [id_ "asdf"] [bg Green] "hello"
+-- node [bg Green] "hello"
+-- node "hello"
+-- so "node" is either: UI, cls -> UI, att -> cls -> UI
+
+-- if you call (node att) it returns (cls -> UI -> UI)
+-- if you call (node att) it returns (UI -> UI)
+
+-- if you call (node att) it returns f
+  -- f itself is a member
+  -- (f cls) -> (UI -> UI)
+  -- f ui -> UI
+
+-- if you call (node UI) it returns (UI)
+
 -- | Given only classes, expect attributes or content
-instance (f ~ UI a) => Term [Attribute] ([Class] -> f -> UI a) where
+instance (f ~ UI a) => Term [Attribute] ([[Class]] -> f -> UI a) where
   termWith name atts atts2 cs = with (UI . makeElement name . fromUI) (classes cs : atts <> atts2)
 
 -- | Given classes, expect content as input
-instance (f ~ UI a) => Term [Class] (f -> UI a) where
+instance (f ~ UI a) => Term [[Class]] (f -> UI a) where
   termWith name atts cs = with (UI . makeElement name . fromUI) (classes cs : atts)
 
 -- | Given children immediately, just use that and expect no attributes
@@ -41,7 +60,7 @@ instance With ([Attribute] -> UI a -> UI a) where
   with f atts1 = \atts2 ui -> UI $ do
     with (fromUI $ f atts1 ui) atts2
 
-instance With ([Class] -> UI a -> UI a) where
+instance With ([[Class]] -> UI a -> UI a) where
   with f atts1 = \cs ui -> UI $ do
     with (fromUI $ f cs ui) atts1
 
@@ -50,7 +69,7 @@ instance With (UI a) where
 
 
 -- | Convert classes into an Attribute
-classes :: [Class] -> Attribute
-classes cns = class_ (Text.intercalate " " (map fromClass cns) <> " ")
+classes :: [[Class]] -> Attribute
+classes cns = class_ (Text.intercalate " " (map fromClass (mconcat cns)) <> " ")
 
 

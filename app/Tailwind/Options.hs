@@ -53,6 +53,7 @@ class Option k a where
   default option :: Segment a => a -> Seg k
   option = seg
 
+
 (-) :: Seg a -> Seg b -> Seg a
 a - "" = a
 (Seg a) - (Seg b) = Seg $ a <> "-" <> b
@@ -62,8 +63,9 @@ newtype Class = Class { fromClass :: Text }
 
 
 
+
 -- * Utilties
 
 -- | Add a class prefixed with a space so they concatenate
-cls :: Seg a -> Class
-cls (Seg t) = Class t
+cls :: Seg a -> [Class]
+cls (Seg t) = [Class t]
