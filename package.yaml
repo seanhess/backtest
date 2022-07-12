@@ -58,7 +58,6 @@ default-extensions:
   - MultiParamTypeClasses
   - NamedFieldPuns
   - NoImplicitPrelude
-  - OverloadedLists
   - OverloadedStrings
   - QuasiQuotes
   - RecordWildCards

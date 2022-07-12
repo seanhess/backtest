@@ -63,7 +63,6 @@ library
       MultiParamTypeClasses
       NamedFieldPuns
       NoImplicitPrelude
-      OverloadedLists
       OverloadedStrings
       QuasiQuotes
       RecordWildCards
@@ -121,7 +120,6 @@ executable backtest-exe
       MultiParamTypeClasses
       NamedFieldPuns
       NoImplicitPrelude
-      OverloadedLists
       OverloadedStrings
       QuasiQuotes
       RecordWildCards
@@ -203,7 +201,6 @@ test-suite backtest-test
       MultiParamTypeClasses
       NamedFieldPuns
       NoImplicitPrelude
-      OverloadedLists
       OverloadedStrings
       QuasiQuotes
       RecordWildCards

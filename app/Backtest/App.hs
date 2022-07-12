@@ -8,7 +8,6 @@ import Lucid (renderBS, renderText, Html)
 import Lucid.Html5
 import qualified Backtest.App.Counter as Counter
 import qualified Backtest.App.Static as Static
--- import Web.UI.LayoutTest (layoutTest)
 import qualified Data.Text.IO as Text
 
 import Juniper

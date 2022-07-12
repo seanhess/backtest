@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedLists #-}
 module Backtest.Cache where
 
 import Backtest.Prelude hiding (lookup)

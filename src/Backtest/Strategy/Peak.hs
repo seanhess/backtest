@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedLists #-}
 module Backtest.Strategy.Peak where
 
 

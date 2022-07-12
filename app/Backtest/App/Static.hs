@@ -5,6 +5,7 @@ import Data.ByteString (ByteString)
 import Data.FileEmbed (embedFile)
 import Web.Scotty.Trans (ActionT, ScottyT, setHeader, raw, get, text)
 import Web.UI as UI
+import Web.Example as UI
 import qualified Data.Text.Lazy as Lazy
 import qualified Juniper.JS as Juniper
 
