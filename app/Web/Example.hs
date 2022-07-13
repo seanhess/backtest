@@ -1,10 +1,14 @@
 module Web.Example where
 
 import Prelude
+import Data.Function ((&))
 import Web.UI
 import Web.UI.Style (PixelSize(..))
 import Lucid.Html5
+import Lucid (Html, with)
+import Lucid.Base (makeAttribute, Attribute)
 import Data.Text (Text)
+import GHC.Exts (IsList(..))
 
 import Tailwind hiding (Black, text)
 import qualified Tailwind
@@ -96,7 +100,7 @@ layoutTest = do
         text "Border (Black, B8)"
 
       -- TODO like this
-      -- el [ id_ "woot"
+      -- el [ id_ "woot", onClick_ wahoo
       --    , bg Gray , pad P48 , border Black B8
       --    ] $
       --   text "Border (Black, B8)"
@@ -105,6 +109,93 @@ layoutTest = do
     el [ bg GreenHover ] $ do
       el [ flex () ] "Bottom"
 
+
+-- testSetAtt :: Html ()
+-- testSetAtt = with (div_ "hello") [id_ "asdf"]
+
+-- id' :: Text -> (Html () -> Html ()) -> (Html () -> Html ())
+-- id' i h = with h [id_ i]
+
+-- onClick' :: Text -> SetAttribute
+-- onClick' t = flip with [makeAttribute "data-click" t]
+
+-- newtype SetClasses = SetClasses ([[Class]] -> )
+
+-- classes' :: [[Class]] -> SetAttribute
+-- classes' cxs = flip with [classes cxs]
+
+type MakeHtml = Html () -> Html ()
+
+
+(@:) :: ToAttributes a => MakeHtml -> a -> MakeHtml
+hf @: a = with hf (attributes a)
+
+
+
+class ToAttributes a where
+  attributes :: a -> [Attribute]
+
+instance ToAttributes Attribute where
+  attributes a = [a]
+
+instance ToAttributes [Attribute] where
+  attributes a = a
+
+instance ToAttributes (Attribute, Attribute) where
+  attributes (a, b) = [a, b]
+
+instance ToAttributes (Attribute, Attribute, Attribute) where
+  attributes (a, b, c) = [a, b, c]
+
+instance ToAttributes [[Class]] where
+  attributes css = [classes css]
+
+
+
+-- newtype SetClasses = SetClasses SetAttribute
+
+-- -- instance IsList SetClasses where
+-- --   type Item SetClasses = [Class]
+-- --   fromList cxs = SetClasses (classes' cxs)
+
+-- --   -- uh oh, you can't easily get out of this
+-- --   -- what about my own operator then?
+-- --   -- you just give it an attribute, like blaze
+-- --   toList (SetClasses sc) = sc
+
+style' :: Text -> Attribute
+style' t = style_ t
+
+testExample :: Html ()
+testExample = do
+  div_ @: id_ "asdf"
+       @: style' "Okgo"
+       @: [bg Green, border Black B2, borderWidth (X B4)]
+       $ do
+    span_ "one"
+    span_ "two"
+    span_ "three"
+
+  div_ @: id_ "asdf" $ do
+    span_ "one"
+
+  div_ @: [bg Green, border Black B2] $ do
+    span_ "one"
+
+  div_ @: [id_ "asdf"] $ do
+    span_ "one"
+
+  div_ @: [id_ "asdf", style' "asdf"] $ do
+    span_ "one"
+
+  div_ @: (id_ "asdf", style' "asdf") $ do
+    span_ "one"
+
+  div_ $ do
+    span_ "one"
+
+
+  
 
 
 
