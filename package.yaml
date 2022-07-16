@@ -36,6 +36,7 @@ dependencies:
 - vector
 
 - casing
+- data-default
 
 ghc-options:
   - -Wincomplete-patterns

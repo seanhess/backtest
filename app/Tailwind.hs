@@ -19,7 +19,8 @@ module Tailwind
   , gap, Gap
 
   -- * Layout
-  , flex, Direction(..), Align(..)
+  , flex, Flex, Direction(..), Align(..), Wrap(..)
+  , basis
   , self, items
   , grow -- , row, col, space
 
@@ -53,6 +54,7 @@ module Tailwind
 
   -- * Utilities
   , cls
+  , def
   )
   where
 
@@ -64,6 +66,7 @@ import Tailwind.Size
 import Tailwind.Prefix
 import Data.List (nub)
 import qualified Data.Text as Text
+import Data.Default (def)
 
 
 
@@ -165,9 +168,25 @@ flex opts =
   cls ("flex"-(option opts :: Seg Flex))
 
 
+
+
 data Flex
 instance Option Flex Direction
+instance Option Flex Wrap
+instance Option Flex Align
 instance Option Flex ()
+
+
+basis :: Option Dimensions o => o -> [Class]
+basis o = cls ("basis"-(option o :: Seg Dimensions))
+
+
+
+
+
+-- it's not obvious that we are aligning Items vs Content
+-- align-items: "items-"     start, end, center, baseline, stretch
+-- align-content: "content-" start, end, center, between, around, evenly
 
 data Direction
   = Row
@@ -182,6 +201,9 @@ data Wrap
   = Wrap
   | NoWrap
   | WrapReverse
+  deriving (Bounded, Enum, Show)
+instance Segment Wrap where 
+  seg = segHyphens
 
 
 self :: Option Self o => o -> [Class]

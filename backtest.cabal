@@ -82,6 +82,7 @@ library
     , casing
     , cassava
     , containers
+    , data-default
     , exceptions
     , hvega
     , mtl
@@ -100,11 +101,14 @@ executable backtest-exe
       Backtest.App.Counter
       Backtest.App.Static
       Tailwind
-      Tailwind.Lucid
       Tailwind.Options
       Tailwind.Prefix
       Tailwind.Size
+      Web.Example
       Web.UI
+      Web.UI.Element
+      Web.UI.Style
+      Web.UI.Types
       Paths_backtest
   hs-source-dirs:
       app
@@ -140,6 +144,7 @@ executable backtest-exe
     , casing
     , cassava
     , containers
+    , data-default
     , exceptions
     , file-embed
     , hvega
@@ -221,6 +226,7 @@ test-suite backtest-test
     , casing
     , cassava
     , containers
+    , data-default
     , exceptions
     , hvega
     , mtl

@@ -63,24 +63,24 @@ runActual hs cache = do
 
   where
 
-    years = numYears 30
+    years = numYears 60
 
     ss = samples years hs
 
     -- total of kid expenses starting in 2023
     -- kids = usd 157.4
-    -- start = Portfolio (usd 1199) (usd 0)
-    start = Portfolio (usd 1000) (usd 0)
+    start = Portfolio (usd 1230) (usd 50)
+    -- start = Portfolio (usd 1000) (usd 0)
 
 
 
     expenses :: [Transaction Expense]
-    expenses = []
-      -- [ Transaction "Child Support" (NumYears 0) 3 (usd 9.6)
-      -- , Transaction "Child Support" (NumYears 3) 2 (usd 6.4)
-      -- , Transaction "Child Support" (NumYears 5) 3 (usd 3.4)
-      -- -- , Transaction "Extra Kids"    (NumYears 0) 8 (usd 13.2)
-      -- ]
+    expenses =
+      [ Transaction "Child Support" (NumYears 0) 3 (usd 9.6)
+      , Transaction "Child Support" (NumYears 3) 2 (usd 6.4)
+      , Transaction "Child Support" (NumYears 5) 3 (usd 3.4)
+      , Transaction "Extra Kids"    (NumYears 0) 8 (usd 13.2)
+      ]
 
 
     saveGraphs :: NonEmpty SimResult -> IO ()
@@ -95,8 +95,8 @@ runActual hs cache = do
     runSim = do
 
       -- this runs only ONE simulation?
-      let al = S90
-      let wr = pct 3.0
+      let al = S100
+      let wr = pct 3.7
       let sim = simulation start (actions start al wr)
       let srs = fmap sim ss :: NonEmpty SimResult
 
@@ -145,7 +145,7 @@ runActual hs cache = do
       putStrLn $ tableRow columns best
 
       -- oh do I have to manually calculate this?
-      let hn = History {year = Year 2023, returns = Portfolio (pct (-21)) (pct 0), values = Portfolio (usd 2422500) (usd 49.86), cape = CAPE 36.94}
+      let hn = History {year = Year 2023, returns = Portfolio (pct (-19.5)) (pct 0), values = Portfolio (usd (3066397.56 * 0.805)) (usd 49.86), cape = CAPE 36.94}
 
       let hx = hs <> [hn]
       putStrLn $ "Peak Withdrawal:"
@@ -170,24 +170,17 @@ runActual hs cache = do
         -- withdrawCached cache al expenses swda
         withdrawFloor swda wr
 
-
-
-            -- could either be one constant 
-
-        -- but look, here they could overlap
-
         -- TODO this isn't adjusted for inflation
-        -- onYears [5] $ expense (usd 50)
-        -- onYears [0..2] $ do
-        --     expense $ usd $ 9.6 + 13.2
+        onYears [0..2] $ do
+            expense $ usd $ 9.6 + 13.2
 
-        -- onYears [3..4] $ do
-        --     expense $ usd $ 6.4 + 13.2
+        onYears [3..4] $ do
+            expense $ usd $ 6.4 + 13.2
 
-        -- onYears [5..7] $ do
-        --     expense $ usd $ 3.4 + 13.2
+        onYears [5..7] $ do
+            expense $ usd $ 3.4 + 13.2
 
-        onYears [10..30] $ do
+        onYears [30..60] $ do
             income $ usd 25
 
         rebalance $ rebalanceFixed al
