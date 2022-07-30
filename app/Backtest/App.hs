@@ -26,7 +26,6 @@ import Tailwind.UI
 
 example :: UI ()
 example = col (border Black . border B8 . items Stretch) $ do
-
   el (self Start) $ text "ok"
   el (self End) $ row (items Start . gap S1) $ do
       el (width S40) $ text "one"
