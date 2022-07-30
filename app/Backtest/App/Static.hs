@@ -4,10 +4,14 @@ import Backtest.Prelude hiding (Text)
 import Data.ByteString (ByteString)
 import Data.FileEmbed (embedFile)
 import Web.Scotty.Trans (ActionT, ScottyT, setHeader, raw, get, text)
-import Web.UI as UI
-import Web.Example as UI
+-- import Web.UI as UI
+-- import Web.Example as UI
+import Tailwind
+import Tailwind.UI
 import qualified Data.Text.Lazy as Lazy
 import qualified Juniper.JS as Juniper
+
+
 
 files :: MonadIO m => ScottyT Lazy.Text m ()
 files = do

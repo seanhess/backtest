@@ -1,7 +1,7 @@
 module Backtest.App where
 
 import Backtest.Prelude
-import Web.Scotty as Scotty
+import Web.Scotty as Scotty hiding (text)
 import Network.Wai.Middleware.Static (staticWithOptions, defaultOptions)
 import Network.Wai (Application)
 import Lucid (renderBS, renderText, Html)
@@ -12,6 +12,9 @@ import qualified Data.Text.IO as Text
 
 import Juniper
 import Juniper.Web (document)
+import Tailwind.UI
+-- import Tailwind.Color
+-- import Tailwind
 
 -- import Web.UI.Generate (stylesheet, range)
 -- import Web.UI (AppColor)
@@ -21,7 +24,11 @@ import Juniper.Web (document)
 -- writeStylesheet = do
 --   Text.writeFile "static/ui.css" $ stylesheet (range :: [AppColor]) (range :: [Space])
 
-
+example :: UI ()
+example = row (border Black . border B8) $ do
+  text "HI"
+  -- I don't like the weights
+  el (bg (Green CW900)) $ text "hello"
 
 start :: IO ()
 start = do

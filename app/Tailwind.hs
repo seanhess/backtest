@@ -5,11 +5,12 @@
 
 module Tailwind
   (
+
   -- * Display
-    bgColor, Color
-  , bgSize, BgSize(..)
+    bg, BgSize(..), Background
+  , Color(..), Weight(..)
   , height, width, Dimensions
-  , borderWidth, borderColor, BorderWidth, BorderSize(..)
+  , border, Border, BorderSize(..)
   , rounded, Rounded
   , font, Font, FontWeight(..)
   , text, FontText
@@ -26,7 +27,7 @@ module Tailwind
   , grow -- , row, col, space
 
   -- * Position
-  , position, Position(..)
+  , position, Position, Pos(..)
   , top, bottom, left, right
   , inset
   , zIndex, Z(..)
@@ -34,7 +35,7 @@ module Tailwind
   -- * Transforms
   , translate
   , transform
-  , transition, rotate, easing, duration, Duration(..), Rotate(..), Easing(..), Property(..)
+  , transition, rotate, easing, duration, Duration, Dur(..), Rotate, Rot(..), Easing, Ease(..), Property(..)
 
   -- * Effects
   , shadow, Shadow
@@ -55,7 +56,6 @@ module Tailwind
 
   -- * Utilities
   , cls
-  , def
   )
   where
 
@@ -63,29 +63,21 @@ import Prelude hiding ((-))
 import Data.String.Conversions (cs)
 import Data.Text as Text (Text, pack, toLower)
 import Tailwind.Options
-import Tailwind.Size
 import Tailwind.Prefix
 import Data.List (nub)
 import qualified Data.Text as Text
-import Data.Default (def)
 
 
--- what kinds of things might you want to do with alignment and layout?
--- items   - start center end baseline stretch
--- content - start center end
 
--- self    - auto start end center stretch baseline
-
--- | you should create your own app colors, but if you haven't set them yet, you can use a color via it's text name
-newtype Color = Color Text
-instance Segment Color where
-  seg (Color c) = Seg c
-
+data Background
 
 -- yes, it's a standard color
-bgColor :: Option Color o => o -> [Class]
-bgColor o = 
-  cls $ "bg" - (option o :: Seg Color)
+bg :: Option Background o => o -> [Class]
+bg o = 
+  cls $ "bg" - (option o :: Seg Background)
+
+instance Option Background BgSize
+instance Option Background Color
 
 data BgSize
   = BgCover
@@ -95,14 +87,13 @@ data BgSize
 instance Segment BgSize where
   seg = segDropPrefix
 
-bgSize :: BgSize -> [Class]
-bgSize s = 
-  cls $ "bg" - seg s
-
 
 
 data Padding
 
+-- PROBLEM:
+-- px-0
+-- p-0
 -- Padding doesn't hyphenate the x and y for some reason
 instance Option Padding Size where
   option s = "p" - (seg s)
@@ -115,33 +106,21 @@ padding :: Option Padding o => o -> [Class]
 padding o =
   cls $ (option o :: Seg Padding)
 
--- PROBLEM:
--- px-0
--- p-0
 
--- border-x-0
--- border-0
+data Border
 
+border :: Option Border o => o -> [Class]
+border o = 
+  cls $ "border" - (option o :: Seg Border)
 
+instance Option Border BorderSize
+instance Option Border (Side BorderSize)
+instance Option Border (Axis BorderSize)
 
--- try to make the UI match tailwind
--- that means border :: (options)
--- which... is more complicated
--- but you could have border (option)
-
-borderWidth :: Option BorderWidth o => o -> [Class]
-borderWidth o = 
-  cls $ "border" - (option o :: Seg BorderWidth)
-
-data BorderWidth
-instance Option BorderWidth BorderSize
-instance Option BorderWidth (Side BorderSize)
-instance Option BorderWidth (Axis BorderSize)
-
-borderColor :: Option Color o => o -> [Class]
-borderColor o = 
-  cls $ "border" - (option o :: Seg Color)
-
+-- lots of instances to make custom colors or sizes
+instance Option Border Color
+instance Option Border (Side Color)
+instance Option Border (Axis Color)
 
 
 
@@ -176,18 +155,6 @@ width o =
 
 
 
-data Align
-  = Stretch
-  | Center
-  | Start
-  | End
-  | Baseline
-  deriving (Bounded, Enum, Show)
-instance Segment Align where
-  seg = segHyphens
-
-
-
 flex :: Option Flex o => o -> [Class]
 flex opts = 
   cls ("flex"-(option opts :: Seg Flex))
@@ -213,22 +180,6 @@ basis o = cls ("basis"-(option o :: Seg Dimensions))
 -- align-items: "items-"     start, end, center, baseline, stretch
 -- align-content: "content-" start, end, center, between, around, evenly
 
-data Direction
-  = Row
-  | Col
-  | RowReverse
-  | ColReverse
-  deriving (Bounded, Enum, Show)
-instance Segment Direction where
-  seg = segHyphens
-
-data Wrap
-  = Wrap
-  | NoWrap
-  | WrapReverse
-  deriving (Bounded, Enum, Show)
-instance Segment Wrap where 
-  seg = segHyphens
 
 
 self :: Option Self o => o -> [Class]
@@ -253,16 +204,7 @@ grow = cls "flex-grow"
 
 
 data Position
-  = Static
-  | Fixed
-  | Absolute
-  | Relative
-  | Sticky
-  deriving (Enum, Bounded, Show)
-instance Segment Position where
-  seg = segHyphens
-
-instance Option Position Position
+instance Option Position Pos
 
 position :: Option Position o => o -> [Class]
 position o = cls $ (option o :: Seg Position)
@@ -300,25 +242,6 @@ inset o = cls $ "inset" - (option o :: Seg Inset)
 
 
 
--- -- * Layout Helpers
--- -- | Equivalent to div_ [ flex Row ]
--- row :: [ Attribute ] -> Html () -> Html ()
--- row as = div_ (as <> [flex Row])
-
--- -- | Equivalent to div_ [ flex Col ]
--- col :: [ Attribute ] -> Html () -> Html ()
--- col as = div_ (as <> [flex Col])
-
--- -- | Create a spacer, useful for aligning elements to the right, bottom, or center
--- -- > row [] $ do "left"; space; "center"; space; "right"
--- -- > row [] $ do space; "right"
--- -- > col [] $ do "top"; space; "bottom"
--- space :: Html ()
--- space = div_ [ grow ] ""
-
-
-
-
 
 
 -- | Transforms
@@ -337,12 +260,9 @@ rotate :: Option Rotate o => o -> [Class]
 rotate o =
   cls $ "rotate" - (option o :: Seg Rotate)
 
-instance Option Rotate Rotate
+data Rotate
+instance Option Rotate Rot
 
-data Rotate = R0 | R1 | R2 | R3 | R6 | R12 | R45 | R90 | R180
-  deriving (Show)
-instance Segment Rotate where
-  seg = segDropPrefix
 
 transform :: Option Transform o => o -> [Class]
 transform o = cls $ "transform" - (option o :: Seg Transform)
@@ -364,15 +284,6 @@ instance Option Transition ()
 instance Option Transition Property
 instance Option Transition None
 
-data Property
-  = All
-  | Colors
-  | Transform
-  | Shadow
-  | Opacity
-  deriving (Show)
-instance Segment Property where
-  seg = segHyphens
 
 
 
@@ -382,38 +293,18 @@ duration :: Option Duration o => o -> [Class]
 duration o = 
   cls $ "duration" - (option o :: Seg Duration)
 
-instance Option Duration Duration
-
 data Duration
-  = D75
-  | D100
-  | D150
-  | D200
-  | D300
-  | D500
-  | D700
-  | D1000
-  deriving (Show)
-instance Segment Duration where
-  seg = segDropPrefix
+instance Option Duration Dur
 
 
 
+
+data Easing
+instance Option Easing Ease
 
 easing :: Option Easing o => o -> [Class]
 easing o =
   cls $ "easing" - (option o :: Seg Easing)
-
-instance Option Easing Easing
-
-data Easing
-  = Linear
-  | InOut
-  | Out
-  | In
-  deriving (Show)
-instance Segment Easing where
-  seg = segHyphens
 
 
 delay :: Option Duration o => o -> [Class]
@@ -448,25 +339,10 @@ font :: Option Font o => o -> [Class]
 font o =
   cls $ "font" - (option o :: Seg Font)
 
+data Font
 instance Option Font FontWeight
 
-data Font
 
--- Black is a FontWeight
-data FontWeight
-  = Thin
-  | ExtraLight
-  | Light
-  | Normal
-  | Medium
-  | Semibold
-  | Bold
-  | Extrabold
-  | Black
-  deriving Show
-
-instance Segment FontWeight where
-  seg fw = Seg $ Text.toLower $ pack $ show fw
 
 
 data FontText
@@ -496,42 +372,15 @@ shadow o = cls $ "shadow" - (option o :: Seg Shadow)
 
 
 
-zIndex :: Option Z o => o -> [Class]
-zIndex o = cls $ "z" - (option o :: Seg Z)
-
-data Z
-  = Z0
-  | Z10
-  | Z20
-  | Z30
-  | Z40
-  | Z50
-  deriving (Show)
-instance Segment Z where
-  seg = segDropPrefix
-
-instance Option Z Z
-instance Option Z Auto
+zIndex :: Option ZIndex o => o -> [Class]
+zIndex o = cls $ "z" - (option o :: Seg ZIndex)
 
 
-data Opacity
-  = O0
-  | O5
-  | O10
-  | O20
-  | O25
-  | O30
-  | O40
-  | O50
-  | O60
-  | O70
-  | O75
-  | O80
-  | O90
-  | O100
-  deriving (Show)
-instance Segment Opacity where
-  seg = segDropPrefix
+data ZIndex
+instance Option ZIndex Z
+instance Option ZIndex Auto
+
+
 instance Option Opacity Opacity
 
 opacity :: Option Opacity o => o -> [Class]

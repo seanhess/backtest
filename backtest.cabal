@@ -102,9 +102,11 @@ executable backtest-exe
       Backtest.App.Static
       Tailwind
       Tailwind.Classes
+      Tailwind.Color
       Tailwind.Options
       Tailwind.Prefix
       Tailwind.Size
+      Tailwind.UI
       Web.Example
       Web.UI
       Web.UI.Element
