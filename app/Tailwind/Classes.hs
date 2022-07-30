@@ -1,0 +1,1 @@
+module Tailwind.Classes where

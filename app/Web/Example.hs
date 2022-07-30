@@ -10,8 +10,10 @@ import Lucid.Base (makeAttribute, Attribute)
 import Data.Text (Text)
 import GHC.Exts (IsList(..))
 
-import Tailwind hiding (gap, Black, text, width, padding)
--- import qualified Tailwind
+-- TODO export types separately from the attributes and everything
+-- move the types into Types
+import Tailwind hiding (gap, Black, text, width, padding, grow, height)
+import qualified Tailwind
 -- import Tailwind.Options
 
 
@@ -36,14 +38,16 @@ instance Option FontText AppColor
 
 
 
-
 -- this is beautiful!
 
 
 example :: UI Node ()
-example = col (background Green . alignItems Center . gap S10 . padding S10) $ do
+example = col (bg Green . alignItems Center . gap S10 . pad S10) $ do
   text "hello"
   text "goodbye"
+
+  -- just add a little sugar to tailwind
+  col (grid (colSpan R2, rowStart GR1) . bg Green . id_ "hello")
   el (align Start) $ text "ok"
   el (align End) $ row (alignItems Start . gap S1) $ do
       el (width P40) $ text "one"
@@ -83,58 +87,27 @@ example = col (background Green . alignItems Center . gap S10 . padding S10) $ d
 -- instance Option Border BorderSize where
 --   option b = seg b 
 
--- TODO unify border
--- TODO fix type annotations :(
--- TODO simplify classes to only use one list. we don't get enough of a benefit. 
--- go ahead and re-export everything. We don't really want to pass straight through anyway
 
--- layoutTest :: UI t ()
--- layoutTest = do
+layoutTest :: UI [Node] ()
+layoutTest = el (height Full) $ col (bg Black) $ do
+  -- there are almost no el tags
+  row ( alignItems Center . bg Gray . pad P8 ) $ do
+    -- , active |: translate (X Px, Y Px) 
+    -- I want this to auto-size, which is the default
+    button [ Tailwind.bgColor Purple, hover |: Tailwind.bgColor PurpleLight, Tailwind.width P8, Tailwind.padding P12, Tailwind.text White ] "Left"
+    space
 
---   box def { direction = Row } ! [ bg Black ] $ do
---     "HI"
-
---   col ! [ bg Black, height Full ] $ do
-
---     -- TODO it isn't obvious that "itemu Center" is an option for row
---     -- it's kind of messy either way
---     row ! [ items Center
---           , bg Gray
---           , pad P2
---           , hover |: (translate (X Px) <> translate (Y Px))
---           ] $ do
---       -- button_ ! [ bg Purple, hover |: bg PurpleLight, width P80, pad P12, Tailwind.text White ] $ text "Left"
---       space
---       el ! [ bg Green, border Black B0 ] $ text "border Black"
---       space
-
---       -- button_ ! [ bg Purple, hover |: bg PurpleLight, pad P12, width P80, Tailwind.text White ] $ "Right" :: UI ()
---     col ! [ bg White, grow, pad P32, gap P24 ] $ do
---       el ! id_ "asdf" ! [ bg Gray, pad P32, borderWidth B1 ] $ text "border 1"
---       el ! [ bg Gray, pad P32, pad (X P40) ] $ "pad x 10" :: UI t ()
-
---       el ! id_ "woot"
---          ! [ bg Gray
---            , pad P48
---            , border Black B8
---            ] $
---         "Border (Black, B8)"
-
---       -- TODO like this
---       -- el [ id_ "woot", onClick_ wahoo
---       --    , bg Gray , pad P48 , border Black B8
---       --    ] $
---       --   text "Border (Black, B8)"
-
---     space
---     -- el ! [ bg GreenHover ] $ do
---     --   el ! [ flex () ] "Bottom"
-
---     -- oh because I want it to happen before function composition?
---     -- this only works 
---     el ! [ flex () ] $ "Bottom"
-
---     -- table (TableConfig rows)
+    -- We still want to be clear what is allowed on which element
+    -- can elements have a background?, or do they need a BOX
+    row (bg Green . border Black B1) $ text "border Black"
+    space
+    button [ Tailwind.bgColor Purple, hover |: Tailwind.bgColor PurpleLight, Tailwind.padding P12, Tailwind.width P80, Tailwind.text White ] "Right"
+  el grow $ col ( bg White . pad P32 . gap P24 ) $ do
+    col ( bg Gray . pad P32 . border Black B1 ) $ text "border ()"
+    col ( bg Gray . pad P32 . pad (X P28) )     $ text "padding x 10"
+    col ( bg Gray . pad P32 . border Black B8 ) $ text  "Border (Black, B8)"
+  space
+  col (bg Green) "Bottom"
 
 
 

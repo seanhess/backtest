@@ -12,8 +12,8 @@ import Tailwind
 
 -- TODO are we tied to Juniper?
 
-button :: onClick -> UI t () -> UI t ()
-button = undefined
+-- button :: onClick -> UI t () -> UI t ()
+-- button = undefined
 
 
 -- you have to remember that these are the options

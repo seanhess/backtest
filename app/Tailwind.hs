@@ -6,7 +6,8 @@
 module Tailwind
   (
   -- * Display
-    bg, Color
+    bgColor, Color
+  , bgSize, BgSize(..)
   , height, width, Dimensions
   , borderWidth, borderColor, BorderWidth, BorderSize(..)
   , rounded, Rounded
@@ -69,16 +70,34 @@ import qualified Data.Text as Text
 import Data.Default (def)
 
 
+-- what kinds of things might you want to do with alignment and layout?
+-- items   - start center end baseline stretch
+-- content - start center end
+
+-- self    - auto start end center stretch baseline
 
 -- | you should create your own app colors, but if you haven't set them yet, you can use a color via it's text name
 newtype Color = Color Text
 instance Segment Color where
   seg (Color c) = Seg c
 
-bg :: Option Color o => o -> [Class]
-bg o = 
+
+-- yes, it's a standard color
+bgColor :: Option Color o => o -> [Class]
+bgColor o = 
   cls $ "bg" - (option o :: Seg Color)
 
+data BgSize
+  = BgCover
+  | BgContain
+  | BgAuto
+  deriving (Show, Eq)
+instance Segment BgSize where
+  seg = segDropPrefix
+
+bgSize :: BgSize -> [Class]
+bgSize s = 
+  cls $ "bg" - seg s
 
 
 
@@ -103,6 +122,12 @@ padding o =
 -- border-x-0
 -- border-0
 
+
+
+-- try to make the UI match tailwind
+-- that means border :: (options)
+-- which... is more complicated
+-- but you could have border (option)
 
 borderWidth :: Option BorderWidth o => o -> [Class]
 borderWidth o = 
@@ -426,6 +451,8 @@ font o =
 instance Option Font FontWeight
 
 data Font
+
+-- Black is a FontWeight
 data FontWeight
   = Thin
   | ExtraLight
