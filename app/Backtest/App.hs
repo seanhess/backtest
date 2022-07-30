@@ -25,9 +25,15 @@ import Tailwind.UI
 --   Text.writeFile "static/ui.css" $ stylesheet (range :: [AppColor]) (range :: [Space])
 
 example :: UI ()
-example = row (border Black . border B8) $ do
-  text "HI"
-  -- I don't like the weights
+example = col (border Black . border B8 . items Stretch) $ do
+
+  el (self Start) $ text "ok"
+  el (self End) $ row (items Start . gap S1) $ do
+      el (width S40) $ text "one"
+      el (width S12) $ text "two"
+      el (width S6) $ text "three"
+
+  -- these weights are ugly
   el (bg (Green CW900)) $ text "hello"
 
 start :: IO ()
@@ -59,7 +65,7 @@ start = do
 
 
 toDocument :: Html () -> Html ()
-toDocument content = do
+toDocument cnt = do
   html_ $ do
     head_ $ do
       title_ "Magic Withdrawals, as seen on TV"
@@ -78,7 +84,7 @@ toDocument content = do
 
 
     body_ $ do
-      content
+      cnt
 
       script_ [type_ "text/javascript", src_ "/scripts.js"] ("" :: Text)
       -- link_ [type_ "text/css", rel_ "stylesheet", href_ "/images.css"]

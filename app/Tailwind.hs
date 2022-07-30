@@ -21,9 +21,9 @@ module Tailwind
   , gap, Gap
 
   -- * Layout
-  , flex, Flex, Direction(..), Align(..), Wrap(..)
+  , flex, Flex, Direction(..), Wrap(..)
   , basis
-  , self, items
+  , self, items, content, Self, Items, Content
   , grow -- , row, col, space
 
   -- * Position
@@ -43,19 +43,10 @@ module Tailwind
 
 
   -- * Prefixes
-  , (|:), active, hover, focus
+  , module Tailwind.Prefix
 
   -- * Option
-  , Option(..), Segment(..)
-  , Auto(..), Full(..)
-  , Size(..), RelSize(..), ExtSize(..)
-  , SML(..), XSML(..)
-  , Side(..)
-  , Axis(..)
-  , None(..)
-
-  -- * Utilities
-  , cls
+  , module Tailwind.Options
   )
   where
 
@@ -165,7 +156,6 @@ flex opts =
 data Flex
 instance Option Flex Direction
 instance Option Flex Wrap
-instance Option Flex Align
 instance Option Flex ()
 
 
@@ -188,14 +178,24 @@ self opts =
 
 data Self
 instance Option Self Auto
-instance Option Self Align
+instance Option Self AlignSEC
+instance Option Self AlignSB
 
 items :: Option Items o => o -> [Class]
 items opts = 
   cls $ "items"-(option opts :: Seg Items)
 
 data Items
-instance Option Items Align
+instance Option Items AlignSEC
+instance Option Items AlignSB
+
+content :: Option Content o => o -> [Class]
+content opts = 
+  cls $ "content"-(option opts :: Seg Content)
+
+data Content
+instance Option Content AlignSEC
+instance Option Content AlignBAE
 
 -- | Child should grow to fill available space in a flex container
 -- TODO grow-0?

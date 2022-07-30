@@ -4,6 +4,9 @@ module Tailwind.UI
   , row, col, el, fromHtml, text
   , bg, flex
   , border
+  , items, content, self
+  , padding, gap
+  , width, height
   , module Tailwind.Options
 
   ) where
@@ -13,7 +16,7 @@ import Tailwind.Options
 import Lucid
 
 -- I need a separate types file
-import Tailwind (Background, Flex, Border, Gap, Padding)
+import Tailwind (Background, Flex, Border, Gap, Padding, Self, Items, Content, Dimensions)
 import Tailwind.Options
 import qualified Tailwind
 import qualified Data.Text as Text
@@ -38,7 +41,20 @@ gap o = addClass (Tailwind.gap o)
 padding :: Option Padding o => o -> Att a
 padding o = addClass (Tailwind.padding o)
 
+content :: Option Content o => o -> Att a
+content o = addClass (Tailwind.content o)
 
+self :: Option Self o => o -> Att a
+self o = addClass (Tailwind.self o)
+
+items :: Option Items o => o -> Att a
+items o = addClass (Tailwind.items o)
+
+width :: Option Dimensions o => o -> Att a
+width o = addClass (Tailwind.width o)
+
+height :: Option Dimensions o => o -> Att a
+height o = addClass (Tailwind.height o)
 
 
 

@@ -331,15 +331,27 @@ instance Segment FontWeight where
 
 
 
-
-data Align
-  = Stretch
-  | Center
-  | Start
+data AlignSEC
+  = Start
   | End
+  | Center
+  deriving (Bounded, Enum, Show)
+instance Segment AlignSEC where
+  seg = segHyphens
+
+data AlignSB
+  = Stretch
   | Baseline
   deriving (Bounded, Enum, Show)
-instance Segment Align where
+instance Segment AlignSB where
+  seg = segHyphens
+
+data AlignBAE
+  = Between
+  | Around
+  | Evenly
+  deriving (Bounded, Enum, Show)
+instance Segment AlignBAE where
   seg = segHyphens
 
 
