@@ -29,6 +29,7 @@ import Tailwind.UI
 
 -- for this to work, I would need 
 
+
 example :: UI t ()
 example = col (gap S10 . bg Black . text White . pad S10) $ do
   str "EXAMPLE"
