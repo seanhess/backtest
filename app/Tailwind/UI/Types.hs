@@ -11,13 +11,13 @@ import qualified Data.Text as Text
 
 type Att a = Opt a -> Opt a
 
-newtype UI a = UI { fromUI :: Lucid.Html a }
+newtype UI t a = UI { fromUI :: Lucid.Html a }
   deriving (Functor, Applicative, Monad)
 
-instance IsString (UI ()) where
+instance IsString (UI t ()) where
   fromString s = UI $ Lucid.toHtml s
 
-instance Show (UI a) where
+instance Show (UI t a) where
   show (UI h) = "UI " <> show h
 
 

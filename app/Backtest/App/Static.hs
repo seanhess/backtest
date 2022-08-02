@@ -18,12 +18,11 @@ files = do
   -- get "/ui.css" $ do
   --   setHeader "Content-Type" "text/css"
   --   text $ cs (UI.stylesheet (range :: [AppColor]) (range :: [Space]))
+  -- get "/modern-normalize.css" $ static ".css" normalize
 
-  get "/modern-normalize.css" $ static ".css" normalize
+  get "/app.js"  $ static ".js" scripts
+  get "/app.css" $ static ".css" css
 
-  get "/scripts.js" $ static ".js" scripts
-
-  -- get "/finalfive.css" $ static ".css" css
   -- get "/icons.svg" $ static ".svg" icons
   -- get "/images.css" $ do
   --   css_ <- generateImagesCss
@@ -34,7 +33,7 @@ files = do
   where
     normalize = $(embedFile "static/modern-normalize.css")
 
-    -- css = $(embedFile "static/finalfive.css")
+    css = $(embedFile "static/output.css")
     -- icons = $(embedFile "static/icons.svg")
 
     scripts = Juniper.scripts <> "\n" <> bundle

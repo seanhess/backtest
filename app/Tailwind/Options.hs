@@ -315,19 +315,19 @@ instance Segment Weight where
 
 
 data FontWeight
-  = FWThin
-  | FWExtraLight
-  | FWLight
-  | FWNormal
-  | FWMedium
-  | FWSemibold
-  | FWBold
-  | FWExtrabold
-  | FWBlack
+  = Thin
+  | ExtraLight
+  | Light
+  | Normal
+  | Medium
+  | Semibold
+  | Bold
+  | Extrabold
+  -- | Black
   deriving Show
 
 instance Segment FontWeight where
-  seg fw = Seg $ Text.toLower $ Text.drop 2 $ pack $ show fw
+  seg fw = Seg $ Text.toLower $ pack $ show fw
 
 
 

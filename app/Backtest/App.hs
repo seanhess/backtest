@@ -1,7 +1,8 @@
 module Backtest.App where
 
 import Backtest.Prelude
-import Web.Scotty as Scotty hiding (text)
+import Web.Scotty as Scotty hiding (text, html)
+import qualified Web.Scotty as Scotty
 import Network.Wai.Middleware.Static (staticWithOptions, defaultOptions)
 import Network.Wai (Application)
 import Lucid (renderBS, renderText, Html)
@@ -9,6 +10,7 @@ import Lucid.Html5
 import qualified Backtest.App.Counter as Counter
 import qualified Backtest.App.Static as Static
 import qualified Data.Text.IO as Text
+import qualified Data.Text as Text
 
 import Juniper
 import Juniper.Web (document)
@@ -24,16 +26,19 @@ import Tailwind.UI
 -- writeStylesheet = do
 --   Text.writeFile "static/ui.css" $ stylesheet (range :: [AppColor]) (range :: [Space])
 
-example :: UI ()
-example = col (border Black . border B8 . items Stretch) $ do
-  el (self Start) $ text "ok"
-  el (self End) $ row (items Start . gap S1) $ do
-      el (width S40) $ text "one"
-      el (width S12) $ text "two"
-      el (width S6) $ text "three"
+
+-- for this to work, I would need 
+
+example :: UI t ()
+example = col (gap S10 . bg Black . text White . pad S10) $ do
+  str "EXAMPLE"
+  row (gap S2 . border Black . border B6 . border (R B8)) $ do
+      el (bg White . width S40) $ str "one"
+      el (bg White . width S12) $ str "two"
+      el (bg White . width S6)  $ str "three"
 
   -- these weights are ugly
-  el (bg (Green CW900)) $ text "hello"
+  el (bg (Green CW900)) $ "hello"
 
 start :: IO ()
 start = do
@@ -48,19 +53,26 @@ start = do
     page "/page" $ do
       handle cfg Counter.page
 
-    -- get "/layout" $ do
-    --   html $ renderText $ toDocument $ layoutTest
+    get "/layout" $ do
+      Scotty.html $ renderText $ toDocument $ fromUI $ example
 
     -- -- if you use "lucid" it doesn't work
     -- get "/app/about" $
     --   static $ About.view
 
     get "/" $ do
-      html $ cs $ renderBS $ do
+      Scotty.html $ cs $ renderBS $ do
         h1_ "Backtest"
         li_ $ a_ [href_ "/page"] "Page"
 
     Static.files
+
+
+-- allClasses :: Text
+-- allClasses = Text.unlines $ mconcat
+--   [ map bg :: 
+
+--   ]
 
 
 toDocument :: Html () -> Html ()
@@ -77,15 +89,15 @@ toDocument cnt = do
       link_ [rel_ "preconnect", href_ "https://fonts.gstatic.com", crossorigin_ ""]
       -- link_ [rel_ "stylesheet", href_ "https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;500;600&family=Inter:wght@400;500;700&display=swap"]
 
-      link_ [type_ "text/css", rel_ "stylesheet", href_ "/modern-normalize.css"]
-      -- link_ [type_ "text/css", rel_ "stylesheet", href_ "/ui.css"]
+      -- link_ [type_ "text/css", rel_ "stylesheet", href_ "/modern-normalize.css"]
+      link_ [type_ "text/css", rel_ "stylesheet", href_ "/app.css"]
       -- link_ [type_ "text/css", rel_ "stylesheet", href_ "/finalfive.css"]
 
 
     body_ $ do
       cnt
 
-      script_ [type_ "text/javascript", src_ "/scripts.js"] ("" :: Text)
+      script_ [type_ "text/javascript", src_ "/app.js"] ("" :: Text)
       -- link_ [type_ "text/css", rel_ "stylesheet", href_ "/images.css"]
 
   -- link_ [type_ "text/css", rel_ "stylesheet", href_ "/example/example.css"]

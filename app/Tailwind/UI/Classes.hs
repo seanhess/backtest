@@ -1,11 +1,11 @@
 module Tailwind.UI.Classes where
 
-import Prelude
+import Prelude hiding (div)
 import Tailwind.Options
 import Lucid
 
 -- I need a separate types file
-import Tailwind (Background, Flex, Border, Gap, Padding, Self, Items, Content, Dimensions)
+import Tailwind (Background, Flex, Border, Gap, Padding, Self, Items, Content, Dimensions, Font, FontText)
 import Tailwind.Options
 import Tailwind.UI.Types
 import qualified Tailwind
@@ -14,44 +14,35 @@ import Data.Text (Text)
 
 
 
+-- the layout ones ONLY take layout
+-- export div, el?
+
+data Node
+
+-- you can do MOST things, right?
+-- it's just some aren't allowed in layout
+-- can we make it stricter?
 bg :: Option Background o => o -> Att a
 bg o = addClass (Tailwind.bg o)
-
-flex :: Option Flex o => o -> Att a
-flex o = addClass (Tailwind.flex o)
 
 border :: Option Border o => o -> Att a
 border o = addClass (Tailwind.border o)
 
-gap :: Option Gap o => o -> Att a
-gap o = addClass (Tailwind.gap o)
+text :: Option FontText o => o -> Att a
+text o = addClass (Tailwind.text o)
 
-padding :: Option Padding o => o -> Att a
-padding o = addClass (Tailwind.padding o)
-
-content :: Option Content o => o -> Att a
-content o = addClass (Tailwind.content o)
-
-self :: Option Self o => o -> Att a
-self o = addClass (Tailwind.self o)
-
-items :: Option Items o => o -> Att a
-items o = addClass (Tailwind.items o)
-
-width :: Option Dimensions o => o -> Att a
-width o = addClass (Tailwind.width o)
-
-height :: Option Dimensions o => o -> Att a
-height o = addClass (Tailwind.height o)
+font :: Option Font o => o -> Att a
+font o = addClass (Tailwind.font o)
 
 
 
 
-fromHtml :: (Opt c -> Opt c) -> Html a -> UI a
-fromHtml f h = UI $ div_ (atts $ f opt) h
+-- oh, but this can do anything, including layout
+-- flex :: Option Flex o => o -> Att Node
+-- flex o = addClass (Tailwind.flex o)
 
-text :: Text -> UI ()
-text t = UI $ toHtml t
+
+
 
 
 

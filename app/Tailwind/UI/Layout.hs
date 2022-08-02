@@ -2,15 +2,68 @@ module Tailwind.UI.Layout where
 
 import Prelude
 import Tailwind (Direction(..))
+import qualified Tailwind
 import Lucid (div_)
 import Tailwind.UI.Types
 import Tailwind.UI.Classes
+import Tailwind.Options
+import Tailwind (Gap, Padding, Self, Items, Content, Dimensions)
 
-row :: (Opt p -> Opt p) -> UI a -> UI a
-row f ct = UI $ div_ (atts $ f . flex Row . flex () $ opt) (fromUI ct)
 
-col :: (Opt p -> Opt p) -> UI a -> UI a
-col f ct = UI $ div_ (atts $ f . flex Col . flex () $ opt) (fromUI ct)
+-- OK, my goal is to prevent people from using margin
+-- gap, pad, space, row, col, el, etc
 
-el :: (Opt c -> Opt c) -> UI a -> UI a
-el f ct = UI $ div_ (atts $ f opt) (fromUI ct)
+
+-- should we further restrict these?
+-- what can you specify on row? Any of these, of course
+-- but we don't even export flex, or margin
+
+-- ok, we can ONLY use layout options
+row :: (Opt a -> Opt a) -> UI t a -> UI t a
+row f ct = UI $ div_ [classAttribute [Tailwind.flex Col, Tailwind.flex ()]] (fromUI ct)
+
+col :: (Opt a -> Opt a) -> UI t a -> UI t a
+col f ct = UI $ div_ [classAttribute [Tailwind.flex Row, Tailwind.flex ()]] (fromUI ct)
+
+space :: UI t ()
+space = UI $ div_ [classAttribute [Tailwind.grow]] (pure ())
+
+
+gap :: Option Gap o => o -> Att a
+gap o = addClass (Tailwind.gap o)
+
+pad :: Option Padding o => o -> Att a
+pad o = addClass (Tailwind.padding o)
+
+-- we DON'T want to remember these options. Too much flex knowledge
+-- what if we require the gap/pad?
+content :: Option Content o => o -> Att a
+content o = addClass (Tailwind.content o)
+
+self :: Option Self o => o -> Att a
+self o = addClass (Tailwind.self o)
+
+items :: Option Items o => o -> Att a
+items o = addClass (Tailwind.items o)
+
+width :: Option Dimensions o => o -> Att a
+width o = addClass (Tailwind.width o)
+
+height :: Option Dimensions o => o -> Att a
+height o = addClass (Tailwind.height o)
+
+
+-- 1. Wrapping
+-- 2. Space around? I think you can do it with padding just fine
+-- I need to play with this, create an actual html file
+
+-- hmmm
+-- I want to be more specific about what a layout expects, about what is possible
+-- right now, they are nodes and you coulld put ANYTHING in them
+-- but really, I want to ask for layout options ONLY, then anything like normal
+-- and I want a limited number of layout options
+
+-- layout?
+-- his options are incomplete
+-- you can't do EVERYTHING with this, can you?
+-- space is a huge adjustment, if you can make things fill space, you can accomplish a lot

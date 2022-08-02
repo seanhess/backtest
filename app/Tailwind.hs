@@ -345,9 +345,11 @@ instance Option Font FontWeight
 
 
 
+
 data FontText
 instance Option FontText SML
 instance Option FontText XSML
+instance Option FontText Color
 
 text :: Option FontText o => o -> [Class]
 text o = cls $ "text" - (option o :: Seg FontText)
