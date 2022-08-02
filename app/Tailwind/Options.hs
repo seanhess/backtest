@@ -11,6 +11,7 @@ import Data.Map (Map)
 import Data.Maybe (fromMaybe)
 import Data.String (IsString(..))
 import Data.Text (Text, pack)
+import Data.Char (isLower)
 import GHC.Exts (IsList(..))
 import Prelude hiding ((-))
 import Text.Casing as Casing (kebab)
@@ -26,10 +27,14 @@ newtype Seg a = Seg { fromSeg :: Text }
 
 -- arghm. 
 segHyphens :: Show a => a -> Seg b
-segHyphens a = Seg $ Text.toLower $ pack $ Casing.kebab $ show a
+segHyphens a = Seg $ hyphenate $ show a
 
+hyphenate :: String -> Text
+hyphenate = Text.toLower . pack . Casing.kebab
+
+-- drop until second cap
 segDropPrefix :: Show a => a -> Seg b
-segDropPrefix a = Seg $ pack $ drop 1 $ show a
+segDropPrefix a = Seg $ hyphenate $ dropWhile isLower $ drop 1 $ show a
 
 
 class Segment a where
@@ -88,13 +93,13 @@ instance (Segment a) => Segment (Axis a) where
   seg (Y a) = "y" - seg a
 
 
-data Corners a
+data Corner a
   = TL a
   | TR a
   | BL a
   | BR a
 
-instance (Segment a) => Segment (Corners a) where
+instance (Segment a) => Segment (Corner a) where
   seg (TL a) = "tl" - seg a
   seg (TR a) = "tr" - seg a
   seg (BL a) = "bl" - seg a
@@ -123,6 +128,7 @@ data RelSize
   | R2_3
   | R1_4
   | R3_4
+  deriving (Bounded, Enum)
 instance Segment RelSize where
   seg R1_2   = "1/2"
   seg R1_3   = "1/3"
@@ -144,6 +150,7 @@ data ExtSize
   | Screen
   | Min
   | Max
+  deriving (Bounded, Enum)
 instance Segment ExtSize where
   seg R1_5   = "1/5"
   seg R2_5   = "2/5"
@@ -260,40 +267,19 @@ instance Segment BorderSize where
 
 data None
   = None
-  deriving (Show)
+  deriving (Show, Bounded, Enum)
 instance Segment None where
   seg = segHyphens
 
 
+-- Color needs to be a concrete datatype
+-- otherwise you need to specify all your colors for this to work at all
 
--- | Default Colors. You should specify your own app colors
--- use tailwind's config to strip out unused ones and define your own appcolor
-data Color
-  = Black
-  | White
-  -- | Slate Weight
-  | Gray Weight
-  -- | Zinc Weight
-  -- | Neutral Weight
-  -- | Stone Weight
-  | Red Weight
-  | Orange Weight
-  | Yellow Weight
-  | Green Weight
-  | Blue Weight
-  | Purple Weight
-  -- TODO there are many more default colors
 
+-- AppColor yay
+newtype Color = Color Text
 instance Segment Color where
-  seg Black = "black"
-  seg White = "white"
-  seg (Gray w) = "gray" - seg w
-  seg (Red w) = "red" - seg w
-  seg (Orange w) = "orange" - seg w
-  seg (Yellow w) = "yellow" - seg w
-  seg (Green w) = "green" - seg w
-  seg (Blue w) = "blue" - seg w
-  seg (Purple w) = "purple" - seg w
+  seg (Color n) = Seg n
 
 
 
@@ -324,7 +310,7 @@ data FontWeight
   | Bold
   | Extrabold
   -- | Black
-  deriving Show
+  deriving (Show, Bounded, Enum)
 
 instance Segment FontWeight where
   seg fw = Seg $ Text.toLower $ pack $ show fw
@@ -386,7 +372,7 @@ instance Segment Pos where
 
 
 data Rot = R0 | R1 | R2 | R3 | R6 | R12 | R45 | R90 | R180
-  deriving (Show)
+  deriving (Show, Bounded, Enum)
 instance Segment Rot where
   seg = segDropPrefix
 
@@ -397,7 +383,7 @@ data Property
   | Transform
   | Shadow
   | Opacity
-  deriving (Show)
+  deriving (Show, Bounded, Enum)
 instance Segment Property where
   seg = segHyphens
 
@@ -411,7 +397,7 @@ data Dur
   | D500
   | D700
   | D1000
-  deriving (Show)
+  deriving (Show, Bounded, Enum)
 instance Segment Dur where
   seg = segDropPrefix
 
@@ -423,7 +409,7 @@ data Z
   | Z30
   | Z40
   | Z50
-  deriving (Show)
+  deriving (Show, Bounded, Enum)
 instance Segment Z where
   seg = segDropPrefix
 
@@ -443,7 +429,7 @@ data Opacity
   | O80
   | O90
   | O100
-  deriving (Show)
+  deriving (Show, Bounded, Enum)
 instance Segment Opacity where
   seg = segDropPrefix
 
@@ -453,7 +439,7 @@ data Ease
   | InOut
   | Out
   | In
-  deriving (Show)
+  deriving (Show, Bounded, Enum)
 instance Segment Ease where
   seg = segHyphens
 

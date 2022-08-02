@@ -15,6 +15,7 @@ import qualified Data.Text as Text
 import Juniper
 import Juniper.Web (document)
 import Tailwind.UI
+import Tailwind.UI.Gen
 -- import Tailwind.Color
 -- import Tailwind
 
@@ -29,17 +30,30 @@ import Tailwind.UI
 
 -- for this to work, I would need 
 
+black :: Color
+black = Color "black"
+
+white :: Color
+white = Color "white"
+
+green :: Color
+green = Color "green-900"
+
+colors :: [Color]
+colors =
+  [ black, white, green ]
 
 example :: UI t ()
-example = col (gap S10 . bg Black . text White . pad S10) $ do
+example = col (gap S10 . bg black . text white . pad S10) $ do
   str "EXAMPLE"
-  row (gap S2 . border Black . border B6 . border (R B8)) $ do
-      el (bg White . width S40) $ str "one"
-      el (bg White . width S12) $ str "two"
-      el (bg White . width S6)  $ str "three"
+  row (gap S2 . border black . border B6 . border (R B8)) $ do
+      el (bg white . width S40) $ str "one"
+      el (bg white . width S12) $ str "two"
+      el (bg white . width S6)  $ str "three"
+
 
   -- these weights are ugly
-  el (bg (Green CW900)) $ "hello"
+  el (bg green) $ "hello"
 
 start :: IO ()
 start = do

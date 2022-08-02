@@ -5,7 +5,7 @@ import Prelude
 import Tailwind.Options
 import Lucid
 import Data.String (IsString(..))
-import qualified Data.Text as Text
+import Data.Text as Text (Text, intercalate)
 
 -- | UI instead of HTML
 
@@ -38,5 +38,8 @@ atts (Opt as css) =
 
 -- | Convert classes into an Attribute
 classAttribute :: [[Class]] -> Attribute
-classAttribute cns = class_ (Text.intercalate " " (map fromClass (mconcat cns)) <> " ")
+classAttribute cns = class_ $ (Text.intercalate " " (classText cns) <> " ")
+
+classText :: [[Class]] -> [Text]
+classText cns = (map fromClass (mconcat cns)) 
 

@@ -35,7 +35,7 @@ module Tailwind
   -- * Transforms
   , translate
   , transform
-  , transition, rotate, easing, duration, Duration, Dur(..), Rotate, Rot(..), Easing, Ease(..), Property(..)
+  , transition, rotate, easing, duration, delay, Duration, Dur(..), Rotate, Rot(..), Easing, Ease(..), Property(..)
 
   -- * Effects
   , shadow, Shadow
@@ -74,7 +74,7 @@ data BgSize
   = BgCover
   | BgContain
   | BgAuto
-  deriving (Show, Eq)
+  deriving (Show, Eq, Bounded, Enum)
 instance Segment BgSize where
   seg = segDropPrefix
 
@@ -322,10 +322,10 @@ instance Option Rounded (Side None)
 instance Option Rounded (Side Full)
 instance Option Rounded (Side SML)
 instance Option Rounded (Side ())
-instance Option Rounded (Corners None)
-instance Option Rounded (Corners Full)
-instance Option Rounded (Corners SML)
-instance Option Rounded (Corners ())
+instance Option Rounded (Corner None)
+instance Option Rounded (Corner Full)
+instance Option Rounded (Corner SML)
+instance Option Rounded (Corner ())
 
 rounded :: Option Rounded o => o -> [Class]
 rounded o = 

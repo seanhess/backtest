@@ -31,13 +31,14 @@ files = do
 
 
   where
-    normalize = $(embedFile "static/modern-normalize.css")
+    -- normalize = $(embedFile "static/modern-normalize.css")
 
     css = $(embedFile "static/output.css")
     -- icons = $(embedFile "static/icons.svg")
 
     scripts = Juniper.scripts <> "\n" <> bundle
     bundle = $(embedFile "static/bundle.js")
+
 
 
 
