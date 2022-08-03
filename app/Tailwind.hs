@@ -25,6 +25,7 @@ module Tailwind
   , basis
   , self, items, content, Self, Items, Content
   , grow -- , row, col, space
+  , justify, Justify
 
   -- * Position
   , position, Position, Pos(..)
@@ -196,6 +197,14 @@ content opts =
 data Content
 instance Option Content AlignSEC
 instance Option Content AlignBAE
+
+justify :: Option Justify o => o -> [Class]
+justify opts = 
+  cls $ "justify"-(option opts :: Seg Justify)
+
+data Justify
+instance Option Justify AlignSEC
+instance Option Justify AlignBAE
 
 -- | Child should grow to fill available space in a flex container
 -- TODO grow-0?

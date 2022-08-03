@@ -37,23 +37,32 @@ white :: Color
 white = Color "white"
 
 green :: Color
-green = Color "green-900"
+green = Color "green-500"
+
+red :: Color
+red = Color "red-500"
 
 colors :: [Color]
 colors =
-  [ black, white, green ]
+  [ black, white, green, red ]
 
 example :: UI t ()
-example = col (gap S10 . bg black . text white . pad S10) $ do
-  str "EXAMPLE"
-  row (gap S2 . border black . border B6 . border (R B8)) $ do
-      el (bg white . width S40) $ str "one"
-      el (bg white . width S12) $ str "two"
-      el (bg white . width S6)  $ str "three"
+example = col (gap S2 . bg black . text white . pad S2) $ do
+  row (bg red) $ do
+    space
+    str "EXAMPLE"
+    space
+
+  row (gap S2 . bg red . border black . border B6 . border (R B8) . text black . justify Evenly) $ do
+      el (bg white . basis S40) $ str "one"
+      el (bg white . basis R1_2) $ str "two"
+      el (bg white . basis S6)  $ str "three"
+
+  el (bg green . width S12) $ str "hello"
 
 
-  -- these weights are ugly
-  el (bg green) $ "hello"
+
+
 
 start :: IO ()
 start = do

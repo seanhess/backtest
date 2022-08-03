@@ -23,6 +23,7 @@ instance Show (UI t a) where
 
 
 data Opt a = Opt [Attribute] [[Class]]
+  deriving (Show, Eq)
 
 
 

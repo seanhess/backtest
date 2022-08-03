@@ -10,20 +10,12 @@ import Tailwind.Options
 import Tailwind (Gap, Padding, Self, Items, Content, Dimensions)
 
 
--- OK, my goal is to prevent people from using margin
--- gap, pad, space, row, col, el, etc
 
+row :: (Opt a -> Opt a) -> UI t () -> UI t ()
+row f ct = UI $ div_ (atts $ f $ Opt [] [Tailwind.flex Row, Tailwind.flex ()]) (fromUI ct)
 
--- should we further restrict these?
--- what can you specify on row? Any of these, of course
--- but we don't even export flex, or margin
-
--- ok, we can ONLY use layout options
-row :: (Opt a -> Opt a) -> UI t a -> UI t a
-row f ct = UI $ div_ [classAttribute [Tailwind.flex Col, Tailwind.flex ()]] (fromUI ct)
-
-col :: (Opt a -> Opt a) -> UI t a -> UI t a
-col f ct = UI $ div_ [classAttribute [Tailwind.flex Row, Tailwind.flex ()]] (fromUI ct)
+col :: (Opt a -> Opt a) -> UI t () -> UI t ()
+col f ct = UI $ div_ (atts $ f $ Opt [] [Tailwind.flex Col, Tailwind.flex ()]) (fromUI ct)
 
 space :: UI t ()
 space = UI $ div_ [classAttribute [Tailwind.grow]] (pure ())

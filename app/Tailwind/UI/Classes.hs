@@ -5,7 +5,7 @@ import Tailwind.Options
 import Lucid
 
 -- I need a separate types file
-import Tailwind (Background, Flex, Border, Gap, Padding, Self, Items, Content, Dimensions, Font, FontText)
+import Tailwind (Background, Flex, Border, Gap, Padding, Self, Items, Content, Dimensions, Font, FontText, Justify)
 import Tailwind.Options
 import Tailwind.UI.Types
 import qualified Tailwind
@@ -33,6 +33,15 @@ text o = addClass (Tailwind.text o)
 
 font :: Option Font o => o -> Att a
 font o = addClass (Tailwind.font o)
+
+basis :: Option Dimensions o => o -> Att a
+basis o = addClass (Tailwind.basis o)
+
+justify :: Option Justify o => o -> Att a
+justify o = addClass (Tailwind.justify o)
+
+grow :: Att a
+grow = addClass Tailwind.grow
 
 
 

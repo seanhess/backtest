@@ -54,6 +54,45 @@ class Option k a where
 a - "" = a
 (Seg a) - (Seg b) = Seg $ a <> "-" <> b
 
+-- oh no, these need t be different
+(.-) :: [Seg a] -> [Seg b] -> [Seg a]
+a .- [] = a
+a .- b = a <> [Seg "-"] <> map (\(Seg x) -> Seg x) b
+
+align :: [Seg a]
+align = ["asdf"]
+
+center :: [Seg a]
+center = ["asdf"]
+
+md :: Seg a
+md = "md"
+
+-- that would be REALLY silly
+-- can I type it so they can't go together?
+-- align:must have certain options
+-- align options
+-- it can't take just ANYTHING
+-- only certain ones
+
+
+-- transform none
+-- rounded none
+
+
+-- rounded can take any rounded
+-- transform can take any None
+-- can we do something fancy?
+-- w-full
+-- h-full
+-- rounded-full
+
+-- so, full can go with:
+-- with, height, rounded, hooray!
+
+test :: [Seg a]
+test = md:align.-center
+
 newtype Class = Class { fromClass :: Text }
   deriving (Show, Eq, IsString)
 
@@ -278,6 +317,7 @@ instance Segment None where
 
 -- AppColor yay
 newtype Color = Color Text
+  deriving (Show)
 instance Segment Color where
   seg (Color n) = Seg n
 

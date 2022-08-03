@@ -76,6 +76,8 @@ classWhitelist clrs = mconcat $ map classText
   , items <$> (range :: [AlignSB])
   , content <$> (range :: [AlignSEC])
   , content <$> (range :: [AlignBAE])
+  , justify <$> (range :: [AlignSEC])
+  , justify <$> (range :: [AlignBAE])
   , [grow]
   , position <$> (range :: [Pos])
   , top <$> (range :: [Size])
