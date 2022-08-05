@@ -15,7 +15,6 @@ import qualified Data.Text as Text
 import Juniper
 import Juniper.Web (document)
 import Tailwind.UI
-import Tailwind.UI.Gen
 -- import Tailwind.Color
 -- import Tailwind
 
@@ -47,7 +46,7 @@ colors =
   [ black, white, green, red ]
 
 example :: UI t ()
-example = col (gap S2 . bg black . text white . pad S2) $ do
+example = col (gap S4 . bg black . text white . pad S2) $ do
   row (bg red) $ do
     space
     str "EXAMPLE"

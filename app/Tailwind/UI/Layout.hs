@@ -25,7 +25,7 @@ gap :: Option Gap o => o -> Att a
 gap o = addClass (Tailwind.gap o)
 
 pad :: Option Padding o => o -> Att a
-pad o = addClass (Tailwind.padding o)
+pad o = addClass (Tailwind.pad o)
 
 -- we DON'T want to remember these options. Too much flex knowledge
 -- what if we require the gap/pad?

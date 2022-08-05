@@ -17,7 +17,7 @@ module Tailwind
   , outline, Outline
 
   -- * Spacing
-  , padding, Padding
+  , pad, Padding
   , gap, Gap
 
   -- * Layout
@@ -94,8 +94,8 @@ instance Option Padding (Axis Size) where
 instance Option Padding (Side Size) where
   option s = "p" <> (seg s)
 
-padding :: Option Padding o => o -> [Class]
-padding o =
+pad :: Option Padding o => o -> [Class]
+pad o =
   cls $ (option o :: Seg Padding)
 
 
