@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveAnyClass #-}
 module Backtest.App where
 
 import Backtest.Prelude
@@ -35,10 +36,7 @@ data AppColor
   | White
   | Green
   | Red
-  deriving (Show)
-
-instance Segment AppColor where
-  seg = segHyphens
+  deriving (Show, Segment)
 
 instance Option Background AppColor
 instance Option Border AppColor

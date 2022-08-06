@@ -1,8 +1,23 @@
 module.exports = {
-  content: {
-    files: ['./app/Backtest/**/*.hs', './app/Backtest/*.hs'],
 
-    // files: ['./app/**/*.hs'],
+  theme: {
+    colors: {
+      transparent: 'transparent',
+      current: 'currentColor',
+      'white': '#ffffff',
+      'black': '#ffffff',
+      'red': '#F00',
+      'green': '#0F0',
+      'blue': '#00F',
+      },
+    },
+
+  content: {
+    // content: ['./app/**/*.hs'],
+    // content: ['./app/Backtest/**/*.hs', './app/Backtest/*.hs'],
+    content: ['./app/Backtest/App.hs'],
+
+
 
     // Custom layout functions: col, row, etc won't be automatically detected
     safelist: ['flex', 'flex-row', 'flex-col', 'grow'],
@@ -10,7 +25,7 @@ module.exports = {
     // Custom
     extract: {
       hs: (content) => {
-        let start = /[\(\.,\)^]/
+        let start = /[\(\.,\)^\"]/
         // let end = /\.,\)$/
         let space = /\s*/
         let utility = /([a-zA-Z0-9\s_\(\:\|]+)/
@@ -26,7 +41,7 @@ module.exports = {
             utils.push(clean)
           }
         }
-        // if (utils.length) console.log(utils)
+        if (utils.length) console.log(utils)
 
         return utils
       }
