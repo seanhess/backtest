@@ -29,8 +29,7 @@ import Tailwind.UI
 
 -- for this to work, I would need 
 
--- these colors need to map to something specific, right?
--- no, they need to map to *names*, which are specified in the file
+-- this is a bit obnoxious!
 data AppColor
   = Black
   | White
@@ -41,6 +40,9 @@ data AppColor
 instance Option Background AppColor
 instance Option Border AppColor
 instance Option FontText AppColor
+
+yellow400 :: Color
+yellow400 = Color "yellow-500"
 
 example :: UI t ()
 example = col (gap S4 . bg Black . text White . p S2) $ do
@@ -54,7 +56,7 @@ example = col (gap S4 . bg Black . text White . p S2) $ do
       el (bg White . basis R1_2) $ str "two"
       el (bg White . basis S6)  $ str "three"
 
-  el (bg Green . w S12) $ str "hello"
+  el (bg yellow400 . w S12) $ str "hello"
 
 
 

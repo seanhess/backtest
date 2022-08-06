@@ -1,3 +1,5 @@
+const colors = require('tailwindcss/colors')
+
 module.exports = {
 
   theme: {
@@ -9,6 +11,7 @@ module.exports = {
       'red': '#F00',
       'green': '#0F0',
       'blue': '#00F',
+      'yellow': colors.yellow,
       },
     },
 
@@ -16,8 +19,6 @@ module.exports = {
     // content: ['./app/**/*.hs'],
     // content: ['./app/Backtest/**/*.hs', './app/Backtest/*.hs'],
     content: ['./app/Backtest/App.hs'],
-
-
 
     // Custom layout functions: col, row, etc won't be automatically detected
     safelist: ['flex', 'flex-row', 'flex-col', 'grow'],
@@ -170,6 +171,10 @@ const valueMap = {
 }
 
 function camelToKebab(str) {
-  // replace caps except for the first one
-  return str.replace(/[A-Z]/g, letter => "-" + letter.toLowerCase()).replace(/^\-/, "")
+  return str
+    // replace caps except for the first one
+    .replace(/[A-Z]/g, letter => "-" + letter.toLowerCase()).replace(/^\-/, "")
+
+    // kebab numbers as well, only once
+    .replace(/([A-Za-z_]+)([0-9]+)/, (_, chars, num) => chars + "-" + num)
 } 
