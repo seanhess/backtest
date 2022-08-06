@@ -7,7 +7,7 @@ module.exports = {
       transparent: 'transparent',
       current: 'currentColor',
       'white': '#ffffff',
-      'black': '#ffffff',
+      'black': '#000000',
       'red': '#F00',
       'green': '#0F0',
       'blue': {
@@ -21,8 +21,8 @@ module.exports = {
 
   content: {
     // content: ['./app/**/*.hs'],
-    // content: ['./app/Backtest/**/*.hs', './app/Backtest/*.hs'],
-    content: ['./app/Backtest/App.hs'],
+    content: ['./app/Backtest/**/*.hs', './app/Backtest/*.hs'],
+    // content: ['./app/Backtest/App.hs'],
 
     // Custom layout functions: col, row, etc won't be automatically detected
     safelist: ['flex', 'flex-row', 'flex-col', 'grow'],
@@ -46,7 +46,7 @@ module.exports = {
             utils.push(clean)
           }
         }
-        if (utils.length) console.log(utils)
+        // if (utils.length) console.log(utils)
 
         return utils
       }

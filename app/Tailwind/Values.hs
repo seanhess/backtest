@@ -204,7 +204,6 @@ data BorderSize
   | B1
   | B2
   | B4
-  | B6
   | B8
   deriving (Enum, Bounded, Show)
 instance Segment BorderSize where

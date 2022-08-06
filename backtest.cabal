@@ -100,7 +100,7 @@ executable backtest-exe
       Backtest.App
       Backtest.App.Counter
       Backtest.App.Static
-      Backtest.Test
+      Backtest.LayoutTest
       Tailwind
       Tailwind.Classes
       Tailwind.Options

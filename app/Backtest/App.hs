@@ -12,6 +12,7 @@ import qualified Backtest.App.Counter as Counter
 import qualified Backtest.App.Static as Static
 import qualified Data.Text.IO as Text
 import qualified Data.Text as Text
+import Backtest.LayoutTest (layoutTest)
 
 import Juniper
 import Juniper.Web (document)
@@ -29,42 +30,6 @@ import Tailwind.UI
 
 -- for this to work, I would need 
 
--- this is a bit obnoxious!
-data AppColor
-  = Black
-  | White
-  | Green
-  | Red
-  | Blue
-  | BlueLight
-  | BlueDark
-  deriving (Show, Segment)
-
-instance Option Background AppColor
-instance Option Border AppColor
-instance Option FontText AppColor
-
-yellow400 :: Color
-yellow400 = Color "yellow-500"
-
-example :: UI t ()
-example = col (gap S4 . bg Black . text White . p S2) $ do
-  row (bg Red . p S0. shrink) $ do
-    space
-    str "EXAMPLE"
-    space
-
-  row (gap S2 . bg BlueLight . border Black . border B6 . border (R B8) . text Black . justify Evenly) $ do
-      el (bg White . basis S40) $ str "one"
-      el (bg White . basis R1_2) $ str "two"
-      el (bg White . basis S6)  $ str "three"
-
-  el (bg yellow400 . w S12) $ str "hello"
-
-
-
-
-
 start :: IO ()
 start = do
 
@@ -79,7 +44,7 @@ start = do
       handle cfg Counter.page
 
     get "/layout" $ do
-      Scotty.html $ renderText $ toDocument $ fromUI $ example
+      Scotty.html $ renderText $ toDocument $ fromUI $ layoutTest
 
     -- -- if you use "lucid" it doesn't work
     -- get "/app/about" $
