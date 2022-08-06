@@ -562,6 +562,10 @@ video {
   flex-basis: 10rem;
 }
 
+.basis-1\/2 {
+  flex-basis: 50%;
+}
+
 .basis-6 {
   flex-basis: 1.5rem;
 }
@@ -576,6 +580,10 @@ video {
 
 .gap-2 {
   gap: 0.5rem;
+}
+
+.border {
+  border-width: 1px;
 }
 
 .border-r-8 {
@@ -599,6 +607,10 @@ video {
 
 .p-2 {
   padding: 0.5rem;
+}
+
+.p-0 {
+  padding: 0px;
 }
 
 .text-white {

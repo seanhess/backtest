@@ -56,23 +56,87 @@ module.exports = {
 }
 
 function cleanName(s) {
-  return s.split(/[\s\(\)]+/).map(cleanTerm).join('-')
+  return s.split(/[\s\(\)]+/)
+    .map(cleanTerm)
+    .filter((x) => x != '')
+    .join('-')
 }
 
 function cleanTerm(t) {
-  // drop prefixes (uppercase)
-  let clean = removePrefix(t).toLowerCase()
+  let clean = mapTermValue(t).toLowerCase()
 
   // special cases. Should we rename the function to p?, w, etc?
   if (clean == "pad") return "p"
+
   return clean
 }
 
-function removePrefix(s) {
-  return s.replace(/^[A-Za-z]+([0-9]+)_?([0-9]+)?/, function (m, n1, n2) {
-    if (n2) {
-      return n1 + "." + n2
-    }
-    return n1
-  })
+function mapTermValue(t) {
+  if (valueMap[t] !== undefined)
+    return valueMap[t]
+  else
+    return t
+}
+
+const valueMap = {
+  "R1_2":"1/2",
+  "R1_3":"1/3",
+  "R2_3":"2/3",
+  "R1_4":"1/4",
+  "R3_4":"3/4",
+  "Px":"px",
+  "S0":"0",
+  "S0_5":"0.5",
+  "S1":"1",
+  "S1_5":"1.5",
+  "S2":"2",
+  "S2_5":"2.5",
+  "S3":"3",
+  "S3_5":"3.5",
+  "S4":"4",
+  "S5":"5",
+  "S6":"6",
+  "S7":"7",
+  "S8":"8",
+  "S9":"9",
+  "S10":"10",
+  "S11":"11",
+  "S12":"12",
+  "S14":"14",
+  "S16":"16",
+  "S20":"20",
+  "S24":"24",
+  "S28":"28",
+  "S32":"32",
+  "S36":"36",
+  "S40":"40",
+  "S44":"44",
+  "S48":"48",
+  "S52":"52",
+  "S56":"56",
+  "S60":"60",
+  "S64":"64",
+  "S72":"72",
+  "S80":"80",
+  "S96":"96",
+  "Xs":"xs",
+  "Base":"base",
+  "Xl4":"4xl",
+  "Xl5":"5xl",
+  "Xl6":"6xl",
+  "Xl7":"7xl",
+  "Xl8":"8xl",
+  "Xl9":"9xl",
+  "Sm":"sm",
+  "Md":"md",
+  "Lg":"lg",
+  "Xl":"xl",
+  "Xl2":"2xl",
+  "Xl3":"3xl",
+  "B0":"0",
+  "B1":"",
+  "B2":"2",
+  "B4":"4",
+  "B6":"6",
+  "B8":"8"
 }

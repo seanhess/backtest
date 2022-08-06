@@ -55,6 +55,7 @@ import Prelude hiding ((-))
 import Data.String.Conversions (cs)
 import Data.Text as Text (Text, pack, toLower)
 import Tailwind.Options
+import Tailwind.Values
 import Tailwind.Prefix
 import Data.List (nub)
 import qualified Data.Text as Text

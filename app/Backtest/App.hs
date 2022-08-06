@@ -15,6 +15,7 @@ import qualified Data.Text as Text
 import Juniper
 import Juniper.Web (document)
 import Tailwind.UI
+import Tailwind.Values
 -- import Tailwind.Color
 -- import Tailwind
 
@@ -29,35 +30,35 @@ import Tailwind.UI
 
 -- for this to work, I would need 
 
-black :: Color
-black = Color "black"
+-- these colors need to map to something specific, right?
+-- no, they need to map to *names*, which are specified in the file
+data AppColor
+  = Black
+  | White
+  | Green
+  | Red
+  deriving (Show)
 
-white :: Color
-white = Color "white"
+instance Segment AppColor where
+  seg = segHyphens
 
-green :: Color
-green = Color "green-500"
-
-red :: Color
-red = Color "red-500"
-
-colors :: [Color]
-colors =
-  [ black, white, green, red ]
+instance Option Background AppColor
+instance Option Border AppColor
+instance Option FontText AppColor
 
 example :: UI t ()
-example = col (gap S4 . bg black . text white . pad S2) $ do
-  row (bg red) $ do
+example = col (gap S4 . bg Black . text White . pad S2) $ do
+  row (bg Red . pad S0) $ do
     space
     str "EXAMPLE"
     space
 
-  row (gap S2 . bg red . border black . border B6 . border (R B8) . text black . justify Evenly) $ do
-      el (bg white . basis S40) $ str "one"
-      el (bg white . basis R1_2) $ str "two"
-      el (bg white . basis S6)  $ str "three"
+  row (gap S2 . bg Red . border Black . border B6 . border (R B8) . text Black . justify Evenly) $ do
+      el (bg White . basis S40) $ str "one"
+      el (bg White . basis R1_2) $ str "two"
+      el (bg White . basis S6)  $ str "three"
 
-  el (bg green . width S12) $ str "hello"
+  el (bg Green . width S12) $ str "hello"
 
 
 

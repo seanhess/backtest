@@ -8,7 +8,7 @@ module Tailwind.UI
   ) where
 
 import Prelude hiding (div)
-import Tailwind (Background, Flex, Border, Gap, Padding, Self, Items, Content, Dimensions)
+import Tailwind (Background, Flex, Border, Gap, Padding, Self, Items, Content, Dimensions, FontText)
 import Tailwind.Options
 import Tailwind.UI.Layout
 import Tailwind.UI.Types
