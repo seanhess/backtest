@@ -2,7 +2,7 @@
 module Tailwind.UI.Types where
 
 import Prelude
-import Tailwind.Options
+import Tailwind.Types
 import Lucid
 import Data.String (IsString(..))
 import Data.Text as Text (Text, intercalate)
@@ -20,11 +20,8 @@ instance IsString (UI t ()) where
 instance Show (UI t a) where
   show (UI h) = "UI " <> show h
 
-
-
 data Opt a = Opt [Attribute] [[Class]]
   deriving (Show, Eq)
-
 
 
 opt :: Opt a

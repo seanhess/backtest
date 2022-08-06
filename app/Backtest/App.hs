@@ -14,9 +14,7 @@ import qualified Data.Text as Text
 
 import Juniper
 import Juniper.Web (document)
-import Backtest.Test
 import Tailwind.UI
-import Tailwind.Values
 -- import Tailwind.Color
 -- import Tailwind
 
@@ -27,7 +25,6 @@ import Tailwind.Values
 -- writeStylesheet :: IO ()
 -- writeStylesheet = do
 --   Text.writeFile "static/ui.css" $ stylesheet (range :: [AppColor]) (range :: [Space])
-
 
 -- for this to work, I would need 
 
@@ -49,7 +46,7 @@ instance Option FontText AppColor
 
 example :: UI t ()
 example = col (gap S4 . bg Black . text White . p S2) $ do
-  row (bg Red . p S0) $ do
+  row (bg Red . p S0. shrink) $ do
     space
     str "EXAMPLE"
     space

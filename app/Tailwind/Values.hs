@@ -4,7 +4,7 @@ module Tailwind.Values where
 import Prelude hiding ((-))
 import Data.Map as Map (Map, fromList)
 import Data.Text as Text (Text, toLower, replace, pack, intercalate)
-import Tailwind.Options
+import Tailwind.Types
 
 
 generateValueMap :: [(String, Text)]

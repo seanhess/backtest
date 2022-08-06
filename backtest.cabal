@@ -100,17 +100,16 @@ executable backtest-exe
       Backtest.App
       Backtest.App.Counter
       Backtest.App.Static
+      Backtest.Test
       Tailwind
+      Tailwind.Classes
       Tailwind.Options
       Tailwind.Prefix
+      Tailwind.Types
       Tailwind.UI
-      Tailwind.UI.Layout
+      Tailwind.UI.Attribute
       Tailwind.UI.Types
-      Web.Example
-      Web.UI
-      Web.UI.Element
-      Web.UI.Size
-      Web.UI.Types
+      Tailwind.Values
       Paths_backtest
   hs-source-dirs:
       app

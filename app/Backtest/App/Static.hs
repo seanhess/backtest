@@ -3,7 +3,7 @@ module Backtest.App.Static where
 import Backtest.Prelude hiding (Text)
 import Data.ByteString (ByteString)
 import Data.FileEmbed (embedFile)
-import Web.Scotty.Trans (ActionT, ScottyT, setHeader, raw, get, text)
+import Web.Scotty.Trans (ActionT, ScottyT, setHeader, raw, get, text, file)
 -- import Web.UI as UI
 -- import Web.Example as UI
 import Tailwind
@@ -22,7 +22,7 @@ files = do
   -- get "/modern-normalize.css" $ static ".css" normalize
 
   get "/app.js"  $ static ".js" scripts
-  get "/app.css" $ static ".css" css
+  get "/app.css" $ dynamic ".css" "static/output.css"
 
   -- get "/icons.svg" $ static ".svg" icons
   -- get "/images.css" $ do
@@ -48,6 +48,11 @@ files = do
 
 
 
+
+dynamic :: MonadIO m => Extension -> FilePath -> ActionT Lazy.Text m ()
+dynamic ext fp = do
+  setHeader "Content-Type" $ contentType ext
+  file fp
 
 static :: MonadIO m => Extension -> ByteString -> ActionT Lazy.Text m ()
 static ext cnt = do

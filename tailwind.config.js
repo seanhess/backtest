@@ -1,20 +1,21 @@
 module.exports = {
   content: {
+    files: ['./app/Backtest/**/*.hs', './app/Backtest/*.hs'],
+
     // files: ['./app/**/*.hs'],
-    files: ['./app/Backtest/Test.hs'],
+
+    // Custom layout functions: col, row, etc won't be automatically detected
+    safelist: ['flex', 'flex-row', 'flex-col', 'grow'],
+
+    // Custom
     extract: {
       hs: (content) => {
         let start = /[\(\.,\)^]/
-        let end = /\.,\)$/
+        // let end = /\.,\)$/
         let space = /\s*/
         let utility = /([a-zA-Z0-9\s_\(\:\|]+)/
 
         let regex = new RegExp(start.source + space.source + utility.source + space.source, 'g')
-        // let regex = /\s([a-z]+)\s/g
-        // this content is called for each line!
-        // gap S2 -> gap-2
-        // let regex = /[\(\.\,)^]\s*([^<>",'\.`=]+)\s*[\)\.\,)$]*/g
-        // let matches = [...content.matchAll(regex)] || []
         let matches = content.matchAll(regex)
 
         var utils = []
@@ -25,36 +26,15 @@ module.exports = {
             utils.push(clean)
           }
         }
-        console.log(utils)
+        // if (utils.length) console.log(utils)
 
-        // for (const match of matches) {
-        //   console.log(match)
-        // }
-
-        // let clean = results.map(function(m) {
-
-        //   return m
-        //     .trim()
-        //     // .replace(/\s/g, "-")
-        //     .replace(values, function(n1, n2) {
-        //       console.log("WOO", n1)
-        //       if (n2) {
-        //         return n1 + '.' + n2
-        //       }
-        //       return n1
-        //     })
-        // })
-
-        // console.log(clean)
-
-        // returns an array of matches
-        // return clean
         return utils
       }
     }
   },
 }
 
+// splits on whitespace (and parens) into terms, cleans terms, then combines with hyphen
 function cleanName(s) {
   return s.split(/[\s\(\)]+/)
     .map(cleanTerm)
@@ -64,10 +44,6 @@ function cleanName(s) {
 
 function cleanTerm(t) {
   let clean = camelToKebab(mapTermValue(t)).toLowerCase()
-
-  // special cases. Should we rename the function to p?, w, etc?
-  // if (clean == "pad") return "p"
-
   return clean
 }
 

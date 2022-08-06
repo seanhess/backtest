@@ -2,7 +2,7 @@
 module Tailwind.Prefix where
 
 import Prelude
-import Tailwind.Options
+import Tailwind.Types
 import Data.Text as Text (Text)
 import Data.String (IsString)
 

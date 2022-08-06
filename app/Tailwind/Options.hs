@@ -1,80 +1,122 @@
-{-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE DefaultSignatures #-}
 module Tailwind.Options where
 
-import Data.Function ((&))
-import Data.List (nub)
-import Data.Map (Map)
-import Data.Maybe (fromMaybe)
-import Data.String (IsString(..))
-import Data.Text (Text, pack)
-import Data.Char (isLower, isUpper)
-import GHC.Exts (IsList(..))
-import Prelude hiding ((-))
-import Text.Casing as Casing (kebab)
-import qualified Data.List as List
-import qualified Data.Map as Map
-import qualified Data.Text as Text
+import Prelude
+import Tailwind.Values
+import Tailwind.Types
 
-newtype Seg a = Seg { fromSeg :: Text }
-  deriving (Eq, Show, IsString, Semigroup)
+data Background
+instance Option Background BgSize
+instance Option Background Color
+instance Option Background Auto
 
--- fromText :: Text -> Seg a
--- fromText t = Seg t
+data Padding
+instance Option Padding Size
 
--- arghm. 
-segHyphens :: Show a => a -> Seg b
-segHyphens a = Seg $ hyphenate $ show a
+data Border
+instance Option Border BorderSize
+instance Option Border (Side BorderSize)
+instance Option Border (Axis BorderSize)
+instance Option Border Color
+instance Option Border (Side Color)
+instance Option Border (Axis Color)
 
-hyphenate :: String -> Text
-hyphenate = Text.toLower . pack . Casing.kebab
+data Gap
+instance Option Gap Size
+instance Option Gap (Axis Size)
 
--- drops a prefix caps etc
-dropPrefix :: String -> String
-dropPrefix = dropWhile isLower . dropWhile isUpper
+data Dimensions
+instance Option Dimensions Auto
+instance Option Dimensions Full
+instance Option Dimensions Size
+instance Option Dimensions RelSize
+instance Option Dimensions ExtSize
 
--- drop until second cap
-segPrefix :: Show a => a -> Seg b
-segPrefix a = Seg $ hyphenate $ dropPrefix $ show a
+data Flex
+instance Option Flex Direction
+instance Option Flex Wrap
+instance Option Flex ()
 
+data Self
+instance Option Self Auto
+instance Option Self AlignSEC
+instance Option Self AlignSB
 
-class Segment a where
-  seg :: a -> Seg b
-  default seg :: Show a => a -> Seg b
-  seg = segHyphens
+data Items
+instance Option Items AlignSEC
+instance Option Items AlignSB
 
+data Content
+instance Option Content AlignSEC
+instance Option Content AlignBAE
 
+data Justify
+instance Option Justify AlignSEC
+instance Option Justify AlignBAE
 
-instance Segment () where
-  seg _ = ""
+data Position
+instance Option Position Pos
 
-class Option k a where
-  option :: a -> Seg k
+data Offset
+instance Option Offset Size
+instance Option Offset (Axis Size)
 
-  default option :: Segment a => a -> Seg k
-  option = seg
+data Inset
+instance Option Inset Size
+instance Option Inset (Axis Size)
 
+data Translate
+instance Option Translate (Axis Size)
+instance Option Translate (Axis RelSize)
 
-(-) :: Seg a -> Seg b -> Seg a
-a - "" = a
-(Seg a) - (Seg b) = Seg $ a <> "-" <> b
+data Rotate
+instance Option Rotate Rot
 
+data Transform
+instance Option Transform None
 
+data Transition
+instance Option Transition ()
+instance Option Transition Property
+instance Option Transition None
 
-newtype Class = Class { fromClass :: Text }
-  deriving (Show, Eq, IsString)
+data Duration
+instance Option Duration Dur
 
+data Easing
+instance Option Easing Ease
 
+data Rounded
+instance Option Rounded ()
+instance Option Rounded None
+instance Option Rounded Full
+instance Option Rounded SML
+instance Option Rounded (Side None)
+instance Option Rounded (Side Full)
+instance Option Rounded (Side SML)
+instance Option Rounded (Side ())
+instance Option Rounded (Corner None)
+instance Option Rounded (Corner Full)
+instance Option Rounded (Corner SML)
+instance Option Rounded (Corner ())
 
+data FontText
+instance Option FontText SML
+instance Option FontText XSML
+instance Option FontText Color
 
+data Font
+instance Option Font FontWeight
 
+data Outline
+instance Option Outline None
 
+data Shadow
+instance Option Shadow None
+instance Option Shadow ()
+instance Option Shadow SML
 
--- * Utilties
+data ZIndex
+instance Option ZIndex Z
+instance Option ZIndex Auto
 
-cls :: Seg a -> [Class]
-cls (Seg t) = [Class t]
-
+instance Option Opacity Opacity

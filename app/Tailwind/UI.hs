@@ -1,20 +1,23 @@
 module Tailwind.UI
   ( module Tailwind.UI.Types
-  , module Tailwind.UI.Classes
-  , module Tailwind.UI.Layout
+  , module Tailwind.UI.Attribute
   , module Tailwind.Options
-  , module Tailwind
-  , html, div, el, el', str
+  , module Tailwind.Values
+  , module Tailwind.Types
+  , module Tailwind.Prefix
+  , html, str, div, el, el'
   ) where
 
 import Prelude hiding (div)
-import Tailwind (Background, Flex, Border, Gap, Padding, Self, Items, Content, Dimensions, FontText)
 import Tailwind.Options
-import Tailwind.UI.Layout
+import Tailwind.Values
+import Tailwind.Prefix
+import Tailwind.Types
+import Tailwind.UI.Attribute
 import Tailwind.UI.Types
-import Tailwind.UI.Classes
 import Lucid (div_, Html, toHtml)
 import Data.Text (Text)
+import qualified Tailwind.Classes as Tailwind
 
 
 html :: Html a -> UI t a
