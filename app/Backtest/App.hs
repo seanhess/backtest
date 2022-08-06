@@ -35,6 +35,9 @@ data AppColor
   | White
   | Green
   | Red
+  | Blue
+  | BlueLight
+  | BlueDark
   deriving (Show, Segment)
 
 instance Option Background AppColor
@@ -51,7 +54,7 @@ example = col (gap S4 . bg Black . text White . p S2) $ do
     str "EXAMPLE"
     space
 
-  row (gap S2 . bg Red . border Black . border B6 . border (R B8) . text Black . justify Evenly) $ do
+  row (gap S2 . bg BlueLight . border Black . border B6 . border (R B8) . text Black . justify Evenly) $ do
       el (bg White . basis S40) $ str "one"
       el (bg White . basis R1_2) $ str "two"
       el (bg White . basis S6)  $ str "three"

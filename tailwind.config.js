@@ -10,7 +10,11 @@ module.exports = {
       'black': '#ffffff',
       'red': '#F00',
       'green': '#0F0',
-      'blue': '#00F',
+      'blue': {
+        light: colors.blue["200"],
+        DEFAULT: colors.blue["500"],
+        dark: colors.blue["800"],
+      },
       'yellow': colors.yellow,
       },
     },
