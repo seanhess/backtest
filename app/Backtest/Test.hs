@@ -14,7 +14,7 @@ green = Color "green"
 
 testUI :: UI t ()
 testUI = col (gap S4 . bg black . text white . p S2) $ do
-  row (bg red . p S0 . p (X S1) . p (Y Px)) $ do
+  row (bg red . p S0 . px S1 . py Px) $ do
     space
     str "EXAMPLE"
     space

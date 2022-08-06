@@ -17,7 +17,7 @@ module Tailwind
   , outline, Outline
 
   -- * Spacing
-  , p, Padding
+  , p, px, py, pt, pl, pr, pb , Padding
   , gap, Gap
 
   -- * Layout
@@ -76,21 +76,36 @@ instance Option Background Auto
 
 
 data Padding
-
--- PROBLEM:
--- px-0
--- p-0
--- Padding doesn't hyphenate the x and y for some reason
-instance Option Padding Size where
-  option s = "p" - (seg s)
-instance Option Padding (Axis Size) where
-  option s = "p" <> (seg s)
-instance Option Padding (Side Size) where
-  option s = "p" <> (seg s)
+instance Option Padding Size
 
 p :: Option Padding o => o -> [Class]
 p o =
   cls $ "p" - (option o :: Seg Padding)
+
+px :: Option Padding o => o -> [Class]
+px o =
+  cls $ "px" - (option o :: Seg Padding)
+
+py :: Option Padding o => o -> [Class]
+py o =
+  cls $ "py" - (option o :: Seg Padding)
+
+pt :: Option Padding o => o -> [Class]
+pt o =
+  cls $ "pt" - (option o :: Seg Padding)
+
+pb :: Option Padding o => o -> [Class]
+pb o =
+  cls $ "pb" - (option o :: Seg Padding)
+
+pr :: Option Padding o => o -> [Class]
+pr o =
+  cls $ "pr" - (option o :: Seg Padding)
+
+pl :: Option Padding o => o -> [Class]
+pl o =
+  cls $ "pl" - (option o :: Seg Padding)
+
 
 
 data Border

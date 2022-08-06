@@ -22,11 +22,6 @@ space :: UI t ()
 space = UI $ div_ [classAttribute [Tailwind.grow]] (pure ())
 
 
-gap :: Option Gap o => o -> Att a
-gap o = addClass (Tailwind.gap o)
-
-p :: Option Padding o => o -> Att a
-p o = addClass (Tailwind.p o)
 
 -- we DON'T want to remember these options. Too much flex knowledge
 -- what if we require the gap/pad?
@@ -44,6 +39,17 @@ w o = addClass (Tailwind.w o)
 
 h :: Option Dimensions o => o -> Att a
 h o = addClass (Tailwind.h o)
+
+gap :: Option Gap o => o -> Att a
+gap o = addClass (Tailwind.gap o)
+
+p o = addClass (Tailwind.p o)
+px o = addClass (Tailwind.px o)
+py o = addClass (Tailwind.py o)
+pl o = addClass (Tailwind.pl o)
+pr o = addClass (Tailwind.pr o)
+pt o = addClass (Tailwind.pt o)
+pb o = addClass (Tailwind.pb o)
 
 
 -- 1. Wrapping
