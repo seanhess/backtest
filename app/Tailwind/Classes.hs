@@ -1,12 +1,12 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
 
 module Tailwind.Classes where
 
 import Prelude hiding ((-))
-import Data.String.Conversions (cs)
 import Data.Text as Text (Text, pack, toLower)
 import Tailwind.Types
 import Tailwind.Values

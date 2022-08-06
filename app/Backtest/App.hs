@@ -40,7 +40,7 @@ start = do
   scotty 3030 $ do
     -- middleware $ staticWithOptions defaultOptions
 
-    page "/page" $ do
+    page "/results" $ do
       handle cfg Counter.page
 
     get "/layout" $ do
@@ -53,7 +53,7 @@ start = do
     get "/" $ do
       Scotty.html $ cs $ renderBS $ do
         h1_ "Backtest"
-        li_ $ a_ [href_ "/page"] "Page"
+        li_ $ a_ [href_ "/results"] "Results"
 
     Static.files
 

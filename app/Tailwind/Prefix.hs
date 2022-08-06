@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Tailwind.Prefix where
 
 import Prelude
@@ -12,8 +13,8 @@ newtype Prefix = Prefix { fromPrefix :: Text }
 -- * Prefixes, only apply styles in certain situations
 -- | Apply a prefix to classes  
 -- > [ bg Green, active |: bg Green ]
-(|:) :: Prefix -> [Class] -> [Class]
-(Prefix p) |: cs =
+addPrefix :: Prefix -> [Class] -> [Class]
+addPrefix (Prefix p) cs =
   -- apply cs
   map apply cs
   where
@@ -21,6 +22,8 @@ newtype Prefix = Prefix { fromPrefix :: Text }
     apply "transform" = "transform"
     apply (Class c') = Class $ p <> ":" <> c'
 
+(|:) :: Prefix -> [Class] -> [Class]
+p |: cs = addPrefix p cs
 
 active :: Prefix
 active = "active"
@@ -30,4 +33,7 @@ hover = "hover"
 
 focus :: Prefix
 focus = "focus"
+
+md :: Prefix
+md = "md"
 

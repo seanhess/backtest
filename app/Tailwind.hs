@@ -16,8 +16,8 @@ module Tailwind
   )
   where
 
-import Prelude hiding ((-))
-import Tailwind.Types
+import Prelude
+import Tailwind.Types hiding ((-))
 import Tailwind.Values
 import Tailwind.Classes
 import Tailwind.Prefix

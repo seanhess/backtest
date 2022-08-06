@@ -1,26 +1,20 @@
-module Tailwind.UI.Attribute where
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+module Web.UI.Attribute where
 
 import Prelude
 import qualified Tailwind
-import Lucid (div_)
-import Tailwind.UI.Types
+import Web.UI.Types
+import Lucid (Html, div_)
 import Tailwind.Classes
 import Tailwind.Values
 import Tailwind.Options
+import qualified Tailwind.Prefix as Prefix
 import Tailwind.Types
 
 
 
--- | Simple Layout Tools, you can do most LAYOUT with these. Once you get very dynamic
--- you'll need to use grid or flexbox
-row :: (Opt a -> Opt a) -> UI t () -> UI t ()
-row f ct = UI $ div_ (atts $ f $ Opt [] [Tailwind.flex Row, Tailwind.flex ()]) (fromUI ct)
-
-col :: (Opt a -> Opt a) -> UI t () -> UI t ()
-col f ct = UI $ div_ (atts $ f $ Opt [] [Tailwind.flex Col, Tailwind.flex ()]) (fromUI ct)
-
-space :: UI t ()
-space = UI $ div_ [classAttribute [Tailwind.grow]] (pure ())
 
 
 flex o = addClass (Tailwind.flex o)
@@ -50,7 +44,6 @@ border o = addClass (Tailwind.border o)
 
 text o = addClass (Tailwind.text o)
 font o = addClass (Tailwind.font o)
-
 
 grow   = addClass Tailwind.grow
 shrink = addClass Tailwind.shrink

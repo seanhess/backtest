@@ -100,16 +100,18 @@ executable backtest-exe
       Backtest.App
       Backtest.App.Counter
       Backtest.App.Static
+      Backtest.App.Style
       Backtest.LayoutTest
       Tailwind
       Tailwind.Classes
       Tailwind.Options
       Tailwind.Prefix
       Tailwind.Types
-      Tailwind.UI
-      Tailwind.UI.Attribute
-      Tailwind.UI.Types
       Tailwind.Values
+      Web.UI
+      Web.UI.Attribute
+      Web.UI.Tag
+      Web.UI.Types
       Paths_backtest
   hs-source-dirs:
       app
@@ -159,6 +161,7 @@ executable backtest-exe
     , safe
     , scotty
     , string-conversions
+    , tailwindcss
     , text
     , vector
     , wai

@@ -21,8 +21,8 @@ module.exports = {
 
   content: {
     // content: ['./app/**/*.hs'],
-    content: ['./app/Backtest/**/*.hs', './app/Backtest/*.hs'],
-    // content: ['./app/Backtest/App.hs'],
+    // files: ['./app/Backtest/**/*.hs', './app/Backtest/*.hs'],
+    files: ['./app/Backtest/App/Counter.hs'],
 
     // Custom layout functions: col, row, etc won't be automatically detected
     safelist: ['flex', 'flex-row', 'flex-col', 'grow'],
@@ -30,12 +30,11 @@ module.exports = {
     // Custom
     extract: {
       hs: (content) => {
-        let start = /[\(\.,\)^\"]/
-        // let end = /\.,\)$/
-        let space = /\s*/
-        let utility = /([a-zA-Z0-9\s_\(\:\|]+)/
+        let delim = /[\(\.,\)^\"=\s]/
+        // let space = /\s*/
+        let term = /([a-zA-Z0-9\s_\(\:\|]+)/
 
-        let regex = new RegExp(start.source + space.source + utility.source + space.source, 'g')
+        let regex = new RegExp(delim.source + term.source, 'g')
         let matches = content.matchAll(regex)
 
         var utils = []
@@ -46,7 +45,7 @@ module.exports = {
             utils.push(clean)
           }
         }
-        // if (utils.length) console.log(utils)
+        if (utils.length) console.log(utils)
 
         return utils
       }
@@ -56,10 +55,15 @@ module.exports = {
 
 // splits on whitespace (and parens) into terms, cleans terms, then combines with hyphen
 function cleanName(s) {
-  return s.split(/[\s\(\)]+/)
+  // console.log("cleanName", s, collapsePrefixes(s))
+  return collapsePrefixes(s).split(/[\s\(\)]+/)
     .map(cleanTerm)
     .filter((x) => x != '')
     .join('-')
+}
+
+function collapsePrefixes(n) {
+  return n.replace(/\s*\|\:\s*/g, ":")
 }
 
 function cleanTerm(t) {
