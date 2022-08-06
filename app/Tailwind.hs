@@ -8,8 +8,8 @@ module Tailwind
 
   -- * Display
     bg, BgSize(..), Background
-  , Color(..), Weight(..)
-  , height, width, Dimensions
+  , Color(..)
+  , h, w, Dimensions
   , border, Border, BorderSize(..)
   , rounded, Rounded
   , font, Font, FontWeight(..)
@@ -17,7 +17,7 @@ module Tailwind
   , outline, Outline
 
   -- * Spacing
-  , pad, Padding
+  , p, Padding
   , gap, Gap
 
   -- * Layout
@@ -41,7 +41,6 @@ module Tailwind
   -- * Effects
   , shadow, Shadow
   , opacity, Opacity(..)
-
 
   -- * Prefixes
   , module Tailwind.Prefix
@@ -71,14 +70,8 @@ bg o =
 
 instance Option Background BgSize
 instance Option Background Color
+instance Option Background Auto
 
-data BgSize
-  = BgCover
-  | BgContain
-  | BgAuto
-  deriving (Show, Eq, Bounded, Enum)
-instance Segment BgSize where
-  seg = segDropPrefix
 
 
 
@@ -95,9 +88,9 @@ instance Option Padding (Axis Size) where
 instance Option Padding (Side Size) where
   option s = "p" <> (seg s)
 
-pad :: Option Padding o => o -> [Class]
-pad o =
-  cls $ (option o :: Seg Padding)
+p :: Option Padding o => o -> [Class]
+p o =
+  cls $ "p" - (option o :: Seg Padding)
 
 
 data Border
@@ -134,12 +127,12 @@ instance Option Dimensions Size
 instance Option Dimensions RelSize
 instance Option Dimensions ExtSize
 
-height :: Option Dimensions o => o -> [Class]
-height o =
+h :: Option Dimensions o => o -> [Class]
+h o =
   cls $ "h" - (option o :: Seg Dimensions)
 
-width :: Option Dimensions o => o -> [Class]
-width o =
+w :: Option Dimensions o => o -> [Class]
+w o =
   cls $ "w" - (option o :: Seg Dimensions)
 
 

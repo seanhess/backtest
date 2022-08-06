@@ -11,7 +11,7 @@ import Data.Map (Map)
 import Data.Maybe (fromMaybe)
 import Data.String (IsString(..))
 import Data.Text (Text, pack)
-import Data.Char (isLower)
+import Data.Char (isLower, isUpper)
 import GHC.Exts (IsList(..))
 import Prelude hiding ((-))
 import Text.Casing as Casing (kebab)
@@ -32,13 +32,21 @@ segHyphens a = Seg $ hyphenate $ show a
 hyphenate :: String -> Text
 hyphenate = Text.toLower . pack . Casing.kebab
 
+-- drops a prefix caps etc
+dropPrefix :: String -> String
+dropPrefix = dropWhile isLower . dropWhile isUpper
+
 -- drop until second cap
-segDropPrefix :: Show a => a -> Seg b
-segDropPrefix a = Seg $ hyphenate $ dropWhile isLower $ drop 1 $ show a
+segPrefix :: Show a => a -> Seg b
+segPrefix a = Seg $ hyphenate $ dropPrefix $ show a
 
 
 class Segment a where
   seg :: a -> Seg b
+  default seg :: Show a => a -> Seg b
+  seg = segHyphens
+
+
 
 instance Segment () where
   seg _ = ""

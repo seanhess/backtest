@@ -11,6 +11,7 @@ import Tailwind (Gap, Padding, Self, Items, Content, Dimensions)
 
 
 
+-- TODO this won't be included!
 row :: (Opt a -> Opt a) -> UI t () -> UI t ()
 row f ct = UI $ div_ (atts $ f $ Opt [] [Tailwind.flex Row, Tailwind.flex ()]) (fromUI ct)
 
@@ -24,8 +25,8 @@ space = UI $ div_ [classAttribute [Tailwind.grow]] (pure ())
 gap :: Option Gap o => o -> Att a
 gap o = addClass (Tailwind.gap o)
 
-pad :: Option Padding o => o -> Att a
-pad o = addClass (Tailwind.pad o)
+p :: Option Padding o => o -> Att a
+p o = addClass (Tailwind.p o)
 
 -- we DON'T want to remember these options. Too much flex knowledge
 -- what if we require the gap/pad?
@@ -38,11 +39,11 @@ self o = addClass (Tailwind.self o)
 items :: Option Items o => o -> Att a
 items o = addClass (Tailwind.items o)
 
-width :: Option Dimensions o => o -> Att a
-width o = addClass (Tailwind.width o)
+w :: Option Dimensions o => o -> Att a
+w o = addClass (Tailwind.w o)
 
-height :: Option Dimensions o => o -> Att a
-height o = addClass (Tailwind.height o)
+h :: Option Dimensions o => o -> Att a
+h o = addClass (Tailwind.h o)
 
 
 -- 1. Wrapping

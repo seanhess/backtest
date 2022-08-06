@@ -570,6 +570,10 @@ video {
   flex-basis: 1.5rem;
 }
 
+.flex-wrap-reverse {
+  flex-wrap: wrap-reverse;
+}
+
 .justify-evenly {
   justify-content: space-evenly;
 }
@@ -603,14 +607,6 @@ video {
 .bg-white {
   --tw-bg-opacity: 1;
   background-color: rgb(255 255 255 / var(--tw-bg-opacity));
-}
-
-.p-2 {
-  padding: 0.5rem;
-}
-
-.p-0 {
-  padding: 0px;
 }
 
 .text-white {

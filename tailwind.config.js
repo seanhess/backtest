@@ -63,10 +63,10 @@ function cleanName(s) {
 }
 
 function cleanTerm(t) {
-  let clean = mapTermValue(t).toLowerCase()
+  let clean = camelToKebab(mapTermValue(t)).toLowerCase()
 
   // special cases. Should we rename the function to p?, w, etc?
-  if (clean == "pad") return "p"
+  // if (clean == "pad") return "p"
 
   return clean
 }
@@ -138,5 +138,47 @@ const valueMap = {
   "B2":"2",
   "B4":"4",
   "B6":"6",
-  "B8":"8"
+  "B8":"8",
+  "R0":"0",
+  "R1":"1",
+  "R2":"2",
+  "R3":"3",
+  "R6":"6",
+  "R12":"12",
+  "R45":"45",
+  "R90":"90",
+  "R180":"180",
+  "D75":"75",
+  "D100":"100",
+  "D150":"150",
+  "D200":"200",
+  "D300":"300",
+  "D500":"500",
+  "D700":"700",
+  "D1000":"1000",
+  "Z0":"0",
+  "Z10":"10",
+  "Z20":"20",
+  "Z30":"30",
+  "Z40":"40",
+  "Z50":"50",
+  "O0":"0",
+  "O5":"5",
+  "O10":"10",
+  "O20":"20",
+  "O25":"25",
+  "O30":"30",
+  "O40":"40",
+  "O50":"50",
+  "O60":"60",
+  "O70":"70",
+  "O75":"75",
+  "O80":"80",
+  "O90":"90",
+  "O100":"100"
 }
+
+function camelToKebab(str) {
+  // replace caps except for the first one
+  return str.replace(/[A-Z]/g, letter => "-" + letter.toLowerCase()).replace(/^\-/, "")
+} 

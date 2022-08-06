@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveAnyClass #-}
 module Tailwind.Values where
 
 import Prelude hiding ((-))
@@ -6,7 +7,6 @@ import Data.Text as Text (Text, toLower, replace, pack, intercalate)
 import Tailwind.Options
 
 
--- this is a map of sources to values
 generateValueMap :: [(String, Text)]
 generateValueMap = mconcat
   [ map each (range :: [RelSize])
@@ -14,6 +14,10 @@ generateValueMap = mconcat
   , map each (range :: [XSML])
   , map each (range :: [SML])
   , map each (range :: [BorderSize])
+  , map each (range :: [Rot])
+  , map each (range :: [Dur])
+  , map each (range :: [Z])
+  , map each (range :: [Opacity])
   ]
   where
     range :: (Bounded a, Enum a) => [a]
@@ -59,8 +63,6 @@ data Corner a
   | BL a
   | BR a
 
--- we need to use the same logic to map to the classes
--- which means less fanciness
 -- just use show + mapping?
 instance (Segment a) => Segment (Corner a) where
   seg (TL a) = "tl" - seg a
@@ -70,21 +72,14 @@ instance (Segment a) => Segment (Corner a) where
 
 
 data Auto = Auto
-  deriving (Enum, Bounded)
-
-instance Segment Auto where
-  seg Auto = "auto"
-
-
-
+  deriving (Enum, Bounded, Show, Segment)
 
 data Full = Full
-  deriving (Enum, Bounded, Show)
-instance Segment Full where
-  seg = segHyphens
+  deriving (Enum, Bounded, Show, Segment)
 
+data BgSize = Cover | Contain
+  deriving (Show, Eq, Bounded, Enum, Segment)
 
--- SOME of the sizes. Dumb
 data RelSize
   = R1_2
   | R1_3
@@ -113,22 +108,15 @@ data ExtSize
   | Screen
   | Min
   | Max
-  deriving (Bounded, Enum)
+  deriving (Bounded, Enum, Show)
 instance Segment ExtSize where
-  seg R1_5   = "1/5"
-  seg R2_5   = "2/5"
-  seg R3_5   = "3/5"
-  seg R4_5   = "4/5"
-  seg R1_6   = "1/6"
-  seg R5_6   = "5/6"
-  seg R1_12  = "1/12"
-  seg R5_12  = "5/12"
-  seg R7_12  = "7/12"
-  seg R11_12 = "11/12"
   seg Screen = "screen"
   seg Min    = "min"
   seg Max    = "max"
+  seg s = Seg $ Text.replace "_" "/" $ pack $ drop 1 $ show s
   
+
+
 data Size
   = Px
   | S0
@@ -184,6 +172,7 @@ data XSML
 instance Segment XSML where
   seg Xs = "xs"
   seg Base = "base"
+  -- flip around the number
   seg Xl4 = "4xl"
   seg Xl5 = "5xl"
   seg Xl6 = "6xl"
@@ -219,89 +208,63 @@ data BorderSize
   | B8
   deriving (Enum, Bounded, Show)
 instance Segment BorderSize where
-  seg B0 = "0"
   seg B1 = ""
-  seg B2 = "2"
-  seg B4 = "4"
-  seg B6 = "6"
-  seg B8 = "8"
+  seg s = segPrefix s
 
-data None
-  = None
-  deriving (Show, Bounded, Enum)
-instance Segment None where
-  seg = segHyphens
+data None = None
+  deriving (Show, Bounded, Enum, Segment)
 
 
 -- Color needs to be a concrete datatype
 -- otherwise you need to specify all your colors for this to work at all
 
 
--- AppColor yay
+-- TODO What to do here?
 newtype Color = Color Text
   deriving (Show)
 instance Segment Color where
   seg (Color n) = Seg n
 
-
-
-data Weight
-  = CW50
-  | CW100
-  | CW200
-  | CW300
-  | CW400
-  | CW500
-  | CW600
-  | CW700
-  | CW800
-  | CW900
-  deriving (Show, Eq)
-
-instance Segment Weight where
-  seg w = Seg $ pack $ drop 2 $ show w
-
+-- data ColorWeight
+--   = Cw50
+--   | Cw100
+--   | Cw200
+--   | Cw300
+--   | Cw400
+--   | Cw500
+--   | Cw600
+--   | Cw700
+--   | Cw800
+--   | Cw900
+--   deriving (Show, Eq, Segment)
 
 data FontWeight
   = Thin
-  | ExtraLight
+  | Extralight
   | Light
   | Normal
   | Medium
   | Semibold
   | Bold
   | Extrabold
-  -- | Black
-  deriving (Show, Bounded, Enum)
-
-instance Segment FontWeight where
-  seg fw = Seg $ Text.toLower $ pack $ show fw
-
-
+  deriving (Show, Bounded, Enum, Segment)
 
 data AlignSEC
   = Start
   | End
   | Center
-  deriving (Bounded, Enum, Show)
-instance Segment AlignSEC where
-  seg = segHyphens
+  deriving (Bounded, Enum, Show, Segment)
 
 data AlignSB
   = Stretch
   | Baseline
-  deriving (Bounded, Enum, Show)
-instance Segment AlignSB where
-  seg = segHyphens
+  deriving (Bounded, Enum, Show, Segment)
 
 data AlignBAE
   = Between
   | Around
   | Evenly
-  deriving (Bounded, Enum, Show)
-instance Segment AlignBAE where
-  seg = segHyphens
-
+  deriving (Bounded, Enum, Show, Segment)
 
 
 data Direction
@@ -309,17 +272,13 @@ data Direction
   | Col
   | RowReverse
   | ColReverse
-  deriving (Bounded, Enum, Show)
-instance Segment Direction where
-  seg = segHyphens
+  deriving (Bounded, Enum, Show, Segment)
 
 data Wrap
   = Wrap
-  | NoWrap
+  | Nowrap
   | WrapReverse
-  deriving (Bounded, Enum, Show)
-instance Segment Wrap where 
-  seg = segHyphens
+  deriving (Bounded, Enum, Show, Segment)
 
 
 data Pos
@@ -328,15 +287,13 @@ data Pos
   | Absolute
   | Relative
   | Sticky
-  deriving (Enum, Bounded, Show)
-instance Segment Pos where
-  seg = segHyphens
+  deriving (Enum, Bounded, Show, Segment)
 
 
 data Rot = R0 | R1 | R2 | R3 | R6 | R12 | R45 | R90 | R180
   deriving (Show, Bounded, Enum)
 instance Segment Rot where
-  seg = segDropPrefix
+  seg = segPrefix
 
 
 data Property
@@ -361,7 +318,7 @@ data Dur
   | D1000
   deriving (Show, Bounded, Enum)
 instance Segment Dur where
-  seg = segDropPrefix
+  seg = segPrefix
 
 
 data Z
@@ -373,7 +330,9 @@ data Z
   | Z50
   deriving (Show, Bounded, Enum)
 instance Segment Z where
-  seg = segDropPrefix
+  seg = segPrefix
+
+
 
 
 data Opacity
@@ -393,7 +352,7 @@ data Opacity
   | O100
   deriving (Show, Bounded, Enum)
 instance Segment Opacity where
-  seg = segDropPrefix
+  seg = segPrefix
 
 
 data Ease
@@ -401,7 +360,5 @@ data Ease
   | InOut
   | Out
   | In
-  deriving (Show, Bounded, Enum)
-instance Segment Ease where
-  seg = segHyphens
+  deriving (Show, Bounded, Enum, Segment)
 

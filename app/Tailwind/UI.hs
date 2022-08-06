@@ -18,7 +18,7 @@ import Data.Text (Text)
 
 
 html :: Html a -> UI t a
-html h = UI h
+html h_ = UI h_
 
 str :: Text -> UI t ()
 str t = UI $ toHtml t

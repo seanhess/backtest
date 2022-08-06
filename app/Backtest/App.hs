@@ -14,6 +14,7 @@ import qualified Data.Text as Text
 
 import Juniper
 import Juniper.Web (document)
+import Backtest.Test
 import Tailwind.UI
 import Tailwind.Values
 -- import Tailwind.Color
@@ -47,8 +48,8 @@ instance Option Border AppColor
 instance Option FontText AppColor
 
 example :: UI t ()
-example = col (gap S4 . bg Black . text White . pad S2) $ do
-  row (bg Red . pad S0) $ do
+example = col (gap S4 . bg Black . text White . p S2) $ do
+  row (bg Red . p S0) $ do
     space
     str "EXAMPLE"
     space
@@ -58,7 +59,7 @@ example = col (gap S4 . bg Black . text White . pad S2) $ do
       el (bg White . basis R1_2) $ str "two"
       el (bg White . basis S6)  $ str "three"
 
-  el (bg Green . width S12) $ str "hello"
+  el (bg Green . w S12) $ str "hello"
 
 
 

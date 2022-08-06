@@ -1,7 +1,20 @@
+module Backtest.Test where
+  
+import Prelude
+import Tailwind ()
+import Tailwind.UI
+import Tailwind.Options
+import Tailwind.Values
+import Tailwind.UI.Classes
 
-example :: UI t ()
-example = col (gap S4 . bg black . text white . pad S2 . flex WrapReverse) $ do
-  row (bg red . pad S0 . pad (X S1) . pad (Y Px)) $ do
+black = Color "black"
+white = Color "white"
+red   = Color "red"
+green = Color "green"
+
+testUI :: UI t ()
+testUI = col (gap S4 . bg black . text white . p S2) $ do
+  row (bg red . p S0 . p (X S1) . p (Y Px)) $ do
     space
     str "EXAMPLE"
     space
@@ -11,4 +24,5 @@ example = col (gap S4 . bg black . text white . pad S2 . flex WrapReverse) $ do
       el (bg white . basis R1_2) $ str "two"
       el (bg white . basis S6)  $ str "three"
 
-  el (bg green . width S12) $ str "hello"
+  el (bg green . w S12) $ str "hello"
+
