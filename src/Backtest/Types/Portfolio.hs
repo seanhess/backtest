@@ -1,9 +1,11 @@
+{-# LANGUAGE DeriveAnyClass #-}
 module Backtest.Types.Portfolio where
 
 import Backtest.Prelude
 import Backtest.Types.Usd
 import Backtest.Types.Pct as Pct
 import Data.List.NonEmpty as NE
+import Juniper (ToParam)
 
 
 data Portfolio a f = Portfolio
@@ -96,7 +98,7 @@ data Allocation
   -- | S10
   -- | S05
   -- | S00
-  deriving (Show, Eq, Enum, Bounded, Read, Ord)
+  deriving (Show, Eq, Enum, Bounded, Read, Ord, ToParam)
 
 fromAlloc :: Allocation -> Pct Stocks
 fromAlloc S100 = pct 100

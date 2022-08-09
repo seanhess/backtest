@@ -99,6 +99,7 @@ executable backtest-exe
   other-modules:
       Backtest.App
       Backtest.App.Counter
+      Backtest.App.Results
       Backtest.App.Static
       Backtest.App.Style
       Backtest.LayoutTest

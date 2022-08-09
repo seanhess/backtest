@@ -1,5 +1,4 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE PolyKinds #-}
 module Backtest.Types.Usd where
 
@@ -7,6 +6,8 @@ import Backtest.Prelude
 import Backtest.Types.Pct as Pct
 import Data.Csv (FromField(..))
 import Numeric (showFFloat)
+import Juniper (ToParam(..))
+import Text.Read (readMaybe)
 
 
 data Fund a
@@ -20,7 +21,7 @@ data Withdrawal
 
 -- | Total in pennies
 newtype USD a = USD { totalCents :: Int }
-  deriving (Eq, Ord, Num)
+  deriving (Eq, Ord, Num, Read, Show)
 
 instance Semigroup (USD a) where
   a <> b = a + b
@@ -32,26 +33,25 @@ instance FromField (USD a) where
   parseField f =
     fromFloat <$> parseField f
 
--- instance Num (USD a) where
---   (USD a) + (USD b) = USD $ a + b
+instance ToParam (USD a) where
+  toParam = cs . show . totalCents
+  fromParam = fmap USD . readMaybe . cs
 
 
-
--- show it rounded off
-instance Show (USD a) where
-  show m = mconcat
-    [ "$"
-    , sign $ totalCents m
-    , show $ (abs $ totalCents m) `div` 100
-    , "."
-    , pad $ show $ abs $ cents m
-    ]
-    where pad [c] = ['0',c]
-          pad x = x
-          
-          sign x
-            | x < 0 = "-"
-            | otherwise = ""
+dumpUsd :: USD a -> String
+dumpUsd m = mconcat
+  [ "$"
+  , sign $ totalCents m
+  , show $ (abs $ totalCents m) `div` 100
+  , "."
+  , pad $ show $ abs $ cents m
+  ]
+  where pad [c] = ['0',c]
+        pad x = x
+        
+        sign x
+          | x < 0 = "-"
+          | otherwise = ""
 
 dollars :: USD a -> Int
 dollars (USD c) = round $ fromIntegral c / 100
@@ -106,7 +106,6 @@ toWithdrawal = fromUSD
 
 toTotal :: USD (Amt a) -> USD (Amt Total)
 toTotal = fromUSD
-
 
 
 -- | the gain or loss from the start to the end

@@ -8,7 +8,7 @@ import Network.Wai.Middleware.Static (staticWithOptions, defaultOptions)
 import Network.Wai (Application)
 import Lucid (renderBS, renderText, Html)
 import Lucid.Html5
-import qualified Backtest.App.Counter as Counter
+import qualified Backtest.App.Results as Results
 import qualified Backtest.App.Static as Static
 import qualified Data.Text.IO as Text
 import qualified Data.Text as Text
@@ -41,7 +41,7 @@ start = do
     -- middleware $ staticWithOptions defaultOptions
 
     page "/results" $ do
-      handle cfg Counter.page
+      handle cfg Results.page
 
     get "/layout" $ do
       Scotty.html $ renderText $ toDocument $ fromUI $ layoutTest

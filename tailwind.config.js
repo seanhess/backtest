@@ -21,8 +21,8 @@ module.exports = {
 
   content: {
     // content: ['./app/**/*.hs'],
-    // files: ['./app/Backtest/**/*.hs', './app/Backtest/*.hs'],
-    files: ['./app/Backtest/App/Counter.hs'],
+    files: ['./app/Backtest/**/*.hs', './app/Backtest/*.hs'],
+    // files: ['./app/Backtest/App/Counter.hs'],
 
     // Custom layout functions: col, row, etc won't be automatically detected
     safelist: ['flex', 'flex-row', 'flex-col', 'grow'],
