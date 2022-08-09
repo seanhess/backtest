@@ -142,3 +142,27 @@ zIndex o = cls $ "z" - (option o :: Seg ZIndex)
 
 opacity :: Option Opacity o => o -> [Class]
 opacity o = cls $ "opacity" - (option o :: Seg Opacity)
+
+uppercase :: [Class]
+uppercase = ["uppercase"]
+
+lowercase :: [Class]
+lowercase = ["lowercase"]
+
+capitalize :: [Class]
+capitalize = ["lowercase"]
+
+normalCase :: [Class]
+normalCase = ["normal-case"]
+
+underline :: [Class]
+underline = ["underline"]
+
+overline :: [Class]
+overline = ["overline"]
+
+lineThrough :: [Class]
+lineThrough = ["line-through"]
+
+noUnderline :: [Class]
+noUnderline = ["no-underline"]

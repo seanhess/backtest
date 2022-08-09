@@ -47,3 +47,16 @@ font o = addClass (Tailwind.font o)
 
 grow   = addClass Tailwind.grow
 shrink = addClass Tailwind.shrink
+
+uppercase = addClass Tailwind.uppercase
+lowercase = addClass Tailwind.lowercase
+normalCase = addClass Tailwind.normalCase
+capitalize = addClass Tailwind.capitalize
+
+underline = addClass Tailwind.underline
+overline = addClass Tailwind.overline
+lineThrough = addClass Tailwind.lineThrough
+noUnderline = addClass Tailwind.noUnderline
+
+translate o = addClass (Tailwind.translate o)
+transform o = addClass (Tailwind.transform o)

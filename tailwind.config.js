@@ -21,8 +21,8 @@ module.exports = {
 
   content: {
     // content: ['./app/**/*.hs'],
-    files: ['./app/Backtest/**/*.hs', './app/Backtest/*.hs'],
-    // files: ['./app/Backtest/App/Counter.hs'],
+    // files: ['./app/Backtest/**/*.hs', './app/Backtest/*.hs'],
+    files: ['./app/Backtest/App/Results.hs'],
 
     // Custom layout functions: col, row, etc won't be automatically detected
     safelist: ['flex', 'flex-row', 'flex-col', 'grow'],
@@ -30,7 +30,8 @@ module.exports = {
     // Custom
     extract: {
       hs: (content) => {
-        let delim = /[\(\.,\)^\"=\s]/
+        let delim = /[\(\.,\)]/
+        // let ignore = /row |col |el |el' |\s+/
         // let space = /\s*/
         let term = /([a-zA-Z0-9\s_\(\:\|]+)/
 
@@ -38,9 +39,12 @@ module.exports = {
         let matches = content.matchAll(regex)
 
         var utils = []
-        // console.log("INPUT:", content)
         for (const match of matches) {
-          let clean = cleanName(match[1].trim())
+          let str = match[1]
+          if (!str) {
+            break
+          }
+          let clean = cleanName(str)
           if (clean) {
             utils.push(clean)
           }
@@ -55,8 +59,9 @@ module.exports = {
 
 // splits on whitespace (and parens) into terms, cleans terms, then combines with hyphen
 function cleanName(s) {
-  // console.log("cleanName", s, collapsePrefixes(s))
-  return collapsePrefixes(s).split(/[\s\(\)]+/)
+  // console.log("cleanName", s)
+  return collapsePrefixes(s.trim())
+    .split(/[\s\(\)]+/)
     .map(cleanTerm)
     .filter((x) => x != '')
     .join('-')
@@ -65,6 +70,11 @@ function cleanName(s) {
 function collapsePrefixes(n) {
   return n.replace(/\s*\|\:\s*/g, ":")
 }
+
+// you'll have the same problem with div_
+// div_ [bg Green]
+// oh, but [ doesn't count
+// it's just because ( does that it's a problem
 
 function cleanTerm(t) {
   let clean = camelToKebab(mapTermValue(t)).toLowerCase()

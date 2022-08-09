@@ -2,6 +2,7 @@
 module Backtest.App.Results where
 
 import Backtest.Types (USD, Fund(Bal), Total, Allocation(..), usd)
+import Backtest.Types.Usd (dumpUsd)
 import Backtest.Prelude
 import Juniper
 import Control.Monad.IO.Class (MonadIO)
@@ -40,24 +41,57 @@ update :: MonadIO m => Action -> Model -> m Model
 update (Age i) m = pure m { state = m.state { age = i} }
 
 view :: Model -> Html ()
-view m = col (gap S0) $ do
+view m = col (gap S1 . p S8) $ do
+  let s = m.state
 
-  row (gap S0) $ do
-    "Age: " 
-    (toHtml $ show m.state.age)
+  col (gap S1) $ do
+    el (text Xl . uppercase) "Safe To Spend"
+    el (text Xl8) $ "$45,000"
 
-  row (gap S4 . p S4) $ do
-    button (Age 50) (bgButton . p S4) $ "Set Age 50"
-    button (Age 60) (bgButton . p S4) $ "Set Age 60"
+  row (gap S1) $ do
+    el (text Xl . uppercase) "100% Confidence"
 
-    -- col (grow . bg Red . items Center . justify Center) $ do
-    --   row (bg Green . text Xl8 . w S48 . justify Center) $ toHtml $ show m.count
+  el (bg Red . h S72) "Graph"
 
-    -- button Increment (bgButton . p S4) $ "Increment"
+  el (text Xl . uppercase) "Options"
+  col (gap S1) $ do
+    el' "Method"
+    el' "Spend Cap"
+
+  el (text Xl . uppercase) "My Details"
+  col (gap S1) $ do
+    inputs $ do
+      inpLeft " Years Old" 
+      inpRight (toHtml $ show s.age)
+
+    inputs $ do
+      inpLeft " Portfolio" 
+      inpRight (toHtml $ dumpUsd s.investments)
+
+    inputs $ do
+      inpLeft "% Stocks / Bonds" 
+      inpRight (toHtml $ drop 1 $ show $ s.allocation)
+
+  row (gap S4) $ do
+    bgButton (Age 50) $ "Set Age 50"
+    bgButton (Age 60) $ "Set Age 60"
 
   where
-    -- really easy to reuse styles!
-    bgButton = hover |: bg BlueLight . bg Blue . text White
+    bgButton act = button act
+      ( hover |: bg BlueLight . bg Blue
+      . active |: translate (X Px) . active |: translate (Y Px)
+      . text White
+      . p S2 . px S8
+      )
+
+    -- never specify a style
+    -- always surround with parens
+    inputs = row (gap S2)
+    inpLeft = row (w S44 . justify End)
+    inpRight = el (w Full)
+
+
+
 
 
 page :: MonadIO m => Page State Model Action m

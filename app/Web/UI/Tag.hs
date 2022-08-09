@@ -17,6 +17,9 @@ import Juniper (PageAction, onClick)
 el :: Att a -> Html a -> Html a
 el f ct = div_ (atts $ f opt) ct
 
+el' :: Html a -> Html a
+el' ct = div_ ct
+
 -- | Simple Layout Tools, you can do most LAYOUT with these. Once you get very dynamic
 -- you'll need to use grid or flexbox
 row :: (Opt a -> Opt a) -> Html a -> Html a
