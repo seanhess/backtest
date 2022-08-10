@@ -2,8 +2,9 @@
 module Backtest.App.Results where
 
 import Backtest.Types (USD, Fund(Bal), Total, Allocation(..), usd)
-import Backtest.Types.Usd (dumpUsd)
+import Backtest.Types.Usd (dumpUsd, dollars)
 import Backtest.Prelude
+import Text.Read (readMaybe)
 import Juniper
 import Control.Monad.IO.Class (MonadIO)
 import Lucid (button_)
@@ -12,44 +13,66 @@ import Backtest.App.Style
 
 
 data Model = Model
-  { state :: State
+  { lastInputs :: Inputs
+  , inputs :: Inputs
   } deriving (Read, Show, ToState)
 
-data State = State
+data Inputs = Inputs
   { age :: Int
   , investments :: USD (Bal Total)
   , allocation :: Allocation
-  } deriving (Read, Show, Generic, ToParams)
+  } deriving (Eq, Read, Show, Generic, ToParams)
 
 data Action
-  = Age Int
+  = SetAge Value
+  | SetPortfolio Value
+  | SetAlloc Value
+  | Calculate
   deriving (Show, Read, PageAction)
 
-params :: Model -> State
-params = (.state)
+params :: Model -> Inputs
+params = (.inputs)
 
-load :: MonadIO m => Maybe State -> m Model
-load Nothing  = pure $ Model $ State
-  { age = 60
-  , investments = usd 1000000
-  , allocation = S70
+load :: MonadIO m => Maybe Inputs -> m Model
+load Nothing  = pure $ Model 
+  { lastInputs = defaultInputs
+  , inputs = defaultInputs
   }
-load (Just s) = pure $ Model s
+  where
+    defaultInputs = Inputs
+      { age = 60
+      , investments = usd 1000000
+      , allocation = S70
+      }
+load (Just i) = pure $ Model
+  { lastInputs = i
+  , inputs = i
+  }
 
 -- asdf
 update :: MonadIO m => Action -> Model -> m Model
-update (Age i) m = pure m { state = m.state { age = i} }
+update (SetAge (Value t)) m = do
+  let age = fromMaybe m.inputs.age $ readMaybe $ cs t
+  pure m { inputs = m.inputs { age = age} }
+
+update (SetPortfolio (Value t)) m = do
+  let dlr = readMaybe $ cs t :: Maybe Float
+  let inv = fromMaybe m.inputs.investments $ usd <$> dlr
+  pure m { inputs = m.inputs { investments = inv } }
+
+update (SetAlloc (Value t)) m = do
+  pure m
+
+update (Calculate) m = do
+  pure m { lastInputs = m.inputs }
 
 view :: Model -> Html ()
 view m = col (gap S1 . p S8) $ do
-  let s = m.state
+  let i = m.inputs
 
   col (gap S1) $ do
     el (text Xl . uppercase) "Safe To Spend"
     el (text Xl8) $ "$45,000"
-
-  row (gap S1) $ do
-    el (text Xl . uppercase) "100% Confidence"
 
   el (bg Red . h S72) "Graph"
 
@@ -62,21 +85,28 @@ view m = col (gap S1 . p S8) $ do
   col (gap S1) $ do
     inputs $ do
       inpLeft " Years Old" 
-      inpRight (toHtml $ show s.age)
+      inpRight $
+        input SetAge (cs $ show $ i.age) (underline . placeholder "60")
 
     inputs $ do
       inpLeft " Portfolio" 
-      inpRight (toHtml $ dumpUsd s.investments)
+      inpRight $
+        currencyInput SetPortfolio i.investments (underline)
 
     inputs $ do
       inpLeft "% Stocks / Bonds" 
-      inpRight (toHtml $ drop 1 $ show $ s.allocation)
+      inpRight $ do
+        -- what are all my options?
+        -- "Choose an Allocation"
+        -- hmmmm
+        dropdown SetAlloc (cs . show) id ([minBound..maxBound] :: [Allocation])
 
-  row (gap S4) $ do
-    bgButton (Age 50) $ "Set Age 50"
-    bgButton (Age 60) $ "Set Age 60"
+  -- visible when changes have been made
+  -- when (m.inputs /= m.lastInputs) $ 
+  bgButton Calculate "Recalculate"
 
   where
+    bgButton :: PageAction act => act -> Html a -> Html a
     bgButton act = button act
       ( hover |: bg BlueLight . bg Blue
       . active |: translate (X Px) . active |: translate (Y Px)
@@ -84,7 +114,13 @@ view m = col (gap S1 . p S8) $ do
       . p S2 . px S8
       )
 
-    -- never specify a style
+    currencyInput :: PageAction act => (Value -> act) -> USD a -> Att a -> Html ()
+    currencyInput act amt f =
+      stack (w Full) $ do
+        input act (cs $ show $ dollars amt) (left S3 . absolute' . underline)
+        el (absolute' . left S0 . underline) "$"
+
+    -- never specify only a style
     -- always surround with parens
     inputs = row (gap S2)
     inpLeft = row (w S44 . justify End)
@@ -94,5 +130,5 @@ view m = col (gap S1 . p S8) $ do
 
 
 
-page :: MonadIO m => Page State Model Action m
+page :: MonadIO m => Page Inputs Model Action m
 page = Page params load update view

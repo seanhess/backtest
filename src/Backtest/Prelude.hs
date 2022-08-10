@@ -18,7 +18,7 @@ module Backtest.Prelude
   , module Data.Ord
 
   -- * Monadic functions
-  , unless, guard, zipWithM_, forM_
+  , unless, guard, when,  zipWithM_, forM_
 
   -- * Safe functions
   , headMay, headDef
@@ -32,7 +32,7 @@ module Backtest.Prelude
   , Identity
   ) where
 
-import Prelude hiding (id, head, print, putStrLn, readFile, writeFile, Real, putStr, (!!), last, reverse)
+import Prelude hiding (head, print, putStrLn, readFile, writeFile, Real, putStr, (!!), last, reverse)
 import qualified Prelude
 import Data.Text (Text)
 import Data.Map (Map)
@@ -40,7 +40,7 @@ import Data.Map (Map)
 import Data.String.Conversions(cs)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 -- import Control.Monad.Trans (MonadTrans, lift)
-import Control.Monad (unless, guard, zipWithM_, mapM_, forM_)
+import Control.Monad (unless, guard, when, zipWithM_, mapM_, forM_)
 import Control.Monad.Catch (MonadCatch, try, throwM, Exception, MonadThrow)
 import Data.Function ((&))
 import Data.Functor.Identity (Identity)

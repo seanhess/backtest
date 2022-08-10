@@ -6,7 +6,7 @@ import Data.FileEmbed (embedFile)
 import Web.Scotty.Trans (ActionT, ScottyT, setHeader, raw, get, text, file)
 -- import Web.UI as UI
 -- import Web.Example as UI
-import Tailwind
+import Tailwind hiding (static)
 import Tailwind.UI
 import qualified Data.Text.Lazy as Lazy
 import qualified Juniper.JS as Juniper

@@ -166,3 +166,18 @@ lineThrough = ["line-through"]
 
 noUnderline :: [Class]
 noUnderline = ["no-underline"]
+
+static :: [Class]
+static = ["static"]
+
+fixed :: [Class]
+fixed = ["fixed"]
+
+absolute :: [Class]
+absolute = ["absolute"]
+
+relative :: [Class]
+relative = ["relative"]
+
+sticky :: [Class]
+sticky = ["sticky"]

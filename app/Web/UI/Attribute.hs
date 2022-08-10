@@ -6,7 +6,7 @@ module Web.UI.Attribute where
 import Prelude
 import qualified Tailwind
 import Web.UI.Types
-import Lucid (Html, div_)
+import Lucid (Html, div_, placeholder_, value_)
 import Tailwind.Classes
 import Tailwind.Values
 import Tailwind.Options
@@ -60,3 +60,13 @@ noUnderline = addClass Tailwind.noUnderline
 
 translate o = addClass (Tailwind.translate o)
 transform o = addClass (Tailwind.transform o)
+
+left o = addClass (Tailwind.left o)
+right o = addClass (Tailwind.right o)
+top o = addClass (Tailwind.top o)
+bottom o = addClass (Tailwind.bottom o)
+
+placeholder = addAttribute . placeholder_
+
+absolute' = addClass (Tailwind.absolute)
+relative' = addClass (Tailwind.relative)
