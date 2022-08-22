@@ -100,6 +100,8 @@ data Allocation
   -- | S00
   deriving (Show, Eq, Enum, Bounded, Read, Ord, ToParam)
 
+
+
 fromAlloc :: Allocation -> Pct Stocks
 fromAlloc S100 = pct 100
 fromAlloc S95  = pct 95

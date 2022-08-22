@@ -43,12 +43,6 @@ files = do
 
 
 
-
-
-
-
-
-
 dynamic :: MonadIO m => Extension -> FilePath -> ActionT Lazy.Text m ()
 dynamic ext fp = do
   setHeader "Content-Type" $ contentType ext

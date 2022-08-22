@@ -12,7 +12,7 @@ import Data.Text (Text, pack)
 import qualified Tailwind.Classes as Tailwind
 import qualified Tailwind.Prefix as Prefix
 import Tailwind.Values (Direction(Row, Col))
-import Juniper (PageAction, onClick, onInput, Value)
+import Juniper (LiveAction, onClick, onInput, Value, Encode, onSelect)
 
 -- could have an img, button, etc
 -- unless: maybe, we always use a container instead?
@@ -41,7 +41,7 @@ space = el (grow) (pure ())
 tag :: ([Attribute] -> Html a -> Html a) -> Att a -> Html a -> Html a
 tag tg f ct = tg (atts $ f opt) ct
 
-button :: PageAction action => action -> Att a -> Html a -> Html a
+button :: Encode LiveAction action => action -> Att a -> Html a -> Html a
 button act f ct = tag button_ (f . addAttribute (onClick act)) ct
 
 -- placeholder
@@ -50,7 +50,7 @@ button act f ct = tag button_ (f . addAttribute (onClick act)) ct
 -- required: onInput, placeholder, default text, 
 
 
-input :: PageAction act => (Value -> act) -> Text -> Att a -> Html ()
+input :: Encode LiveAction act => (Text -> act) -> Text -> Att a -> Html ()
 input act val f = input_ ( atts
   . f
   . addAttribute (onInput act)
@@ -65,18 +65,14 @@ input act val f = input_ ( atts
 -- Text -> Maybe val is read equivalent
 -- what do we do if we can't read? Up to you
 
--- that's the Label....
--- hmm...
--- it would be nice if we could do it better
--- TODO we need a better Value system
+
   
-dropdown :: (PageAction act, Show val) => (Value -> act) -> Att a -> [(Text, Text)] -> Html ()
+dropdown :: (Encode LiveAction act, Value val) => (val -> act) -> (val -> Text) -> Att a -> [val] -> Html ()
 dropdown act toLabel f vals =
   select_ ( atts
     . f
-    . addAttribute (onInput act)
+    . addAttribute (onSelect act)
   $ opt) $ do
     forM_ vals $ \val -> do
-      -- TODO nope, not show
       option_ [value_ (pack $ show val)] (toHtml $ toLabel val)
 

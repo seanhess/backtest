@@ -1,7 +1,9 @@
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DerivingStrategies #-}
 module Backtest.App.Results where
 
-import Backtest.Types (USD, Fund(Bal), Total, Allocation(..), usd)
+import Backtest.Types (USD, Fund(Bal), Total, Allocation(..), usd, fromAlloc)
 import Backtest.Types.Usd (dumpUsd, dollars)
 import Backtest.Prelude
 import Text.Read (readMaybe)
@@ -12,23 +14,29 @@ import Web.UI hiding (pr)
 import Backtest.App.Style
 
 
+newtype Alloc = Alloc { toAllocation :: Allocation }
+  deriving newtype (ToParam, Show, Read, Eq, Enum, Bounded)
+
+instance Value Alloc where
+  empty = Alloc S100
+
 data Model = Model
   { lastInputs :: Inputs
   , inputs :: Inputs
-  } deriving (Read, Show, ToState)
+  } deriving (Read, Show, Encode LiveModel)
 
 data Inputs = Inputs
   { age :: Int
   , investments :: USD (Bal Total)
-  , allocation :: Allocation
+  , allocation :: Alloc
   } deriving (Eq, Read, Show, Generic, ToParams)
 
 data Action
-  = SetAge Value
-  | SetPortfolio Value
-  | SetAlloc Value
+  = SetAge Text
+  | SetPortfolio Text
+  | SetAlloc Alloc
   | Calculate
-  deriving (Show, Read, PageAction)
+  deriving (Show, Read, Encode LiveAction)
 
 params :: Model -> Inputs
 params = (.inputs)
@@ -42,7 +50,7 @@ load Nothing  = pure $ Model
     defaultInputs = Inputs
       { age = 60
       , investments = usd 1000000
-      , allocation = S70
+      , allocation = Alloc S70
       }
 load (Just i) = pure $ Model
   { lastInputs = i
@@ -51,17 +59,17 @@ load (Just i) = pure $ Model
 
 -- asdf
 update :: MonadIO m => Action -> Model -> m Model
-update (SetAge (Value t)) m = do
+update (SetAge t) m = do
   let age = fromMaybe m.inputs.age $ readMaybe $ cs t
   pure m { inputs = m.inputs { age = age} }
 
-update (SetPortfolio (Value t)) m = do
+update (SetPortfolio t) m = do
   let dlr = readMaybe $ cs t :: Maybe Float
   let inv = fromMaybe m.inputs.investments $ usd <$> dlr
   pure m { inputs = m.inputs { investments = inv } }
 
-update (SetAlloc (Value t)) m = do
-  pure m
+update (SetAlloc a) m = do
+  pure m { inputs = m.inputs { allocation = a }}
 
 update (Calculate) m = do
   pure m { lastInputs = m.inputs }
@@ -96,17 +104,14 @@ view m = col (gap S1 . p S8) $ do
     inputs $ do
       inpLeft "% Stocks / Bonds" 
       inpRight $ do
-        -- what are all my options?
-        -- "Choose an Allocation"
-        -- hmmmm
-        dropdown SetAlloc (cs . show) id ([minBound..maxBound] :: [Allocation])
+        dropdown SetAlloc (cs . show . fromAlloc . toAllocation) id ([minBound..maxBound] :: [Alloc])
 
   -- visible when changes have been made
-  -- when (m.inputs /= m.lastInputs) $ 
-  bgButton Calculate "Recalculate"
+  when (m.inputs /= m.lastInputs) $ 
+    bgButton Calculate "Recalculate"
 
   where
-    bgButton :: PageAction act => act -> Html a -> Html a
+    bgButton :: Encode LiveAction act => act -> Html a -> Html a
     bgButton act = button act
       ( hover |: bg BlueLight . bg Blue
       . active |: translate (X Px) . active |: translate (Y Px)
@@ -114,7 +119,7 @@ view m = col (gap S1 . p S8) $ do
       . p S2 . px S8
       )
 
-    currencyInput :: PageAction act => (Value -> act) -> USD a -> Att a -> Html ()
+    currencyInput :: Encode LiveAction act => (Text -> act) -> USD a -> Att a -> Html ()
     currencyInput act amt f =
       stack (w Full) $ do
         input act (cs $ show $ dollars amt) (left S3 . absolute' . underline)
