@@ -2,6 +2,7 @@
 module Backtest.App where
 
 import Backtest.Prelude
+import Backtest.History (loadReturns, toHistories)
 import Web.Scotty as Scotty hiding (text, html)
 import qualified Web.Scotty as Scotty
 import Network.Wai.Middleware.Static (staticWithOptions, defaultOptions)
@@ -33,6 +34,10 @@ import Tailwind.UI
 start :: IO ()
 start = do
 
+  hs <- toHistories <$> loadReturns
+  putStrLn $ "Loaded Years: " <> show (length hs)
+  -- load 
+
   -- load embedded js
   -- todos <- atomically $ newTVar [Todo "Test Item" False]
   let cfg = Render False toDocument
@@ -41,7 +46,7 @@ start = do
     -- middleware $ staticWithOptions defaultOptions
 
     page "/results" $ do
-      handle cfg Results.page
+      handle cfg (Results.page hs)
 
     get "/layout" $ do
       Scotty.html $ renderText $ toDocument $ fromUI $ layoutTest

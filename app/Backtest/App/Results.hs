@@ -3,7 +3,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 module Backtest.App.Results where
 
-import Backtest.Types (USD, Fund(Bal), Total, Allocation(..), usd, fromAlloc)
+import Backtest.Types (USD, Fund(Bal), Total, Allocation(..), usd, fromAlloc, History, showPct)
 import Backtest.Types.Usd (dumpUsd, dollars)
 import Backtest.Prelude
 import Text.Read (readMaybe)
@@ -23,6 +23,7 @@ instance Value Alloc where
 data Model = Model
   { lastInputs :: Inputs
   , inputs :: Inputs
+  , histories :: NonEmpty History
   } deriving (Read, Show, Encode LiveModel)
 
 data Inputs = Inputs
@@ -41,10 +42,11 @@ data Action
 params :: Model -> Inputs
 params = (.inputs)
 
-load :: MonadIO m => Maybe Inputs -> m Model
-load Nothing  = pure $ Model 
+load :: MonadIO m => NonEmpty History -> Maybe Inputs -> m Model
+load hs Nothing  = pure $ Model 
   { lastInputs = defaultInputs
   , inputs = defaultInputs
+  , histories = hs
   }
   where
     defaultInputs = Inputs
@@ -52,9 +54,10 @@ load Nothing  = pure $ Model
       , investments = usd 1000000
       , allocation = Alloc S70
       }
-load (Just i) = pure $ Model
+load hs (Just i) = pure $ Model
   { lastInputs = i
   , inputs = i
+  , histories = hs
   }
 
 -- asdf
@@ -104,7 +107,7 @@ view m = col (gap S1 . p S8) $ do
     inputs $ do
       inpLeft "% Stocks / Bonds" 
       inpRight $ do
-        dropdown SetAlloc (cs . show . fromAlloc . toAllocation) id ([minBound..maxBound] :: [Alloc])
+        dropdown SetAlloc (cs . showPct . fromAlloc . toAllocation) id ([minBound..maxBound] :: [Alloc])
 
   -- visible when changes have been made
   when (m.inputs /= m.lastInputs) $ 
@@ -135,5 +138,5 @@ view m = col (gap S1 . p S8) $ do
 
 
 
-page :: MonadIO m => Page Inputs Model Action m
-page = Page params load update view
+page :: MonadIO m => NonEmpty History -> Page Inputs Model Action m
+page hs = Page params (load hs) update view

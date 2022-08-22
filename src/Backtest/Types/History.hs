@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DerivingStrategies #-}
 module Backtest.Types.History where
 
 
@@ -31,22 +32,16 @@ numYears n
   | otherwise = NumYears n
 
 newtype Year = Year { fromYear :: Int }
-  deriving (Eq, FromField, Ord, Enum, Num)
+  deriving newtype (Show, Read, Eq, Num, Enum, Ord, FromField)
 
 nextYear :: Year -> Year
 nextYear (Year n) = Year (n+1)
 
-instance Show Year where 
-  show (Year i) = show i
-
 data Inflation
 data RealTotal
 
-data CAPE = CAPE { fromCAPE :: Float }
-  deriving (Eq, Read, Ord)
-
-instance Show CAPE where
-  show (CAPE c) = show c
+newtype CAPE = CAPE { fromCAPE :: Float }
+  deriving newtype (Eq, Show, Read, Ord)
 
 
 -- instance FromField CAPE where
@@ -94,5 +89,5 @@ data History = History
   , returns   :: Portfolio Pct Return
   , values    :: Portfolio USD Bal
   , cape      :: CAPE
-  } deriving (Show)
+  } deriving (Show, Read)
 

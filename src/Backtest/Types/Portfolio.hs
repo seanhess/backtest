@@ -5,6 +5,7 @@ import Backtest.Prelude
 import Backtest.Types.Usd
 import Backtest.Types.Pct as Pct
 import Data.List.NonEmpty as NE
+import Text.Read (Read(..))
 import Juniper (ToParam)
 
 
@@ -30,6 +31,16 @@ instance Monoid (Portfolio Pct f) where
 
 instance Show (Portfolio USD f) where
   show (Portfolio s b) = show (s, b)
+
+instance Read (Portfolio USD f) where
+  readPrec = do
+    (s, b) <- readPrec
+    pure $ Portfolio s b
+
+instance Read (Pct f) => Read (Portfolio Pct f) where
+  readPrec = do
+    (s, b) <- readPrec
+    pure $ Portfolio s b
 
 instance Show (Portfolio Pct f) where
   show (Portfolio s b) = show (s, b)

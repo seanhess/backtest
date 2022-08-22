@@ -1,14 +1,20 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DerivingStrategies #-}
 module Backtest.Types.Pct where
 
 import Backtest.Prelude
 import Numeric (showFFloat)
 import Data.Csv (FromNamedRecord(..), FromField(..), (.:), Parser)
+import Text.Read (readPrec)
 
 
 -- this is 60.4 %
 newtype Pct a = Pct { toFloat :: Float }
-  deriving (FromField, Num, Ord, Fractional)
+  deriving newtype (FromField, Num, Ord, Fractional, Show, Read)
+
+
+showPct :: Pct a -> String
+showPct p = showFFloat (Just 3) (toFloat p * 100) "%"
 
 -- 100x float
 pct :: Float -> Pct a
@@ -25,9 +31,6 @@ instance Eq (Pct a) where
   (Pct a) == (Pct b) =
     round (a * digits) == round (b * digits)
     where digits = 100000
-
-instance Show (Pct a) where
-  show p = showFFloat (Just 3) (toFloat p * 100) "%"
 
 instance Semigroup (Pct a) where
   a <> b = a + b
