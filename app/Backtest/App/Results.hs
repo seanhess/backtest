@@ -3,8 +3,13 @@
 {-# LANGUAGE DerivingStrategies #-}
 module Backtest.App.Results where
 
-import Backtest.Types (USD, Fund(Bal), Total, Allocation(..), usd, fromAlloc, History, showPct)
+import Backtest.Types
 import Backtest.Types.Usd (dumpUsd, dollars)
+import Backtest.History as History (loadHistories, samples)
+import Backtest.Simulation as Simulation (simulation, now, rebalance)
+import Backtest.Aggregate as Aggregate (medWithdrawal)
+import Backtest.Strategy as Strategy (staticWithdrawal, rebalanceFixed)
+import Backtest.Strategy.Steps as Strategy (withdrawFloor)
 import Backtest.Prelude
 import Text.Read (readMaybe)
 import Juniper
@@ -23,12 +28,11 @@ instance Value Alloc where
 data Model = Model
   { lastInputs :: Inputs
   , inputs :: Inputs
-  , histories :: NonEmpty History
   } deriving (Read, Show, Encode LiveModel)
 
 data Inputs = Inputs
   { age :: Int
-  , investments :: USD (Bal Total)
+  , investments :: USD (Bal Stocks)
   , allocation :: Alloc
   } deriving (Eq, Read, Show, Generic, ToParams)
 
@@ -42,11 +46,10 @@ data Action
 params :: Model -> Inputs
 params = (.inputs)
 
-load :: MonadIO m => NonEmpty History -> Maybe Inputs -> m Model
-load hs Nothing  = pure $ Model 
+load :: MonadIO m => Maybe Inputs -> m Model
+load Nothing  = pure $ Model 
   { lastInputs = defaultInputs
   , inputs = defaultInputs
-  , histories = hs
   }
   where
     defaultInputs = Inputs
@@ -54,10 +57,9 @@ load hs Nothing  = pure $ Model
       , investments = usd 1000000
       , allocation = Alloc S70
       }
-load hs (Just i) = pure $ Model
+load (Just i) = pure $ Model
   { lastInputs = i
   , inputs = i
-  , histories = hs
   }
 
 -- asdf
@@ -75,6 +77,7 @@ update (SetAlloc a) m = do
   pure m { inputs = m.inputs { allocation = a }}
 
 update (Calculate) m = do
+  runSimulation m.inputs
   pure m { lastInputs = m.inputs }
 
 view :: Model -> Html ()
@@ -107,7 +110,7 @@ view m = col (gap S1 . p S8) $ do
     inputs $ do
       inpLeft "% Stocks / Bonds" 
       inpRight $ do
-        dropdown SetAlloc (cs . showPct . fromAlloc . toAllocation) id ([minBound..maxBound] :: [Alloc])
+        dropdown SetAlloc m.inputs.allocation (cs . showPct . fromAlloc . toAllocation) ([minBound..maxBound] :: [Alloc])
 
   -- visible when changes have been made
   when (m.inputs /= m.lastInputs) $ 
@@ -138,5 +141,29 @@ view m = col (gap S1 . p S8) $ do
 
 
 
-page :: MonadIO m => NonEmpty History -> Page Inputs Model Action m
-page hs = Page params (load hs) update view
+page :: MonadIO m => Page Inputs Model Action m
+page = Page params load update view
+
+
+
+-- TODO add an optimization
+runSimulation :: MonadIO m => Inputs -> m ()
+runSimulation inp = do
+  hs <- liftIO $ History.loadHistories
+  let years = numYears (90 - inp.age)
+      ss = History.samples years hs
+      start = Portfolio inp.investments (usd 0)
+      alloc = inp.allocation
+      wr = pct 4
+      sim = Simulation.simulation start (actions wr start (toAllocation alloc))
+      srs = fmap sim ss :: NonEmpty SimResult
+  putStrLn $ "GOT RESULTS" <> show (length srs)
+  print $ Aggregate.medWithdrawal srs
+  pure ()
+  where
+    actions wr st al = do
+      let swda = Strategy.staticWithdrawal (pct 4) st
+      n <- Simulation.now
+      Strategy.withdrawFloor swda wr
+      Simulation.rebalance $ rebalanceFixed al
+

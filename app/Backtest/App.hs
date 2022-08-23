@@ -34,9 +34,6 @@ import Tailwind.UI
 start :: IO ()
 start = do
 
-  hs <- toHistories <$> loadReturns
-  putStrLn $ "Loaded Years: " <> show (length hs)
-  -- load 
 
   -- load embedded js
   -- todos <- atomically $ newTVar [Todo "Test Item" False]
@@ -46,7 +43,7 @@ start = do
     -- middleware $ staticWithOptions defaultOptions
 
     page "/results" $ do
-      handle cfg (Results.page hs)
+      handle cfg Results.page
 
     get "/layout" $ do
       Scotty.html $ renderText $ toDocument $ fromUI $ layoutTest

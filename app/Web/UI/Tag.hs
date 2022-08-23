@@ -7,7 +7,7 @@ import Tailwind.Types
 import Web.UI.Types
 import Web.UI.Attribute (flex, grow)
 import Lucid (Html, Attribute, toHtml)
-import Lucid.Html5 (button_, div_, input_, placeholder_, value_, select_, option_)
+import Lucid.Html5 (button_, div_, input_, placeholder_, value_, select_, option_, selected_)
 import Data.Text (Text, pack)
 import qualified Tailwind.Classes as Tailwind
 import qualified Tailwind.Prefix as Prefix
@@ -67,12 +67,20 @@ input act val f = input_ ( atts
 
 
   
-dropdown :: (Encode LiveAction act, Value val) => (val -> act) -> (val -> Text) -> Att a -> [val] -> Html ()
-dropdown act toLabel f vals =
+-- TODO it isn't selecting the value
+dropdown :: (Encode LiveAction act, Value val, Eq val) => (val -> act) -> val -> (val -> Text) -> [val] -> Html ()
+dropdown act selected toLabel vals =
   select_ ( atts
-    . f
     . addAttribute (onSelect act)
   $ opt) $ do
     forM_ vals $ \val -> do
-      option_ [value_ (pack $ show val)] (toHtml $ toLabel val)
+      option_
+        ( value_ (pack $ show val)
+        : if val == selected
+            then [selected_ "true"]
+            else []
+        )
+        (toHtml $ toLabel val)
+  where
+
 

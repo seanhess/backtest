@@ -10,6 +10,10 @@ import qualified Data.List.NonEmpty as NE
 import Data.Vector as Vector (Vector, toList)
 
 
+loadHistories :: IO (NonEmpty History)
+loadHistories = toHistories <$> loadReturns
+
+
 loadReturns :: IO (NonEmpty HistoryRow)
 loadReturns = do
     putStrLn "Loading"
@@ -32,6 +36,7 @@ toHistories hr =
   in case nonEmpty hs of
     Nothing -> error "toHistories: no histories found from rows"
     Just x -> x
+
 
 
 fakeHistory :: Year -> History
