@@ -12,17 +12,17 @@ import qualified Data.List.NonEmpty as NE
 yearCols :: [Column YearStart]
 yearCols =
     [ Column "Year" 9     $ \y -> show y.history.year
-    , Column "ret.stck" 9 $ \y -> show y.returns.stocks
-    , Column "ret.bnds" 9 $ \y -> show y.returns.bonds
-    , Column "beg.stck" 9 $ \y -> show y.start.stocks
-    , Column "beg.bnds" 9 $ \y -> show y.start.bonds
-    , Column "income"   9 $ \y -> show y.netIncome
-    , Column "expenses" 9 $ \y -> show y.netExpenses
-    , Column "withdraw" 9 $ \y -> show y.withdrawal
-    , Column "act.stck" 9 $ \y -> show y.actions.stocks
-    , Column "act.bnds" 9 $ \y -> show y.actions.bonds
-    , Column "end.stck" 9 $ \y -> show y.end.stocks
-    , Column "end.bnds" 9 $ \y -> show y.end.bonds
+    , Column "ret.stck" 9 $ \y -> dumpUsd y.returns.stocks
+    , Column "ret.bnds" 9 $ \y -> dumpUsd y.returns.bonds
+    , Column "beg.stck" 9 $ \y -> dumpUsd y.start.stocks
+    , Column "beg.bnds" 9 $ \y -> dumpUsd y.start.bonds
+    , Column "income"   9 $ \y -> dumpUsd y.netIncome
+    , Column "expenses" 9 $ \y -> dumpUsd y.netExpenses
+    , Column "withdraw" 9 $ \y -> dumpUsd y.withdrawal
+    , Column "act.stck" 9 $ \y -> dumpUsd y.actions.stocks
+    , Column "act.bnds" 9 $ \y -> dumpUsd y.actions.bonds
+    , Column "end.stck" 9 $ \y -> dumpUsd y.end.stocks
+    , Column "end.bnds" 9 $ \y -> dumpUsd y.end.bonds
     , Column "cape"     9 $ \y -> show y.history.cape.fromCAPE
     ]
 
@@ -50,7 +50,7 @@ printWithdrawalSpread wr = do
 
 
 
-printTableRow :: Int -> [String] -> IO ()
+printTableRow :: MonadIO m => Int -> [String] -> m ()
 printTableRow p items = do
     putStrLn $ "|" <> (List.intercalate " |" $ map (padLeft p) items) <> " |"
 
@@ -79,7 +79,7 @@ data Column a = Column
   }
 
 
-printTable :: Foldable t => [Column a] -> t a -> IO ()
+printTable :: (Foldable t, MonadIO m) => [Column a] -> t a -> m ()
 printTable cols as = do
   putStrLn $ headerRow cols
   forM_ as $ \a -> do

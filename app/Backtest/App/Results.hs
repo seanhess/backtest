@@ -6,10 +6,12 @@ module Backtest.App.Results where
 import Backtest.Types
 import Backtest.Types.Usd (dumpUsd, dollars)
 import Backtest.History as History (loadHistories, samples)
-import Backtest.Simulation as Simulation (simulation, now, rebalance)
-import Backtest.Aggregate as Aggregate (medWithdrawal)
+import Backtest.Simulation as Simulation (simulation, now, rebalance, Actions)
+import qualified Backtest.Aggregate as Aggregate
 import Backtest.Strategy as Strategy (staticWithdrawal, rebalanceFixed)
 import Backtest.Strategy.Steps as Strategy (withdrawFloor)
+import Backtest.Optimize as Optimize (optimize, OptimizeResult, maximizeRate, isSimValid)
+import Backtest.Debug (printTable, Column(..), yearCols)
 import Backtest.Prelude
 import Text.Read (readMaybe)
 import Juniper
@@ -17,6 +19,9 @@ import Control.Monad.IO.Class (MonadIO)
 import Lucid (button_)
 import Web.UI hiding (pr)
 import Backtest.App.Style
+import Debug.Trace (traceM)
+import Data.List as List (find)
+import qualified Data.List.NonEmpty as NE
 
 
 newtype Alloc = Alloc { toAllocation :: Allocation }
@@ -63,7 +68,7 @@ load (Just i) = pure $ Model
   }
 
 -- asdf
-update :: MonadIO m => Action -> Model -> m Model
+update :: (MonadIO m, MonadFail m) => Action -> Model -> m Model
 update (SetAge t) m = do
   let age = fromMaybe m.inputs.age $ readMaybe $ cs t
   pure m { inputs = m.inputs { age = age} }
@@ -110,9 +115,10 @@ view m = col (gap S1 . p S8) $ do
     inputs $ do
       inpLeft "% Stocks / Bonds" 
       inpRight $ do
-        dropdown SetAlloc m.inputs.allocation (cs . showPct . fromAlloc . toAllocation) ([minBound..maxBound] :: [Alloc])
+        dropdown SetAlloc m.inputs.allocation id
+          (cs . showPct . fromAlloc . toAllocation)
+          ([minBound..maxBound] :: [Alloc])
 
-  -- visible when changes have been made
   when (m.inputs /= m.lastInputs) $ 
     bgButton Calculate "Recalculate"
 
@@ -141,29 +147,72 @@ view m = col (gap S1 . p S8) $ do
 
 
 
-page :: MonadIO m => Page Inputs Model Action m
+page :: (MonadIO m, MonadFail m) => Page Inputs Model Action m
 page = Page params load update view
 
 
 
--- TODO add an optimization
-runSimulation :: MonadIO m => Inputs -> m ()
+-- TODO the simulations are all coming back as failures
+-- why???
+runSimulation :: (MonadIO m, MonadFail m) => Inputs -> m ()
 runSimulation inp = do
   hs <- liftIO $ History.loadHistories
   let years = numYears (90 - inp.age)
       ss = History.samples years hs
       start = Portfolio inp.investments (usd 0)
-      alloc = inp.allocation
-      wr = pct 4
-      sim = Simulation.simulation start (actions wr start (toAllocation alloc))
-      srs = fmap sim ss :: NonEmpty SimResult
-  putStrLn $ "GOT RESULTS" <> show (length srs)
-  print $ Aggregate.medWithdrawal srs
+      alloc = toAllocation inp.allocation
+      -- sim = Simulation.simulation start (actions wr start (toAllocation alloc))
+      -- srs = fmap sim ss :: NonEmpty SimResult
+
+
+
+  -- TODO get optimize working once the simulation makes sense
+  -- print ("runSimulation", alloc, start)
+  let res = Optimize.maximizeRate isSimValid (sims ss alloc start)
+  print (length res)
+  putStrLn "Found Maximum Rate"
+  print $ fst <$> lastMay res
+
+  -- forM_ res $ \(rate, _) -> do
+  --   print $ rate
+  
+  -- print $ Aggregate.medWithdrawal srs
+  -- let srs = sims ss alloc start (pct 2)
+  -- forM_ srs $ \res -> do
+  --   -- printTable yearCols res.years
+  --   print $ (res.startYear, Aggregate.isWithdrawalFail res)
+
+  -- (Just s1966) <- pure $ List.find (isYear 1966) srs
+  -- print $ s1966.startYear
+  -- print $ s1966.endBalance
+  -- printTable yearCols $ NE.toList s1966.years
+
+
   pure ()
   where
-    actions wr st al = do
-      let swda = Strategy.staticWithdrawal (pct 4) st
+
+    sims :: NonEmpty (NonEmpty History) -> Allocation -> Balances -> Pct Withdrawal -> NonEmpty SimResult
+    sims ss alloc start wr = fmap (sim alloc start wr) ss
+
+    sim :: Allocation -> Balances -> Pct Withdrawal -> NonEmpty History -> SimResult
+    sim alloc start wr hs = Simulation.simulation start (actions start alloc wr) hs
+
+    isYear :: Int -> SimResult -> Bool
+    isYear y sr =
+        sr.startYear == Year y
+
+    actions :: Balances -> Allocation -> Pct Withdrawal -> Actions ()
+    actions st al wr = do
+      let swda = Strategy.staticWithdrawal wr st
       n <- Simulation.now
       Strategy.withdrawFloor swda wr
       Simulation.rebalance $ rebalanceFixed al
+
+    columns :: [Column OptimizeResult]
+    columns =
+        [ Column "stocks%" 9 (\o -> show o.alloc)
+        , Column "swr" 7 (\o -> show o.swr)
+        , Column "min" 7 (\o -> show $ Aggregate.minWithdrawal o.results)
+        , Column "med" 7 (\o -> show $ Aggregate.medWithdrawal o.results)
+        ]
 

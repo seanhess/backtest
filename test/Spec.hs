@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedLists #-}
 
 
 import Backtest.Prelude
@@ -10,6 +11,7 @@ import Backtest.Strategy
 import Backtest.Strategy.ABW
 import Backtest.Strategy.Peak
 import Backtest.Debug
+import Backtest.Optimize
 import qualified Backtest.Types.Pct as Pct
 
 import Control.Monad.Catch (try, throwM)
@@ -63,6 +65,7 @@ main = do
   test "testPmtFluctate" testFluctate
   test "testPeak" testPeak
   test "testExpenses" testExpenses
+  -- test "testOptimize" testOptimize
 
 
 
@@ -726,7 +729,6 @@ testExpenses = do
   pure ()
 
 
-
 runTestActions :: History -> Balances -> Actions () -> YearStart
 runTestActions h bal acts =
   runSim (SimContext [h] (nextYear h.year) bal) $ do
@@ -736,4 +738,26 @@ runTestActionsBal :: History -> Balances -> Actions () -> Balances
 runTestActionsBal h bal acts = (.end) <$>
   runSim (SimContext [h] (nextYear h.year) bal) $ do
     runYear h mempty acts
+
+
+-- testOptimize :: Test ()
+-- testOptimize = do
+
+--   hs <- liftIO loadHistories
+
+--   forM_ (maximizeRate isSimValid (runSim' hs S100)) $ \(wr, res) -> do
+--     print wr
+--   -- expect "Nope" $ do
+
+--   where
+--     runSim' :: NonEmpty History -> Allocation -> Pct Withdrawal -> NonEmpty SimResult
+--     runSim' hs al wr = fmap (simulation start (actions al wr)) (samples years hs)
+--     start = thousand50
+--     years = NumYears 50
+--     actions al wr = do
+--       withdraw $ staticWithdrawal wr start
+--       rebalance $ rebalanceFixed al
+
+
+
 

@@ -7,6 +7,7 @@ import Backtest.Prelude
 import Backtest.Types
 import Backtest.Simulation (withdrawals)
 import Data.List.NonEmpty as NE (transpose, NonEmpty, filter)
+import Debug.Trace
 
 
 

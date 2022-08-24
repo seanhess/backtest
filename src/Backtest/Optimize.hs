@@ -7,6 +7,7 @@ import Backtest.Simulation (Actions (), simulation)
 import Backtest.Aggregate (medWithdrawal, isWithdrawalFail)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.List as List
+import Debug.Trace
 
 -- Find the optimal starting amount and raise for a given situation
 
@@ -44,8 +45,9 @@ stepRate s r
   | otherwise = Just $ min (pct 100) (r + s)
 
 
--- no, we CHOOSE the starting values
--- only the optimization variables are passed in. The rest are applied
+-- I want to see all the steps
+-- but I'm doing unfoldr, which is hard to follow
+-- it's repeated applications of nextAlloc
 optimize :: (Allocation -> Maybe Allocation) -> (Pct Withdrawal -> Maybe (Pct Withdrawal)) -> NonEmpty (NonEmpty History) -> Allocation -> Pct Withdrawal -> Balances -> (Allocation -> Pct Withdrawal -> Actions ()) -> [OptimizeResult]
 optimize stepA stepR ss startAlc startRate bal actions =
   optimizeAlloc startAlc startRate
@@ -58,9 +60,17 @@ optimize stepA stepR ss startAlc startRate bal actions =
 
     nextAlloc :: (Allocation, Pct Withdrawal) -> Maybe ([OptimizeResult], (Allocation, Pct Withdrawal))
     nextAlloc (al, mwr) = do
+      traceM $ show ("nextAlloc", al, stepA al, mwr)
       let res = optimizeRate al mwr
+      traceM $ "1"
+
+      -- it's getting no results
       mwr' <- fst <$> lastMay res
+      traceM $ "2"
+
+      -- this fails the CURRENT 
       al' <- stepA al
+      traceM $ "3"
 
       pure (map (optimizeResult al) res, (al', mwr'))
 
@@ -75,6 +85,7 @@ optimize stepA stepR ss startAlc startRate bal actions =
     optimizeResult :: Allocation -> (Pct Withdrawal, NonEmpty SimResult) -> OptimizeResult
     optimizeResult al (swr, srs) =
       OptimizeResult al swr srs
+
 
 
 isSimValid :: NonEmpty SimResult -> Bool

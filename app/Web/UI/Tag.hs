@@ -67,12 +67,9 @@ input act val f = input_ ( atts
 
 
   
--- TODO it isn't selecting the value
-dropdown :: (Encode LiveAction act, Value val, Eq val) => (val -> act) -> val -> (val -> Text) -> [val] -> Html ()
-dropdown act selected toLabel vals =
-  select_ ( atts
-    . addAttribute (onSelect act)
-  $ opt) $ do
+dropdown :: (Encode LiveAction act, Value val, Eq val) => (val -> act) -> val -> Att a -> (val -> Text) -> [val] -> Html ()
+dropdown act selected f toLabel vals =
+  select_ ( atts . f . addAttribute (onSelect act) $ opt) $ do
     forM_ vals $ \val -> do
       option_
         ( value_ (pack $ show val)
@@ -81,6 +78,5 @@ dropdown act selected toLabel vals =
             else []
         )
         (toHtml $ toLabel val)
-  where
 
 
