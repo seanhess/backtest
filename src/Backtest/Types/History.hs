@@ -89,5 +89,5 @@ data History = History
   , returns   :: Portfolio Pct Return
   , values    :: Portfolio USD Bal
   , cape      :: CAPE
-  } deriving (Show, Read)
+  } deriving (Show, Read, Eq)
 

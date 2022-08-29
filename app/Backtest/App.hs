@@ -17,7 +17,6 @@ import Backtest.LayoutTest (layoutTest)
 
 import Juniper
 import Juniper.Web (document)
-import Tailwind.UI
 -- import Tailwind.Color
 -- import Tailwind
 
@@ -46,7 +45,7 @@ start = do
       handle cfg Results.page
 
     get "/layout" $ do
-      Scotty.html $ renderText $ toDocument $ fromUI $ layoutTest
+      Scotty.html $ renderText $ toDocument $ layoutTest
 
     -- -- if you use "lucid" it doesn't work
     -- get "/app/about" $

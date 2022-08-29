@@ -8,15 +8,16 @@ import Backtest.Types.Usd (dumpUsd, dollars)
 import Backtest.History as History (loadHistories, samples)
 import Backtest.Simulation as Simulation (simulation, now, rebalance, Actions)
 import qualified Backtest.Aggregate as Aggregate
+import qualified Backtest.Graph as Graph
 import Backtest.Strategy as Strategy (staticWithdrawal, rebalanceFixed)
 import Backtest.Strategy.Steps as Strategy (withdrawFloor)
-import Backtest.Optimize as Optimize (optimize, OptimizeResult, maximizeRate, isSimValid)
+import Backtest.Optimize as Optimize (maximizeRate, isSimValid, OptimizeResult)
 import Backtest.Debug (printTable, Column(..), yearCols)
 import Backtest.Prelude
 import Text.Read (readMaybe)
 import Juniper
 import Control.Monad.IO.Class (MonadIO)
-import Lucid (button_)
+import Lucid (button_, id_)
 import Web.UI hiding (pr)
 import Backtest.App.Style
 import Debug.Trace (traceM)
@@ -33,6 +34,7 @@ instance Value Alloc where
 data Model = Model
   { lastInputs :: Inputs
   , inputs :: Inputs
+  , results :: Maybe Results
   } deriving (Read, Show, Encode LiveModel)
 
 data Inputs = Inputs
@@ -41,6 +43,12 @@ data Inputs = Inputs
   , allocation :: Alloc
   } deriving (Eq, Read, Show, Generic, ToParams)
 
+data Results = Results
+  { swr :: Pct Withdrawal
+  , swa :: USD (Amt Withdrawal)
+  , simResults :: NonEmpty SimResult
+  } deriving (Show, Read, Eq)
+
 data Action
   = SetAge Text
   | SetPortfolio Text
@@ -48,14 +56,25 @@ data Action
   | Calculate
   deriving (Show, Read, Encode LiveAction)
 
+-- this is the params
+-- everything else needs to be calculated
 params :: Model -> Inputs
 params = (.inputs)
 
+-- we need to load it dynamically
+-- well. In Elm, we would ALSO initiate a deferred update
+-- that could be something else, like....
 load :: MonadIO m => Maybe Inputs -> m Model
-load Nothing  = pure $ Model 
-  { lastInputs = defaultInputs
-  , inputs = defaultInputs
-  }
+load Nothing  = do
+  -- TODO "defer" : tells the client to call us back and wait
+  -- defer task Command
+  pure $ Model 
+    { lastInputs = defaultInputs
+    , inputs = defaultInputs
+
+    -- TODO calculate results
+    , results = Nothing
+    }
   where
     defaultInputs = Inputs
       { age = 60
@@ -65,6 +84,9 @@ load Nothing  = pure $ Model
 load (Just i) = pure $ Model
   { lastInputs = i
   , inputs = i
+
+  -- TODO calculate results
+  , results = Nothing
   }
 
 -- asdf
@@ -82,18 +104,25 @@ update (SetAlloc a) m = do
   pure m { inputs = m.inputs { allocation = a }}
 
 update (Calculate) m = do
-  runSimulation m.inputs
-  pure m { lastInputs = m.inputs }
+  hs <- liftIO $ loadHistories
+  let opr = runSimulation hs m.inputs
+  -- putStrLn $ (showPct . (.swr) <$> res :: Maybe (Pct Withdrawal))
+  pure m { lastInputs = m.inputs, results = toResults <$> opr }
+  where
+    toResults opr = Results
+      { swr = opr.swr
+      , swa = amount opr.swr m.inputs.investments
+      , simResults = opr.results
+      }
+
 
 view :: Model -> Html ()
 view m = col (gap S1 . p S8) $ do
   let i = m.inputs
 
-  col (gap S1) $ do
-    el (text Xl . uppercase) "Safe To Spend"
-    el (text Xl8) $ "$45,000"
-
-  el (bg Red . h S72) "Graph"
+  case m.results of
+    Just res -> results res
+    Nothing -> loading
 
   el (text Xl . uppercase) "Options"
   col (gap S1) $ do
@@ -119,10 +148,25 @@ view m = col (gap S1 . p S8) $ do
           (cs . showPct . fromAlloc . toAllocation)
           ([minBound..maxBound] :: [Alloc])
 
-  when (m.inputs /= m.lastInputs) $ 
-    bgButton Calculate "Recalculate"
+  when (m.inputs /= m.lastInputs || m.results == Nothing) $ 
+    bgButton Calculate "Calculate"
 
   where
+
+    results :: Results -> Html ()
+    results r = do
+      -- let gr = Graph.testGraph $ Graph.simData (usd 600) r.simResults
+      col (gap S1) $ do
+        el (text Xl . uppercase) "Safe To Spend"
+        el (text Sm) $ toHtml $ showPct $ r.swr
+        el (text Xl8) $ toHtml $ "$" <> show (dollars r.swa)
+
+      el (bg Red . h S72 . addAttribute (id_ "test")) $ Graph.testGraph
+
+
+    loading :: Html ()
+    loading = el (text Xl) "Loading"
+
     bgButton :: Encode LiveAction act => act -> Html a -> Html a
     bgButton act = button act
       ( hover |: bg BlueLight . bg Blue
@@ -147,55 +191,28 @@ view m = col (gap S1 . p S8) $ do
 
 
 
+
 page :: (MonadIO m, MonadFail m) => Page Inputs Model Action m
 page = Page params load update view
 
 
 
--- TODO the simulations are all coming back as failures
--- why???
-runSimulation :: (MonadIO m, MonadFail m) => Inputs -> m ()
-runSimulation inp = do
-  hs <- liftIO $ History.loadHistories
+runSimulation :: NonEmpty History -> Inputs -> Maybe OptimizeResult
+runSimulation hs inp =
   let years = numYears (90 - inp.age)
       ss = History.samples years hs
       start = Portfolio inp.investments (usd 0)
       alloc = toAllocation inp.allocation
-      -- sim = Simulation.simulation start (actions wr start (toAllocation alloc))
-      -- srs = fmap sim ss :: NonEmpty SimResult
 
+  in lastMay $ Optimize.maximizeRate isSimValid (sims ss alloc start)
 
-
-  -- TODO get optimize working once the simulation makes sense
-  -- print ("runSimulation", alloc, start)
-  let res = Optimize.maximizeRate isSimValid (sims ss alloc start)
-  print (length res)
-  putStrLn "Found Maximum Rate"
-  print $ fst <$> lastMay res
-
-  -- forM_ res $ \(rate, _) -> do
-  --   print $ rate
-  
-  -- print $ Aggregate.medWithdrawal srs
-  -- let srs = sims ss alloc start (pct 2)
-  -- forM_ srs $ \res -> do
-  --   -- printTable yearCols res.years
-  --   print $ (res.startYear, Aggregate.isWithdrawalFail res)
-
-  -- (Just s1966) <- pure $ List.find (isYear 1966) srs
-  -- print $ s1966.startYear
-  -- print $ s1966.endBalance
-  -- printTable yearCols $ NE.toList s1966.years
-
-
-  pure ()
   where
 
     sims :: NonEmpty (NonEmpty History) -> Allocation -> Balances -> Pct Withdrawal -> NonEmpty SimResult
     sims ss alloc start wr = fmap (sim alloc start wr) ss
 
     sim :: Allocation -> Balances -> Pct Withdrawal -> NonEmpty History -> SimResult
-    sim alloc start wr hs = Simulation.simulation start (actions start alloc wr) hs
+    sim alloc start wr = Simulation.simulation start (actions start alloc wr)
 
     isYear :: Int -> SimResult -> Bool
     isYear y sr =
@@ -208,11 +225,11 @@ runSimulation inp = do
       Strategy.withdrawFloor swda wr
       Simulation.rebalance $ rebalanceFixed al
 
-    columns :: [Column OptimizeResult]
-    columns =
-        [ Column "stocks%" 9 (\o -> show o.alloc)
-        , Column "swr" 7 (\o -> show o.swr)
-        , Column "min" 7 (\o -> show $ Aggregate.minWithdrawal o.results)
-        , Column "med" 7 (\o -> show $ Aggregate.medWithdrawal o.results)
-        ]
+    -- columns :: [Column OptimizeResult]
+    -- columns =
+    --     [ Column "stocks%" 9 (\o -> show o.alloc)
+    --     , Column "swr" 7 (\o -> show o.swr)
+    --     , Column "min" 7 (\o -> show $ Aggregate.minWithdrawal o.results)
+    --     , Column "med" 7 (\o -> show $ Aggregate.medWithdrawal o.results)
+    --     ]
 

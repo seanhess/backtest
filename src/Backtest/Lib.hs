@@ -10,7 +10,7 @@ import Backtest.Strategy
 import Backtest.Strategy.ABW
 import Backtest.Strategy.Steps
 import Backtest.Strategy.Peak
-import Backtest.Graph
+import Backtest.Graph.Vega
 import Backtest.MSWR (rateResults, isFailure)
 import Backtest.Aggregate
 import Backtest.Optimize
@@ -57,8 +57,8 @@ runActual hs cache = do
     -- countHistories
     -- findBest
     -- runSim
-    tryOptimize
-    -- tryMaximize
+    -- tryOptimize
+    tryMaximize
     pure ()
 
   where
@@ -125,36 +125,36 @@ runActual hs cache = do
       let run' = \wr -> simulation start (actions start S100 wr) <$> ss
 
       let res = maximizeRate isSimValid run'
-      -- printTable columns res
-      print $ map (\(wr, srs) -> (wr, medWithdrawal srs)) res
-
-    tryOptimize :: IO ()
-    tryOptimize = do
-
-      print $ length ss
-
-      -- Optimize with history
-      let res = optimize stepAlloc5 stepRate5 ss S100 (pct 2.8) start (actions start)
-      -- let res = 
-
       printTable columns res
+      -- print $ map (\(wr, srs) -> (wr, medWithdrawal srs)) res
 
-      -- Best result
-      putStrLn "BEST"
-      Just best <- pure $ bestResult res
-      putStrLn $ tableRow columns best
+    -- tryOptimize :: IO ()
+    -- tryOptimize = do
 
-      -- oh do I have to manually calculate this?
-      let hn = History {year = Year 2023, returns = Portfolio (pct (-19.5)) (pct 0), values = Portfolio (usd (3066397.56 * 0.805)) (usd 49.86), cape = CAPE 36.94}
+    --   print $ length ss
 
-      let hx = hs <> [hn]
-      putStrLn $ "Peak Withdrawal:"
-      print $ peakWithdrawal (reverseTimeline hn.year hx) best.swr (rebalanceFixed best.alloc start)
+    --   -- Optimize with history
+    --   let res = optimize stepAlloc5 stepRate5 ss S100 (pct 2.8) start (actions start)
+    --   -- let res = 
 
-      putStrLn $ "Peak Withdrawal (100% stocks, 3%):"
-      print $ peakWithdrawal (reverseTimeline hn.year hx) (pct 3) (rebalanceFixed S100 start)
+    --   printTable columns res
 
-      pure ()
+    --   -- Best result
+    --   putStrLn "BEST"
+    --   Just best <- pure $ bestResult res
+    --   putStrLn $ tableRow columns best
+
+    --   -- oh do I have to manually calculate this?
+    --   let hn = History {year = Year 2023, returns = Portfolio (pct (-19.5)) (pct 0), values = Portfolio (usd (3066397.56 * 0.805)) (usd 49.86), cape = CAPE 36.94}
+
+    --   let hx = hs <> [hn]
+    --   putStrLn $ "Peak Withdrawal:"
+    --   print $ peakWithdrawal (reverseTimeline hn.year hx) best.swr (rebalanceFixed best.alloc start)
+
+    --   putStrLn $ "Peak Withdrawal (100% stocks, 3%):"
+    --   print $ peakWithdrawal (reverseTimeline hn.year hx) (pct 3) (rebalanceFixed S100 start)
+
+    --   pure ()
 
     actions :: Balances -> Allocation -> Pct Withdrawal -> Actions ()
     actions start' al wr = do
@@ -188,8 +188,8 @@ runActual hs cache = do
  
     columns :: [Column OptimizeResult]
     columns =
-        [ Column "stocks%" 9 (\o -> show o.alloc)
-        , Column "swr" 7 (\o -> show o.swr)
+        -- [ Column "stocks%" 9 (\o -> show o.alloc)
+        [ Column "swr" 7 (\o -> show o.swr)
         , Column "min" 7 (\o -> show $ minWithdrawal o.results)
         , Column "med" 7 (\o -> show $ medWithdrawal o.results)
         ]

@@ -14,7 +14,7 @@ import qualified Data.ByteString as BS
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
 import qualified Backtest.MSWR as MSWR
-import Backtest.Optimize (maximizeRate)
+import Backtest.Optimize (maximizeRate, OptimizeResult(..))
 import Backtest.Strategy (rebalanceFixed, thousand)
 import Backtest.History (samples)
 import Backtest.Simulation (rebalance, balances, yearsLeft, yearsElapsed, Actions, withdraw, npvExpenses, lastWithdrawal)
@@ -74,7 +74,7 @@ calculateAllMSWRs hs =
       let ss = samples ny hs
       let bal = thousand al
       let steps = maximizeRate isSuccess (MSWR.runRate ss bal (rebalance (rebalanceFixed al)))
-      (pw , _) <- lastMay $ steps
+      OptimizeResult pw _ <- lastMay $ steps
       pure $ dump "Optimize" (fromNumYears ny, al, pw) $ (al, pw)
 
     isSuccess :: NonEmpty SimResult -> Bool

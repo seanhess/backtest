@@ -3,7 +3,14 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    hackage: lucid-svg-0.7.1@sha256:012455fd2b1ec6b0f3bba405fd66c99cc6d26592bf25c2624741969567c6e510,1088
+    pantry-tree:
+      size: 456
+      sha256: 46cd22d19a82b9defe4cdec84eaca2fbc804d81515631f0afdb7f2c76a7b548a
+  original:
+    hackage: lucid-svg-0.7.1
 snapshots:
 - completed:
     size: 587393

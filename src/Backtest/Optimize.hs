@@ -12,15 +12,13 @@ import Debug.Trace
 -- Find the optimal starting amount and raise for a given situation
 
 
-
 data Inputs = Inputs
   { swr :: Pct Withdrawal
   , alloc :: Pct Stocks
   }
 
 data OptimizeResult = OptimizeResult
-  { alloc :: Allocation
-  , swr :: Pct Withdrawal
+  { swr :: Pct Withdrawal
   , results :: NonEmpty SimResult
   }
 
@@ -28,80 +26,79 @@ type WR = Pct Withdrawal
 type PS = Pct Stocks
 type WDA = USD (Amt Withdrawal)
 
--- b = Tested
--- a = Pct Stocks
--- unfoldr :: (a -> (b, Maybe a)) -> a -> NonEmpty b
+-- -- b = Tested
+-- -- a = Pct Stocks
+-- -- unfoldr :: (a -> (b, Maybe a)) -> a -> NonEmpty b
 
-stepAlloc5 :: Allocation -> Maybe Allocation
-stepAlloc5 S50 = Nothing
-stepAlloc5 a = Just $ succ a
+-- stepAlloc5 :: Allocation -> Maybe Allocation
+-- stepAlloc5 S50 = Nothing
+-- stepAlloc5 a = Just $ succ a
 
-stepRate5 :: Pct Withdrawal -> Maybe (Pct Withdrawal)
-stepRate5 = stepRate (pct 0.05)
+-- stepRate5 :: Pct Withdrawal -> Maybe (Pct Withdrawal)
+-- stepRate5 = stepRate (pct 0.05)
 
-stepRate :: Pct Withdrawal -> Pct Withdrawal -> Maybe (Pct Withdrawal)
-stepRate s r
-  | r >= pct 100 = Nothing
-  | otherwise = Just $ min (pct 100) (r + s)
+-- stepRate :: Pct Withdrawal -> Pct Withdrawal -> Maybe (Pct Withdrawal)
+-- stepRate s r
+--   | r >= pct 100 = Nothing
+--   | otherwise = Just $ min (pct 100) (r + s)
 
 
--- I want to see all the steps
--- but I'm doing unfoldr, which is hard to follow
--- it's repeated applications of nextAlloc
-optimize :: (Allocation -> Maybe Allocation) -> (Pct Withdrawal -> Maybe (Pct Withdrawal)) -> NonEmpty (NonEmpty History) -> Allocation -> Pct Withdrawal -> Balances -> (Allocation -> Pct Withdrawal -> Actions ()) -> [OptimizeResult]
-optimize stepA stepR ss startAlc startRate bal actions =
-  optimizeAlloc startAlc startRate
+-- -- I want to see all the steps
+-- -- but I'm doing unfoldr, which is hard to follow
+-- -- it's repeated applications of nextAlloc
+-- optimize :: (Allocation -> Maybe Allocation) -> (Pct Withdrawal -> Maybe (Pct Withdrawal)) -> NonEmpty (NonEmpty History) -> Allocation -> Pct Withdrawal -> Balances -> (Allocation -> Pct Withdrawal -> Actions ()) -> [OptimizeResult]
+-- optimize stepA stepR ss startAlc startRate bal actions =
+--   optimizeAlloc startAlc startRate
 
-  where
+--   where
 
-    optimizeAlloc :: Allocation -> Pct Withdrawal -> [OptimizeResult]
-    optimizeAlloc ps wr =
-      mconcat $ List.unfoldr nextAlloc (ps, wr)
+--     optimizeAlloc :: Allocation -> Pct Withdrawal -> [OptimizeResult]
+--     optimizeAlloc ps wr =
+--       mconcat $ List.unfoldr nextAlloc (ps, wr)
 
-    nextAlloc :: (Allocation, Pct Withdrawal) -> Maybe ([OptimizeResult], (Allocation, Pct Withdrawal))
-    nextAlloc (al, mwr) = do
-      traceM $ show ("nextAlloc", al, stepA al, mwr)
-      let res = optimizeRate al mwr
-      traceM $ "1"
+--     nextAlloc :: (Allocation, Pct Withdrawal) -> Maybe ([OptimizeResult], (Allocation, Pct Withdrawal))
+--     nextAlloc (al, mwr) = do
+--       traceM $ show ("nextAlloc", al, stepA al, mwr)
+--       let res = optimizeRate al mwr
+--       traceM $ "1"
 
-      -- it's getting no results
-      mwr' <- fst <$> lastMay res
-      traceM $ "2"
+--       -- it's getting no results
+--       mwr' <- fst <$> lastMay res
+--       traceM $ "2"
 
-      -- this fails the CURRENT 
-      al' <- stepA al
-      traceM $ "3"
+--       -- this fails the CURRENT 
+--       al' <- stepA al
+--       traceM $ "3"
 
-      pure (map (optimizeResult al) res, (al', mwr'))
+--       pure (map (optimizeResult al) res, (al', mwr'))
 
-    optimizeRate :: Allocation -> Pct Withdrawal -> [(Pct Withdrawal, NonEmpty SimResult)]
-    optimizeRate al wr = maximize wr stepR isSimValid (runSim al)
+--     optimizeRate :: Allocation -> Pct Withdrawal -> [(Pct Withdrawal, NonEmpty SimResult)]
+--     optimizeRate al wr = maximize wr stepR isSimValid (runSim al)
 
-    runSim :: Allocation -> Pct Withdrawal -> NonEmpty SimResult
-    runSim ps wr =
-      let sim = simulation bal (actions ps wr)
-      in fmap sim ss
+--     runSim :: Allocation -> Pct Withdrawal -> NonEmpty SimResult
+--     runSim ps wr =
+--       let sim = simulation bal (actions ps wr)
+--       in fmap sim ss
 
-    optimizeResult :: Allocation -> (Pct Withdrawal, NonEmpty SimResult) -> OptimizeResult
-    optimizeResult al (swr, srs) =
-      OptimizeResult al swr srs
+--     optimizeResult :: Allocation -> (Pct Withdrawal, NonEmpty SimResult) -> OptimizeResult
+--     optimizeResult al (swr, srs) =
+--       OptimizeResult al swr srs
 
+-- -- maximize by: wdr, then median
+-- bestResult :: [OptimizeResult] -> Maybe OptimizeResult
+-- bestResult = maximumByMay (comparing rateThenMed)
+--   where
+--     rateThenMed o = (o.swr, medWithdrawal o.results)
 
 
 isSimValid :: NonEmpty SimResult -> Bool
 isSimValid = all (not . isWithdrawalFail)
 
-
--- maximize by: wdr, then median
-bestResult :: [OptimizeResult] -> Maybe OptimizeResult
-bestResult = maximumByMay (comparing rateThenMed)
+maximizeRate :: (NonEmpty SimResult -> Bool) -> (Pct Withdrawal -> NonEmpty SimResult) -> [OptimizeResult]
+maximizeRate isValid sim =
+  map toResult $ maximize' rateSteps isValid sim
   where
-    rateThenMed o = (o.swr, medWithdrawal o.results)
-
-
-maximizeRate :: (NonEmpty SimResult -> Bool) -> (Pct Withdrawal -> NonEmpty SimResult) -> [(Pct Withdrawal, NonEmpty SimResult)]
-maximizeRate = maximize' rateSteps
-
+    toResult (pw, srs) = OptimizeResult pw srs
 
 rateSteps :: [Pct Withdrawal]
 rateSteps = map pct $ List.nub $ mconcat
@@ -113,25 +110,22 @@ rateSteps = map pct $ List.nub $ mconcat
   , [ 1, 1.1 .. 50 ]
   ]
 
-
 -- step up and re-run each time, nothing fancy
-maximize :: forall x result. Show x => x -> (x -> Maybe x) -> (result -> Bool) -> (x -> result) -> [(x, result)]
-maximize start step isValid run =
-  takeWhile (isValid . snd) $ zip steps results
-  where
-    steps :: [x]
-    steps = List.unfoldr nextStep start
+-- maximize :: forall x result. Show x => x -> (x -> Maybe x) -> (result -> Bool) -> (x -> result) -> [(x, result)]
+-- maximize start step isValid run =
+--   takeWhile (isValid . snd) $ zip steps results
+--   where
+--     steps :: [x]
+--     steps = List.unfoldr nextStep start
 
-    nextStep :: x -> Maybe (x, x)
-    nextStep x = do
-      x1 <- step x
-      pure $ (x, x1)
+--     nextStep :: x -> Maybe (x, x)
+--     nextStep x = do
+--       x1 <- step x
+--       pure $ (x, x1)
 
-    results :: [result]
-    results = fmap run steps
+--     results :: [result]
+--     results = fmap run steps
 
-
--- maximizeRate :: (NonEmpty SimResult -> Bool) -> ()
 
 -- ok, we need to start at 0 or 0.1
 -- we could go to half?

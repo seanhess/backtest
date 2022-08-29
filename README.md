@@ -6,6 +6,11 @@
 
 
 
+## Useful Links
+- [SVG Graphs](https://css-tricks.com/how-to-make-charts-with-svg/)
+- [SVG Path Tutorial](https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths)
+
+
 
 ## Results
 

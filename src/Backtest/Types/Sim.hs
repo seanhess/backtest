@@ -29,7 +29,7 @@ data YearStart = YearStart
   , netIncome  :: USD (Amt Income)
   , netExpenses :: USD (Amt Expense)
   , actions    :: Changes
-  } deriving (Show)
+  } deriving (Show, Read, Eq)
 
 data SimResult = SimResult
   { startYear :: Year
@@ -37,7 +37,7 @@ data SimResult = SimResult
   , endYear :: Year
   , endBalance :: Balances
   , years :: NonEmpty YearStart
-  }
+  } deriving (Show, Read, Eq)
 
 data Success
 

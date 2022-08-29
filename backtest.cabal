@@ -29,6 +29,7 @@ library
       Backtest.Cache
       Backtest.Debug
       Backtest.Graph
+      Backtest.Graph.Vega
       Backtest.History
       Backtest.Lib
       Backtest.MSWR
@@ -154,6 +155,7 @@ executable backtest-exe
     , hvega
     , juniper
     , lucid
+    , lucid-svg
     , mtl
     , network
     , raw-strings-qq
@@ -162,7 +164,6 @@ executable backtest-exe
     , safe
     , scotty
     , string-conversions
-    , tailwindcss
     , text
     , vector
     , wai
@@ -177,6 +178,7 @@ test-suite backtest-test
       Backtest.Cache
       Backtest.Debug
       Backtest.Graph
+      Backtest.Graph.Vega
       Backtest.History
       Backtest.Lib
       Backtest.MSWR

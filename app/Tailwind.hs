@@ -13,6 +13,7 @@ module Tailwind
 
   -- * Option
   , module Tailwind.Types
+  , module Tailwind.Options
   )
   where
 
@@ -21,3 +22,4 @@ import Tailwind.Types hiding ((-))
 import Tailwind.Values
 import Tailwind.Classes
 import Tailwind.Prefix
+import Tailwind.Options

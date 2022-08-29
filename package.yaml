@@ -34,7 +34,6 @@ dependencies:
 - string-conversions
 - text
 - vector
-
 - casing
 - data-default
 
@@ -88,8 +87,8 @@ executables:
     - backtest
     - file-embed
     - juniper
-    - tailwindcss
     - lucid
+    - lucid-svg
     - wai
     - wai-middleware-static
     - scotty

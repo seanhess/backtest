@@ -2,7 +2,7 @@
 module Backtest.LayoutTest where
 
 import Backtest.Prelude
-import Tailwind.UI
+import Web.UI
 
 
 -- this is a bit obnoxious!
@@ -20,29 +20,29 @@ instance Option Background AppColor
 instance Option Border AppColor
 instance Option FontText AppColor
 
-yellow400 :: Color
-yellow400 = Color "yellow-500"
+-- yellow400 :: Color
+-- yellow400 = Color "yellow-500"
 
 dataItems :: [[Text]]
 dataItems = [["one", "row"], ["two"], ["three"], ["four"], ["five"], ["six"], ["seven"], ["eight"], ["nine"], ["ten"], ["eleven"]]
 
 -- TODO align
-layoutTest :: UI t ()
+layoutTest :: Html ()
 layoutTest = col (bg Black) $ do
 
   row (bg Red . p S0. shrink . text White) $ do
     space
-    str "EXAMPLE"
+    "EXAMPLE"
     space
 
   row (p S2 . gap S2 . items Center . h S48 . bg BlueLight . flex Wrap) $ do
-    el (bg Green . grow) $ str "MANUAL"
+    el (bg Green . grow) $ "MANUAL"
     forM_ dataItems $ \c -> do
       col (bg White . w S20 . gap S1) $ do
         forM_ c $ \item -> do
-          el (bg Green . basis S4) $ str item
+          el (bg Green . basis S4) $ toHtml item
 
-  el (bg yellow400 . w S12) $ str "hello"
+  el (bg BlueLight . w S12) $ "hello"
 
 
 -- can you do it with space? or align?

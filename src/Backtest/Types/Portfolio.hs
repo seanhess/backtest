@@ -29,6 +29,9 @@ instance Semigroup (Portfolio Pct f) where
 instance Monoid (Portfolio Pct f) where
   mempty = Portfolio mempty mempty
 
+instance Eq (Portfolio Pct f) where
+  (Portfolio s b) == (Portfolio s' b') = s == s' && b == b'
+
 instance Show (Portfolio USD f) where
   show (Portfolio s b) = show (s, b)
 
