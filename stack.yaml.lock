@@ -5,16 +5,27 @@
 
 packages:
 - completed:
+    commit: 22f0bde0d9f769cdd887e2c6930fb79db9d6c53c
+    git: https://github.com/seanhess/juniper.git
+    name: juniper
+    pantry-tree:
+      sha256: d470947226c9aa57253083f6566d4f18e0cccd91cd588b4811a864a8662119f3
+      size: 2554
+    version: 0.2.0
+  original:
+    commit: 22f0bde0d9f769cdd887e2c6930fb79db9d6c53c
+    git: https://github.com/seanhess/juniper.git
+- completed:
     hackage: lucid-svg-0.7.1@sha256:012455fd2b1ec6b0f3bba405fd66c99cc6d26592bf25c2624741969567c6e510,1088
     pantry-tree:
-      size: 456
       sha256: 46cd22d19a82b9defe4cdec84eaca2fbc804d81515631f0afdb7f2c76a7b548a
+      size: 456
   original:
     hackage: lucid-svg-0.7.1
 snapshots:
 - completed:
+    sha256: 1b74fb5e970497b5aefae56703f1bd44aa648bd1a5ef95c1eb8c29775087e2bf
     size: 587393
     url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/25.yaml
-    sha256: 1b74fb5e970497b5aefae56703f1bd44aa648bd1a5ef95c1eb8c29775087e2bf
   original:
     url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/25.yaml

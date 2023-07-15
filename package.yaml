@@ -37,6 +37,10 @@ dependencies:
 - casing
 - data-default
 
+- juniper
+- lucid
+- lucid-svg
+
 ghc-options:
   - -Wincomplete-patterns
   - -Wdodgy-exports
@@ -86,9 +90,6 @@ executables:
     dependencies:
     - backtest
     - file-embed
-    - juniper
-    - lucid
-    - lucid-svg
     - wai
     - wai-middleware-static
     - scotty

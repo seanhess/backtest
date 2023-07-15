@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.35.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -86,6 +86,9 @@ library
     , data-default
     , exceptions
     , hvega
+    , juniper
+    , lucid
+    , lucid-svg
     , mtl
     , record-dot-preprocessor
     , record-hasfield
@@ -99,7 +102,6 @@ executable backtest-exe
   main-is: Main.hs
   other-modules:
       Backtest.App
-      Backtest.App.Counter
       Backtest.App.Results
       Backtest.App.Static
       Backtest.App.Style
@@ -236,6 +238,9 @@ test-suite backtest-test
     , data-default
     , exceptions
     , hvega
+    , juniper
+    , lucid
+    , lucid-svg
     , mtl
     , record-dot-preprocessor
     , record-hasfield
